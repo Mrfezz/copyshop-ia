@@ -1,8 +1,13 @@
 // app/paiement/page.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
+import { useRouter } from "next/navigation";
 import { PRODUCTS, type ProductKey } from "@/lib/products";
 
 type ProductLike = {
@@ -31,19 +36,19 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-// ✅ Fallback marketing si un produit n'a pas de description dans PRODUCTS
+// ✅ Texte de secours si un produit n’a pas de description
 const DEFAULT_DESCS: Partial<Record<ProductKey, string>> = {
   // Services digitaux
   "services-essentiel":
-    "Le pack parfait pour lancer ta boutique vite et proprement. On te met une base solide, pro et prête à vendre.",
+    "Le pack parfait pour lancer ta boutique vite et proprement. Base solide, pro et prête à vendre.",
   "services-pro":
-    "Passe au niveau supérieur : accompagnement + administratif + sourcing pour sécuriser ton business et éviter les erreurs.",
+    "Passe au niveau supérieur : accompagnement + administratif + sourcing pour sécuriser ton business.",
   "services-business":
-    "Lancement premium clé en main : optimisation complète, fournisseur géré et boutique prête à scaler rapidement.",
+    "Lancement premium clé en main : optimisation complète, fournisseur géré et boutique prête à scaler.",
 
   // Packs IA
   "ia-basic":
-    "Accès immédiat à Copyshop IA pour générer ta boutique Shopify en quelques minutes. Simple, rapide et efficace.",
+    "Accès immédiat à Copyshop IA pour générer ta boutique Shopify en quelques minutes.",
   "ia-premium":
     "Le meilleur équilibre pour tester plusieurs niches et accélérer tes résultats avec l’IA.",
   "ia-ultime":
@@ -69,18 +74,31 @@ const DEFAULT_DESCS: Partial<Record<ProductKey, string>> = {
 };
 
 export default function PaiementPage() {
-  const sp = useSearchParams();
   const router = useRouter();
 
+  // ✅ on lit ?product= côté client uniquement
+  const [keyParam, setKeyParam] = useState<ProductKey | null>(null);
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ on lit bien ?product=
-  const keyParam = (sp.get("product") || "") as ProductKey;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const sp = new URLSearchParams(window.location.search);
+    const rawKey = sp.get("product") as ProductKey | null;
+
+    if (rawKey && rawKey in PRODUCTS) {
+      setKeyParam(rawKey);
+    } else {
+      setKeyParam(null);
+    }
+
+    setReady(true);
+  }, []);
 
   const product = useMemo<ProductLike | null>(() => {
     if (!keyParam) return null;
-    if (!(keyParam in PRODUCTS)) return null;
     return PRODUCTS[keyParam] as unknown as ProductLike;
   }, [keyParam]);
 
@@ -89,13 +107,14 @@ export default function PaiementPage() {
   const rawDescription = product?.description ?? product?.desc ?? "";
   const description =
     rawDescription.trim() ||
-    DEFAULT_DESCS[keyParam] ||
+    (keyParam ? DEFAULT_DESCS[keyParam] : "") ||
     "Accès immédiat après paiement. Support Copyshop inclus.";
 
   const points: string[] | null = product?.points ?? product?.bullets ?? null;
 
   const handlePay = async () => {
     if (!product || !keyParam) return;
+
     setLoading(true);
     setError(null);
 
@@ -111,7 +130,7 @@ export default function PaiementPage() {
 
       if (!res.ok || !data?.url) {
         throw new Error(
-          data?.error || "Impossible de créer la session Stripe."
+          data?.error || "Impossible de créer la session de paiement."
         );
       }
 
@@ -122,6 +141,26 @@ export default function PaiementPage() {
     }
   };
 
+  // ✅ 1) Pendant le premier rendu (SSR + avant useEffect)
+  if (!ready) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.bgGradient} />
+        <div style={styles.bgDots} />
+
+        <section style={styles.container}>
+          <div style={styles.card}>
+            <h1 style={styles.title}>Préparation du paiement…</h1>
+            <p style={styles.sub}>
+              Merci de patienter, on charge ton produit Copyshop IA.
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ✅ 2) Après lecture des params : produit introuvable
   if (!product) {
     return (
       <main style={styles.page}>
@@ -136,7 +175,7 @@ export default function PaiementPage() {
             </p>
 
             <button onClick={() => router.push("/")} style={styles.btnAlt}>
-              Retour accueil
+              Retour à l’accueil
             </button>
           </div>
         </section>
@@ -144,6 +183,7 @@ export default function PaiementPage() {
     );
   }
 
+  // ✅ 3) Produit OK
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -154,7 +194,7 @@ export default function PaiementPage() {
           <p style={styles.kicker}>PAIEMENT SÉCURISÉ</p>
           <h1 style={styles.title}>Finaliser ta commande</h1>
           <p style={styles.sub}>
-            Tu es à 1 clic de débloquer ton accès Copyshop IA.
+            Tu es à un clic de débloquer ton accès Copyshop IA.
           </p>
         </header>
 
@@ -163,12 +203,11 @@ export default function PaiementPage() {
 
           <h2 style={styles.cardTitle}>{product.name}</h2>
 
-          {/* ✅ description toujours visible */}
           <p style={styles.desc}>{description}</p>
 
           {points?.length ? (
             <ul style={styles.list}>
-              {points.map((p: string) => (
+              {points.map((p) => (
                 <li key={p} style={styles.listItem}>
                   <span style={styles.check}>✓</span>
                   <span>{p}</span>
@@ -192,7 +231,7 @@ export default function PaiementPage() {
                 cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              {loading ? "Redirection Stripe..." : "Payer maintenant"}
+              {loading ? "Redirection vers Stripe..." : "Payer maintenant"}
             </button>
           </div>
 
@@ -203,7 +242,7 @@ export default function PaiementPage() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     position: "relative",
     minHeight: "100vh",
@@ -221,6 +260,7 @@ const styles: Record<string, React.CSSProperties> = {
       `linear-gradient(180deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 45%, ${COLORS.bgBottom} 100%)`,
     zIndex: -2,
   },
+
   bgDots: {
     position: "fixed",
     inset: 0,
@@ -243,7 +283,11 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1,
   },
 
-  header: { textAlign: "center", marginBottom: 22 },
+  header: {
+    textAlign: "center",
+    marginBottom: 22,
+  },
+
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -252,12 +296,18 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+
   title: {
     fontSize: "clamp(2.1rem, 4vw, 3.0rem)",
     fontWeight: 900,
     margin: "8px 0 6px",
   },
-  sub: { fontSize: "1.05rem", color: COLORS.muted, margin: 0 },
+
+  sub: {
+    fontSize: "1.05rem",
+    color: COLORS.muted,
+    margin: 0,
+  },
 
   card: {
     position: "relative",
@@ -283,8 +333,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
   },
 
-  cardTitle: { fontSize: "1.7rem", fontWeight: 900, margin: "6px 0 0" },
-  desc: { color: COLORS.muted, margin: "4px 0 8px", lineHeight: 1.5 },
+  cardTitle: {
+    fontSize: "1.7rem",
+    fontWeight: 900,
+    margin: "6px 0 0",
+  },
+
+  desc: {
+    color: COLORS.muted,
+    margin: "4px 0 8px",
+    lineHeight: 1.5,
+  },
 
   list: {
     listStyle: "none",
@@ -293,7 +352,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 8,
   },
-  listItem: { display: "flex", gap: 10, alignItems: "flex-start" },
+
+  listItem: {
+    display: "flex",
+    gap: 10,
+    alignItems: "flex-start",
+  },
+
   check: {
     width: 22,
     height: 22,
@@ -318,7 +383,13 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
     gap: 10,
   },
-  price: { fontSize: "2rem", fontWeight: 900, color: "#fff" },
+
+  price: {
+    fontSize: "2rem",
+    fontWeight: 900,
+    color: "#fff",
+  },
+
   priceNote: {
     fontSize: "0.95rem",
     fontWeight: 700,
@@ -336,6 +407,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 8px 18px rgba(106,47,214,0.35)",
     whiteSpace: "nowrap",
   },
+
   btnAlt: {
     marginTop: 8,
     padding: "10px 14px",
