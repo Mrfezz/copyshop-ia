@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== THEME COPYSHOP IA ===== */
+:root{
+  --bg-0:#070b1a;            /* fond principal (navy très sombre) */
+  --bg-1:#0d1531;            /* dégradé bas */
+  --card:#0b1226;            /* cartes */
+  --card-2:#0f1936;          /* cartes highlight */
+  --border:rgba(148,163,184,0.18);
+
+  --text:#f8fafc;            /* texte blanc */
+  --muted:#cbd5e1;           /* texte secondaire */
+
+  --accent-1:#6366f1;        /* bleu/violet */
+  --accent-2:#8b5cf6;        /* violet */
+  --accent-3:#ec4899;        /* rose */
+  --accent-4:#22c55e;        /* vert validation */
+
+  /* ✅ AJOUTS pour fond identique partout (utilisé par les pages) */
+  --bg-top: var(--bg-0);
+  --bg-mid: #0f1635;
+  --bg-bottom: var(--bg-1);
+
+  /* ✅ AJOUTS gradients globaux identiques home/flyer */
+  --grad-home: linear-gradient(90deg, #141a4a 0%, #3f47d8 55%, #e64aa7 100%);
+  --grad-brand: linear-gradient(90deg, #1b2b9d, #6a2fd6, #e64aa7);
+}
+
+/* Fond global style "digital flyer" */
+html, body{
+  height:100%;
+}
+body{
+  margin:0;
+  color:var(--text);
+  background:
+    radial-gradient(900px circle at -10% -10%, rgba(99,102,241,.28), transparent 55%),
+    radial-gradient(800px circle at 110% 0%, rgba(236,72,153,.25), transparent 60%),
+    linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+a{ color:inherit; text-decoration:none; }
+
+/* Layout */
+.site-wrap{
+  max-width:1100px;
+  margin:0 auto;
+  padding:90px 16px 40px; /* top padding pour laisser le header */
+}
+
+/* Titre section */
+.section-title{
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight:800;
+  letter-spacing:.3px;
+  margin:0 0 12px;
+}
+.section-sub{
+  color:var(--muted);
+  margin:0 0 20px;
+}
+
+/* Cartes */
+.card{
+  background: linear-gradient(180deg, var(--card), #0a0f22);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+.card.highlight{
+  background: linear-gradient(180deg, var(--card-2), #0c1430);
+  border-color: rgba(139,92,246,.5);
+  transform: translateY(-2px);
+}
+
+/* Boutons */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:.5rem;
+  padding:.7rem 1.1rem;
+  border-radius:999px;
+  font-weight:700;
+  font-size:.95rem;
+  transition:.2s ease;
+  cursor:pointer;
+}
+
+.btn-primary{
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
+  color:white;
+  border:none;
+  box-shadow: 0 10px 25px rgba(99,102,241,.35);
+}
+.btn-primary:hover{ transform: translateY(-1px); opacity:.95; }
+
+.btn-outline{
+  background: transparent;
+  border:1px solid var(--border);
+  color:var(--text);
+}
+.btn-outline:hover{
+  border-color: rgba(139,92,246,.7);
+  background: rgba(139,92,246,.08);
+}
+
+/* Tags / pills */
+.tag{
+  display:inline-block;
+  padding:.25rem .55rem;
+  border-radius:999px;
+  font-size:.75rem;
+  font-weight:700;
+  background: rgba(99,102,241,.12);
+  border:1px solid rgba(99,102,241,.35);
+}
+
+/* Grilles */
+.grid-3{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:14px;
+}
+.grid-2{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+@media (max-width: 900px){
+  .grid-3{ grid-template-columns:1fr; }
+  .grid-2{ grid-template-columns:1fr; }
+}
+
+
+/* =========================
+   ✅ AJOUTS HARMONISATION PAGES
+   (sans conflit avec tes classes)
+   ========================= */
+
+/* Kicker (petit texte au-dessus des titres) */
+.page-kicker{
+  font-size: .75rem;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: rgba(238,241,255,.6);
+  font-weight: 800;
+}
+
+/* Gros titre H1 style flyer */
+.page-title{
+  margin-top: .5rem;
+  font-size: clamp(2.6rem, 5vw, 4.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+/* Sous-titre standard */
+.page-subtitle{
+  margin-top: .85rem;
+  font-size: 1.05rem;
+  color: rgba(238,241,255,.75);
+}
+
+/* Petits titres de cards (H3) */
+.card-title{
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: #0f1d55;
+}
+
+/* Dégradé prix/boutons global */
+.bg-price-gradient{
+  background: var(--grad-home);
+}
+
+/* Texte en dégradé (si besoin) */
+.text-price-gradient{
+  background: var(--grad-home);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color: transparent;
+}
+
+/* Shadows universelles */
+.shadow-soft{
+  box-shadow: 0 12px 35px rgba(0,0,0,.25);
+}
+.shadow-glow{
+  box-shadow: 0 10px 20px rgba(230,74,167,.35);
+}
