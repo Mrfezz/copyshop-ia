@@ -17,141 +17,114 @@ const NAV_LINKS = [
   { label: "Compte client", href: "/compte-client" },
 ];
 
+type SocialLink = {
+  name: string;
+  href: string;
+  bg: string;
+  icon: JSX.Element;
+};
+
 // ✨ Réseaux sociaux
-const SOCIAL_LINKS = [
-  {
-    name: "Facebook",
-    href: "https://facebook.com",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="9"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-        <path
-          d="M13 7.5h1.6V5.5H13c-2.2 0-3.6 1.3-3.6 3.5v1.5H8v2h1.4V18h2.1v-5.5h1.7v-2h-1.7V9c0-.9.4-1.5 1.5-1.5Z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
-  },
+const SOCIAL_LINKS: SocialLink[] = [
   {
     name: "Instagram",
     href: "https://www.instagram.com/mr.fezzz",
+    bg: "linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)",
     icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-      >
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
         <rect
           x="4"
           y="4"
           width="16"
           height="16"
           rx="5"
-          stroke="currentColor"
+          stroke="white"
           strokeWidth="1.6"
+          fill="none"
         />
         <circle
           cx="12"
           cy="12"
-          r="4"
-          stroke="currentColor"
+          r="4.2"
+          stroke="white"
           strokeWidth="1.6"
+          fill="none"
         />
-        <circle cx="17" cy="7" r="1.2" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
-    name: "YouTube",
-    href: "https://youtube.com",
-    icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-      >
-        <rect
-          x="4"
-          y="7"
-          width="16"
-          height="10"
-          rx="3"
-          stroke="currentColor"
-          strokeWidth="1.6"
-        />
-        <polygon points="11 10 15 12 11 14" fill="currentColor" />
+        <circle cx="17" cy="7.2" r="1.3" fill="white" />
       </svg>
     ),
   },
   {
     name: "TikTok",
     href: "https://www.tiktok.com/@mr.fezzz",
+    bg: "#000000",
     icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-      >
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+        {/* note simple */}
+        <rect x="11" y="6.5" width="2.4" height="8.5" rx="1.2" fill="white" />
+        <circle cx="10" cy="15" r="1.6" fill="white" />
+      </svg>
+    ),
+  },
+  {
+    name: "Facebook",
+    href: "https://facebook.com",
+    bg: "#1877F2",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
         <path
-          d="M14 6.5V10.2C14 12 12.8 13 11.3 13c-1.3 0-2.3 1-2.3 2.3A2.7 2.7 0 0 0 11.7 18c1.7 0 2.8-1.3 2.8-3.1v-5a4.5 4.5 0 0 0 3.2 1.3V9a3.4 3.4 0 0 1-3.2-2.5L14 6.5Z"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M8.5 11.7A2.6 2.6 0 0 1 11 9.5"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
+          d="M13.2 5.5H11c-2.1 0-3.6 1.5-3.6 3.7v2H6.5v2.3H7.4H8v4.9h2.4v-4.9h2.1l.3-2.3H10.4V9.3c0-.9.4-1.4 1.4-1.4h1.4V5.5Z"
+          fill="white"
         />
       </svg>
     ),
   },
   {
-    name: "LinkedIn",
-    href: "https://linkedin.com",
+    name: "WhatsApp",
+    href: "https://wa.me/33745214922",
+    bg: "#25D366",
     icon: (
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        width="16"
-        height="16"
-        fill="none"
-      >
-        <rect
-          x="4"
-          y="4"
-          width="16"
-          height="16"
-          rx="2"
-          stroke="currentColor"
-          strokeWidth="1.6"
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+        <circle
+          cx="12"
+          cy="12"
+          r="6.2"
+          stroke="white"
+          strokeWidth="1.7"
+          fill="none"
         />
-        <circle cx="8" cy="10" r="1.1" fill="currentColor" />
-        <rect x="7.3" y="12" width="1.4" height="4.5" fill="currentColor" />
-        <path
-          d="M12 11.8h1.5a2.6 2.6 0 0 1 2.5 2.6v2.9h-1.7v-2.7c0-.8-.4-1.3-1.1-1.3-.7 0-1.2.5-1.2 1.3v2.7H12v-5.5Z"
-          fill="currentColor"
-        />
+        <text
+          x="12"
+          y="14"
+          textAnchor="middle"
+          fontSize="9"
+          fill="white"
+        >
+          ☎
+        </text>
+      </svg>
+    ),
+  },
+  {
+    name: "Snapchat",
+    href: "https://www.snapchat.com",
+    bg: "#FFFC00",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+        {/* corps du fantôme */}
+        <g stroke="black" strokeWidth="0.9">
+          <circle cx="12" cy="10.2" r="3" fill="white" />
+          <rect
+            x="9"
+            y="10"
+            width="6"
+            height="4.8"
+            rx="2.2"
+            fill="white"
+          />
+        </g>
+        <circle cx="11" cy="10" r="0.5" fill="black" />
+        <circle cx="13" cy="10" r="0.5" fill="black" />
       </svg>
     ),
   },
@@ -161,10 +134,12 @@ export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  // Ferme le menu quand la route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
+  // Ferme avec ESC
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -177,6 +152,7 @@ export default function SiteHeader() {
     <>
       <header style={styles.header}>
         <div style={styles.inner}>
+          {/* Burger */}
           <button
             aria-label="Ouvrir le menu"
             onClick={() => setOpen(true)}
@@ -187,10 +163,12 @@ export default function SiteHeader() {
             <span style={styles.burgerLine} />
           </button>
 
+          {/* Brand */}
           <Link href="/" style={styles.brand}>
             COPYSHOP IA
           </Link>
 
+          {/* Info droite */}
           <div className="rightHint" style={styles.rightHint}>
             by Mr Fez <br />
             +33 7 45 21 49 22
@@ -198,6 +176,7 @@ export default function SiteHeader() {
         </div>
       </header>
 
+      {/* Backdrop */}
       <div
         aria-hidden
         onClick={() => setOpen(false)}
@@ -208,6 +187,7 @@ export default function SiteHeader() {
         }}
       />
 
+      {/* Drawer mobile */}
       <aside
         aria-hidden={!open}
         style={{
@@ -253,14 +233,16 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : icônes + Mon compte remontés */}
+        {/* Footer drawer : titre + icônes + Mon compte */}
         <div style={styles.drawerFooter}>
+          <div style={styles.footerTitle}>Contact</div>
+
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
               <a
                 key={s.name}
                 href={s.href}
-                style={styles.socialIcon}
+                style={{ ...styles.socialIcon, background: s.bg }}
                 aria-label={s.name}
                 target="_blank"
                 rel="noreferrer"
@@ -291,6 +273,7 @@ export default function SiteHeader() {
         </div>
       </aside>
 
+      {/* Responsive : cache le bloc texte de droite sur mobile */}
       <style>{`
         @media (max-width: 700px) {
           .rightHint { display: none; }
@@ -436,30 +419,34 @@ const styles: Record<string, CSSProperties> = {
   },
 
   drawerFooter: {
-    marginTop: 24, // 🔼 remonté (au lieu de "auto")
-    padding: "14px 12px",
+    marginTop: "auto",
+    padding: "10px 8px 14px",
     borderTop: "1px solid rgba(120,140,255,0.12)",
     color: "rgba(238,241,255,0.9)",
     fontSize: "0.9rem",
     display: "grid",
-    gap: 8,
+    gap: 6,
+  },
+
+  footerTitle: {
+    fontWeight: 800,
+    fontSize: "0.9rem",
   },
 
   socialRow: {
     marginTop: 4,
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 8,
   },
   socialIcon: {
     width: 32,
     height: 32,
     borderRadius: 999,
-    border: "1px solid rgba(148,163,255,0.6)",
+    border: "1px solid rgba(15,23,42,0.6)",
     display: "grid",
     placeItems: "center",
-    color: "rgba(238,241,255,0.95)",
-    background: "rgba(15,23,42,0.95)",
+    color: "#ffffff",
   },
   srOnly: {
     position: "absolute",
@@ -474,10 +461,10 @@ const styles: Record<string, CSSProperties> = {
   },
 
   accountLink: {
-    marginTop: 8,
+    marginTop: 4,
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     gap: 8,
     fontSize: "0.95rem",
     fontWeight: 700,
