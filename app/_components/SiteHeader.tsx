@@ -28,7 +28,7 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Facebook",
     href: "https://facebook.com",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <path
           d="M12 3C7.6 3 4 6.6 4 11c0 4 2.9 7.3 6.8 7.9v-5.6H9.2V11h1.6V9.7c0-2 1-3.1 3.2-3.1h2v2.3h-1.3c-.8 0-1.1.4-1.1 1.1V11h2.3l-.4 2.3h-1.9v5.7C17 18.5 20 15.2 20 11 20 6.6 16.4 3 12 3Z"
           fill="currentColor"
@@ -40,7 +40,7 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Instagram",
     href: "https://www.instagram.com/mr.fezzz",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <rect
           x="4"
           y="4"
@@ -65,7 +65,7 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "TikTok",
     href: "https://www.tiktok.com/@mr.fezzz",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <path
           d="M15 7.2V10c0 1.9-1.2 3.1-2.9 3.1-1.3 0-2.4 1-2.4 2.4A2.6 2.6 0 0 0 12.5 18c1.7 0 2.9-1.3 2.9-3.1V9.9a4.7 4.7 0 0 0 3.2 1.2V9a3.6 3.6 0 0 1-3.3-2.6L15 6.1V7.2Z"
           stroke="currentColor"
@@ -86,7 +86,7 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Snapchat",
     href: "https://www.snapchat.com/add/mr.fezzz",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <path
           d="M12 4.5c-2 0-3.3 1.5-3.4 3.3-.1 1.7.2 2.4-.4 3.1-.4.5-1.1.7-1.7.8v1.1c.8.1 1.3.5 1.9 1-.6.4-1.4.7-2.5.9.4.8 1.3 1.4 2.4 1.6.7.1 1.2.5 1.5.9.5.6 1.2 1.2 2.2 1.2s1.7-.6 2.2-1.2c.3-.4.8-.8 1.5-.9 1.1-.2 2-.8 2.4-1.6-1.1-.2-1.9-.5-2.5-.9.6-.5 1.1-.9 1.9-1v-1.1c-.6-.1-1.3-.3-1.7-.8-.6-.7-.3-1.4-.4-3.1C15.3 6 14 4.5 12 4.5Z"
           stroke="currentColor"
@@ -101,7 +101,7 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "WhatsApp",
     href: "https://wa.me/33745214922",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <path
           d="M12 4.5A7.1 7.1 0 0 0 5 11.6c0 1.3.3 2.3.9 3.3L5 19l4.3-1c.9.4 1.9.6 2.7.6a7.1 7.1 0 0 0 0-14.1Z"
           stroke="currentColor"
@@ -221,7 +221,7 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : icônes centrées + mon compte, plus haut */}
+        {/* Footer drawer : icônes centrées + mon compte */}
         <div style={styles.drawerFooter}>
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
@@ -404,9 +404,9 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 20px rgba(230,74,167,0.35)",
   },
 
-  // ⭐ Bloc réseaux + mon compte, centré et moins bas
+  // Bloc réseaux + mon compte
   drawerFooter: {
-    marginTop: 18, // plus haut (avant c'était "auto")
+    marginTop: 18,
     padding: "14px 10px 18px",
     borderTop: "1px solid rgba(120,140,255,0.12)",
     display: "flex",
@@ -422,11 +422,11 @@ const styles: Record<string, CSSProperties> = {
     gap: 14,
   },
   socialIcon: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     display: "grid",
     placeItems: "center",
-    color: "#ffffff", // icônes blanches
+    color: "#ffffff",
     textDecoration: "none",
   },
   srOnly: {
