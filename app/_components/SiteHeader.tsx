@@ -13,7 +13,36 @@ const NAV_LINKS = [
   { label: "FAQ", href: "/faq" },
   { label: "Newsletter", href: "/newsletter" },
   { label: "Contact", href: "/contact" },
-  { label: "Compte client", href: "/compte-client" }, // ✅ FIX ICI
+  { label: "Compte client", href: "/compte-client" }, // lien dans la liste
+];
+
+// 🔗 Réseaux en bas du menu
+const SOCIAL_LINKS = [
+  {
+    name: "Facebook",
+    href: "https://facebook.com/TON_COMPTE", // à remplacer
+    short: "f",
+  },
+  {
+    name: "Instagram",
+    href: "https://instagram.com/TON_COMPTE", // à remplacer
+    short: "ig",
+  },
+  {
+    name: "YouTube",
+    href: "https://youtube.com/@TON_COMPTE", // à remplacer
+    short: "yt",
+  },
+  {
+    name: "TikTok",
+    href: "https://www.tiktok.com/@TON_COMPTE", // à remplacer
+    short: "tt",
+  },
+  {
+    name: "LinkedIn",
+    href: "https://www.linkedin.com/in/TON_COMPTE", // à remplacer
+    short: "in",
+  },
 ];
 
 export default function SiteHeader() {
@@ -54,7 +83,7 @@ export default function SiteHeader() {
             COPYSHOP IA
           </Link>
 
-          {/* Petit espace droite (optionnel) */}
+          {/* Hint à droite */}
           <div className="rightHint" style={styles.rightHint}>
             by Mr Fez <br />
             +33 7 45 21 49 22
@@ -109,13 +138,36 @@ export default function SiteHeader() {
             );
           })}
 
-          <a
-            href="https://wa.me/33745214922"
-            style={styles.whatsBtn}
-          >
+          <a href="https://wa.me/33745214922" style={styles.whatsBtn}>
             WhatsApp / Projet
           </a>
         </nav>
+
+        {/* Bloc réseaux + Mon compte */}
+        <div style={styles.socialBlock}>
+          <div style={styles.socialRow}>
+            {SOCIAL_LINKS.map((s) => (
+              <a
+                key={s.name}
+                href={s.href}
+                target="_blank"
+                rel="noreferrer"
+                style={styles.socialIcon}
+              >
+                {s.short}
+                <span style={styles.srOnly}>{s.name}</span>
+              </a>
+            ))}
+          </div>
+
+          <Link href="/compte-client" style={styles.accountLink}>
+            <span style={styles.accountIconWrapper}>
+              <span style={styles.accountIconHead} />
+              <span style={styles.accountIconBody} />
+            </span>
+            <span>Mon compte</span>
+          </Link>
+        </div>
 
         <div style={styles.drawerFooter}>
           <div style={{ fontWeight: 800 }}>Contact</div>
@@ -267,6 +319,83 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     background: "linear-gradient(90deg, #6a2fd6, #e64aa7)",
     boxShadow: "0 10px 20px rgba(230,74,167,0.35)",
+  },
+
+  // Bloc réseaux + "Mon compte"
+  socialBlock: {
+    marginTop: 16,
+    padding: "12px 8px 4px",
+    borderTop: "1px solid rgba(120,140,255,0.16)",
+  },
+  socialRow: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  socialIcon: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.04)",
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    textTransform: "uppercase",
+    color: "rgba(238,241,255,0.95)",
+    textDecoration: "none",
+  },
+  srOnly: {
+    position: "absolute",
+    width: 1,
+    height: 1,
+    padding: 0,
+    margin: -1,
+    overflow: "hidden",
+    clip: "rect(0,0,0,0)",
+    border: 0,
+  },
+
+  accountLink: {
+    marginTop: 2,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    color: "rgba(238,241,255,0.98)",
+    textDecoration: "none",
+  },
+  accountIconWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.04)",
+    paddingTop: 2,
+    paddingBottom: 2,
+  },
+  accountIconHead: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.92)",
+    marginBottom: 2,
+  },
+  accountIconBody: {
+    width: 16,
+    height: 4,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.8)",
   },
 
   drawerFooter: {
