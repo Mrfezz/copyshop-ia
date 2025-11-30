@@ -84,7 +84,7 @@ const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: "Snapchat",
-    href: "https://www.snapchat.com/add/mr.fezzz",
+    href: "https://www.snapchat.com/@mr.fezz?invite_id=-rdCgPvj&locale=fr_FR&share_id=UK77Sd92TDaGvxvhI95X2w&sid=698c777c36ea4bb3aca7b6aabade36e2",
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <path
