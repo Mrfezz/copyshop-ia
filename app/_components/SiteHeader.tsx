@@ -216,7 +216,7 @@ export default function SiteHeader() {
             target="_blank"
             rel="noreferrer"
           >
-            WhatsApp / Projet
+            Contactez-nous / WhatsApp
           </a>
         </nav>
 
