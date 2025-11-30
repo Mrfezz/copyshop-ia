@@ -161,12 +161,10 @@ export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Ferme le menu quand la route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
-  // Ferme avec ESC
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -179,7 +177,6 @@ export default function SiteHeader() {
     <>
       <header style={styles.header}>
         <div style={styles.inner}>
-          {/* Burger */}
           <button
             aria-label="Ouvrir le menu"
             onClick={() => setOpen(true)}
@@ -190,12 +187,10 @@ export default function SiteHeader() {
             <span style={styles.burgerLine} />
           </button>
 
-          {/* Brand */}
           <Link href="/" style={styles.brand}>
             COPYSHOP IA
           </Link>
 
-          {/* Info droite */}
           <div className="rightHint" style={styles.rightHint}>
             by Mr Fez <br />
             +33 7 45 21 49 22
@@ -203,7 +198,6 @@ export default function SiteHeader() {
         </div>
       </header>
 
-      {/* Backdrop */}
       <div
         aria-hidden
         onClick={() => setOpen(false)}
@@ -214,7 +208,6 @@ export default function SiteHeader() {
         }}
       />
 
-      {/* Drawer */}
       <aside
         aria-hidden={!open}
         style={{
@@ -260,7 +253,7 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : seulement icônes + Mon compte */}
+        {/* Footer drawer : icônes + Mon compte remontés */}
         <div style={styles.drawerFooter}>
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
@@ -298,7 +291,6 @@ export default function SiteHeader() {
         </div>
       </aside>
 
-      {/* Responsive : cache le bloc texte de droite sur mobile */}
       <style>{`
         @media (max-width: 700px) {
           .rightHint { display: none; }
@@ -444,7 +436,7 @@ const styles: Record<string, CSSProperties> = {
   },
 
   drawerFooter: {
-    marginTop: "auto",
+    marginTop: 24, // 🔼 remonté (au lieu de "auto")
     padding: "14px 12px",
     borderTop: "1px solid rgba(120,140,255,0.12)",
     color: "rgba(238,241,255,0.9)",
