@@ -38,7 +38,7 @@ const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: "Instagram",
-    href: "https://www.instagram.com/mr.fezzz",
+    href: "https://www.instagram.com/mr.fez___",
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
         <rect
