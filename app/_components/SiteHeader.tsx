@@ -1,3 +1,4 @@
+// app/_components/SiteHeader.tsx
 "use client";
 
 import Link from "next/link";
@@ -13,35 +14,149 @@ const NAV_LINKS = [
   { label: "FAQ", href: "/faq" },
   { label: "Newsletter", href: "/newsletter" },
   { label: "Contact", href: "/contact" },
-  { label: "Compte client", href: "/compte-client" }, // lien dans la liste
+  { label: "Compte client", href: "/compte-client" },
 ];
 
-// 🔗 Réseaux en bas du menu
+// ✨ Réseaux sociaux (tu peux changer les liens)
 const SOCIAL_LINKS = [
   {
     name: "Facebook",
-    href: "https://facebook.com/TON_COMPTE", // à remplacer
-    short: "f",
+    href: "https://facebook.com",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <path
+          d="M13 7.5h1.6V5.5H13c-2.2 0-3.6 1.3-3.6 3.5v1.5H8v2h1.4V18h2.1v-5.5h1.7v-2h-1.7V9c0-.9.4-1.5 1.5-1.5Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
   },
   {
     name: "Instagram",
-    href: "https://instagram.com/TON_COMPTE", // à remplacer
-    short: "ig",
+    href: "https://www.instagram.com/mr.fezzz",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="16"
+          height="16"
+          rx="5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="4"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <circle cx="17" cy="7" r="1.2" fill="currentColor" />
+      </svg>
+    ),
   },
   {
     name: "YouTube",
-    href: "https://youtube.com/@TON_COMPTE", // à remplacer
-    short: "yt",
+    href: "https://youtube.com",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+      >
+        <rect
+          x="4"
+          y="7"
+          width="16"
+          height="10"
+          rx="3"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <polygon
+          points="11 10 15 12 11 14"
+          fill="currentColor"
+        />
+      </svg>
+    ),
   },
   {
     name: "TikTok",
-    href: "https://www.tiktok.com/@TON_COMPTE", // à remplacer
-    short: "tt",
+    href: "https://www.tiktok.com/@mr.fezzz",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+      >
+        <path
+          d="M14 6.5V10.2C14 12 12.8 13 11.3 13c-1.3 0-2.3 1-2.3 2.3A2.7 2.7 0 0 0 11.7 18c1.7 0 2.8-1.3 2.8-3.1v-5a4.5 4.5 0 0 0 3.2 1.3V9a3.4 3.4 0 0 1-3.2-2.5L14 6.5Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8.5 11.7A2.6 2.6 0 0 1 11 9.5"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
   },
   {
     name: "LinkedIn",
-    href: "https://www.linkedin.com/in/TON_COMPTE", // à remplacer
-    short: "in",
+    href: "https://linkedin.com",
+    icon: (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+      >
+        <rect
+          x="4"
+          y="4"
+          width="16"
+          height="16"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.6"
+        />
+        <circle cx="8" cy="10" r="1.1" fill="currentColor" />
+        <rect x="7.3" y="12" width="1.4" height="4.5" fill="currentColor" />
+        <path
+          d="M12 11.8h1.5a2.6 2.6 0 0 1 2.5 2.6v2.9h-1.7v-2.7c0-.8-.4-1.3-1.1-1.3-.7 0-1.2.5-1.2 1.3v2.7H12v-5.5Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
   },
 ];
 
@@ -49,7 +164,7 @@ export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Ferme le menu quand on change de route
+  // Ferme le menu quand la route change
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -67,7 +182,7 @@ export default function SiteHeader() {
     <>
       <header style={styles.header}>
         <div style={styles.inner}>
-          {/* Burger à gauche */}
+          {/* Burger */}
           <button
             aria-label="Ouvrir le menu"
             onClick={() => setOpen(true)}
@@ -83,7 +198,7 @@ export default function SiteHeader() {
             COPYSHOP IA
           </Link>
 
-          {/* Hint à droite */}
+          {/* Info droite */}
           <div className="rightHint" style={styles.rightHint}>
             by Mr Fez <br />
             +33 7 45 21 49 22
@@ -102,7 +217,7 @@ export default function SiteHeader() {
         }}
       />
 
-      {/* Drawer gauche */}
+      {/* Drawer */}
       <aside
         aria-hidden={!open}
         style={{
@@ -138,48 +253,66 @@ export default function SiteHeader() {
             );
           })}
 
-          <a href="https://wa.me/33745214922" style={styles.whatsBtn}>
+          <a
+            href="https://wa.me/33745214922"
+            style={styles.whatsBtn}
+            target="_blank"
+            rel="noreferrer"
+          >
             WhatsApp / Projet
           </a>
         </nav>
 
-        {/* Bloc réseaux + Mon compte */}
-        <div style={styles.socialBlock}>
+        {/* Footer drawer : réseaux + compte */}
+        <div style={styles.drawerFooter}>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>Contact</div>
+          <div style={{ opacity: 0.8, fontSize: "0.9rem" }}>
+            +33 7 45 21 49 22
+          </div>
+          <div style={{ opacity: 0.8, fontSize: "0.9rem" }}>
+            Instagram & TikTok : mr.fezzz
+          </div>
+
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
               <a
                 key={s.name}
                 href={s.href}
+                style={styles.socialIcon}
+                aria-label={s.name}
                 target="_blank"
                 rel="noreferrer"
-                style={styles.socialIcon}
               >
-                {s.short}
                 <span style={styles.srOnly}>{s.name}</span>
+                {s.icon}
               </a>
             ))}
           </div>
 
           <Link href="/compte-client" style={styles.accountLink}>
-            <span style={styles.accountIconWrapper}>
-              <span style={styles.accountIconHead} />
-              <span style={styles.accountIconBody} />
+            <span
+              aria-hidden="true"
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "999px",
+                border: "1px solid rgba(148,163,255,0.7)",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 12,
+              }}
+            >
+              👤
             </span>
             <span>Mon compte</span>
           </Link>
         </div>
-
-        <div style={styles.drawerFooter}>
-          <div style={{ fontWeight: 800 }}>Contact</div>
-          <div style={{ opacity: 0.8 }}>+33 7 45 21 49 22</div>
-          <div style={{ opacity: 0.8 }}>Instagram / TikTok : mr.fezzz</div>
-        </div>
       </aside>
 
-      {/* Responsive (cache le hint droite sur mobile) */}
+      {/* Responsive : cache le bloc texte de droite sur mobile */}
       <style>{`
         @media (max-width: 700px) {
-          .rightHint { display:none; }
+          .rightHint { display: none; }
         }
       `}</style>
     </>
@@ -321,33 +454,31 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 20px rgba(230,74,167,0.35)",
   },
 
-  // Bloc réseaux + "Mon compte"
-  socialBlock: {
-    marginTop: 16,
-    padding: "12px 8px 4px",
-    borderTop: "1px solid rgba(120,140,255,0.16)",
+  drawerFooter: {
+    marginTop: "auto",
+    padding: "14px 12px",
+    borderTop: "1px solid rgba(120,140,255,0.12)",
+    color: "rgba(238,241,255,0.9)",
+    fontSize: "0.9rem",
+    display: "grid",
+    gap: 8,
   },
+
   socialRow: {
+    marginTop: 10,
     display: "flex",
     justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
+    gap: 8,
   },
   socialIcon: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
     width: 32,
     height: 32,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.04)",
-    fontSize: "0.7rem",
-    fontWeight: 700,
-    textTransform: "uppercase",
+    border: "1px solid rgba(148,163,255,0.6)",
+    display: "grid",
+    placeItems: "center",
     color: "rgba(238,241,255,0.95)",
-    textDecoration: "none",
+    background: "rgba(15,23,42,0.95)",
   },
   srOnly: {
     position: "absolute",
@@ -357,11 +488,12 @@ const styles: Record<string, CSSProperties> = {
     margin: -1,
     overflow: "hidden",
     clip: "rect(0,0,0,0)",
+    whiteSpace: "nowrap",
     border: 0,
   },
 
   accountLink: {
-    marginTop: 2,
+    marginTop: 8,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -370,41 +502,5 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 700,
     color: "rgba(238,241,255,0.98)",
     textDecoration: "none",
-  },
-  accountIconWrapper: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.04)",
-    paddingTop: 2,
-    paddingBottom: 2,
-  },
-  accountIconHead: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.92)",
-    marginBottom: 2,
-  },
-  accountIconBody: {
-    width: 16,
-    height: 4,
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.8)",
-  },
-
-  drawerFooter: {
-    marginTop: "auto",
-    padding: "14px 12px",
-    borderTop: "1px solid rgba(120,140,255,0.12)",
-    color: "rgba(238,241,255,0.9)",
-    fontSize: "0.9rem",
-    display: "grid",
-    gap: 4,
   },
 };
