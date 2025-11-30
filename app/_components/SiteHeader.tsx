@@ -3,8 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type JSX } from "react";
 
 const NAV_LINKS = [
   { label: "Accueil", href: "/" },
@@ -21,60 +20,79 @@ const NAV_LINKS = [
 type SocialLink = {
   name: string;
   href: string;
-  bg: string;
-  icon: ReactNode;
+  icon: JSX.Element;
 };
 
-// ✨ Réseaux sociaux couleur
 const SOCIAL_LINKS: SocialLink[] = [
+  {
+    name: "Facebook",
+    href: "https://facebook.com",
+    icon: (
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path
+          d="M12 3C7.6 3 4 6.6 4 11c0 4 2.9 7.3 6.8 7.9v-5.6H9.2V11h1.6V9.7c0-2 1-3.1 3.2-3.1h2v2.3h-1.3c-.8 0-1.1.4-1.1 1.1V11h2.3l-.4 2.3h-1.9v5.7C17 18.5 20 15.2 20 11 20 6.6 16.4 3 12 3Z"
+          fill="currentColor"
+        />
+      </svg>
+    ),
+  },
   {
     name: "Instagram",
     href: "https://www.instagram.com/mr.fezzz",
-    bg: "linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
         <rect
           x="4"
           y="4"
           width="16"
           height="16"
           rx="5"
-          stroke="white"
+          stroke="currentColor"
           strokeWidth="1.6"
-          fill="none"
         />
         <circle
           cx="12"
           cy="12"
-          r="4.2"
-          stroke="white"
+          r="4"
+          stroke="currentColor"
           strokeWidth="1.6"
-          fill="none"
         />
-        <circle cx="17" cy="7.2" r="1.3" fill="white" />
+        <circle cx="17" cy="7" r="1.3" fill="currentColor" />
       </svg>
     ),
   },
   {
     name: "TikTok",
     href: "https://www.tiktok.com/@mr.fezzz",
-    bg: "#000000",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-        <rect x="11" y="6.5" width="2.4" height="8.5" rx="1.2" fill="white" />
-        <circle cx="10" cy="15" r="1.6" fill="white" />
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path
+          d="M15 7.2V10c0 1.9-1.2 3.1-2.9 3.1-1.3 0-2.4 1-2.4 2.4A2.6 2.6 0 0 0 12.5 18c1.7 0 2.9-1.3 2.9-3.1V9.9a4.7 4.7 0 0 0 3.2 1.2V9a3.6 3.6 0 0 1-3.3-2.6L15 6.1V7.2Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 11.9A2.7 2.7 0 0 1 11.5 10"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
   {
-    name: "Facebook",
-    href: "https://facebook.com",
-    bg: "#1877F2",
+    name: "Snapchat",
+    href: "https://www.snapchat.com/add/mr.fezzz",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
         <path
-          d="M13.2 5.5H11c-2.1 0-3.6 1.5-3.6 3.7v2H6.5v2.3H7.4H8v4.9h2.4v-4.9h2.1l.3-2.3H10.4V9.3c0-.9.4-1.4 1.4-1.4h1.4V5.5Z"
-          fill="white"
+          d="M12 4.5c-2 0-3.3 1.5-3.4 3.3-.1 1.7.2 2.4-.4 3.1-.4.5-1.1.7-1.7.8v1.1c.8.1 1.3.5 1.9 1-.6.4-1.4.7-2.5.9.4.8 1.3 1.4 2.4 1.6.7.1 1.2.5 1.5.9.5.6 1.2 1.2 2.2 1.2s1.7-.6 2.2-1.2c.3-.4.8-.8 1.5-.9 1.1-.2 2-.8 2.4-1.6-1.1-.2-1.9-.5-2.5-.9.6-.5 1.1-.9 1.9-1v-1.1c-.6-.1-1.3-.3-1.7-.8-.6-.7-.3-1.4-.4-3.1C15.3 6 14 4.5 12 4.5Z"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     ),
@@ -82,48 +100,19 @@ const SOCIAL_LINKS: SocialLink[] = [
   {
     name: "WhatsApp",
     href: "https://wa.me/33745214922",
-    bg: "#25D366",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-        <circle
-          cx="12"
-          cy="12"
-          r="6.2"
-          stroke="white"
-          strokeWidth="1.7"
-          fill="none"
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none">
+        <path
+          d="M12 4.5A7.1 7.1 0 0 0 5 11.6c0 1.3.3 2.3.9 3.3L5 19l4.3-1c.9.4 1.9.6 2.7.6a7.1 7.1 0 0 0 0-14.1Z"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <text
-          x="12"
-          y="14"
-          textAnchor="middle"
-          fontSize="9"
-          fill="white"
-        >
-          ☎
-        </text>
-      </svg>
-    ),
-  },
-  {
-    name: "Snapchat",
-    href: "https://www.snapchat.com",
-    bg: "#FFFC00",
-    icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-        <g stroke="black" strokeWidth="0.9">
-          <circle cx="12" cy="10.2" r="3" fill="white" />
-          <rect
-            x="9"
-            y="10"
-            width="6"
-            height="4.8"
-            rx="2.2"
-            fill="white"
-          />
-        </g>
-        <circle cx="11" cy="10" r="0.5" fill="black" />
-        <circle cx="13" cy="10" r="0.5" fill="black" />
+        <path
+          d="M10.1 10.2c.2-.3.3-.5.6-.4l.9.1c.2 0 .4.2.5.4l.2.6c.1.2 0 .4-.1.5l-.3.3c.4.7.9 1.1 1.6 1.5l.3-.2c.2-.1.4-.2.6-.1l.7.3c.2.1.3.2.4.4l.1.6c0 .2 0 .4-.2.5-.3.3-.9.7-1.6.7-.9 0-1.7-.3-2.5-.8-.7-.4-1.3-1-1.8-1.6-.4-.5-.8-1.1-1-1.8-.1-.6 0-1.1.3-1.5Z"
+          fill="currentColor"
+        />
       </svg>
     ),
   },
@@ -167,7 +156,7 @@ export default function SiteHeader() {
             COPYSHOP IA
           </Link>
 
-          {/* Info droite */}
+          {/* Info droite (desktop) */}
           <div className="rightHint" style={styles.rightHint}>
             by Mr Fez <br />
             +33 7 45 21 49 22
@@ -186,7 +175,7 @@ export default function SiteHeader() {
         }}
       />
 
-      {/* Drawer mobile */}
+      {/* Drawer */}
       <aside
         aria-hidden={!open}
         style={{
@@ -232,16 +221,14 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : Contact + icônes + Mon compte */}
+        {/* Footer drawer : icônes centrées + mon compte, plus haut */}
         <div style={styles.drawerFooter}>
-          <div style={styles.footerTitle}>Contact</div>
-
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
               <a
                 key={s.name}
                 href={s.href}
-                style={{ ...styles.socialIcon, background: s.bg }}
+                style={styles.socialIcon}
                 aria-label={s.name}
                 target="_blank"
                 rel="noreferrer"
@@ -417,35 +404,30 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 20px rgba(230,74,167,0.35)",
   },
 
+  // ⭐ Bloc réseaux + mon compte, centré et moins bas
   drawerFooter: {
-    marginTop: "auto",
-    padding: "10px 8px 14px",
+    marginTop: 18, // plus haut (avant c'était "auto")
+    padding: "14px 10px 18px",
     borderTop: "1px solid rgba(120,140,255,0.12)",
-    color: "rgba(238,241,255,0.9)",
-    fontSize: "0.9rem",
-    display: "grid",
-    gap: 6,
-  },
-
-  footerTitle: {
-    fontWeight: 800,
-    fontSize: "0.9rem",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 10,
   },
 
   socialRow: {
-    marginTop: 4,
+    marginTop: 2,
     display: "flex",
-    justifyContent: "flex-start",
-    gap: 8,
+    justifyContent: "center",
+    gap: 14,
   },
   socialIcon: {
     width: 32,
     height: 32,
-    borderRadius: 999,
-    border: "1px solid rgba(15,23,42,0.6)",
     display: "grid",
     placeItems: "center",
-    color: "#ffffff",
+    color: "#ffffff", // icônes blanches
+    textDecoration: "none",
   },
   srOnly: {
     position: "absolute",
@@ -463,7 +445,7 @@ const styles: Record<string, CSSProperties> = {
     marginTop: 4,
     display: "flex",
     alignItems: "center",
-    justifyContent: "flex-start",
+    justifyContent: "center",
     gap: 8,
     fontSize: "0.95rem",
     fontWeight: 700,
