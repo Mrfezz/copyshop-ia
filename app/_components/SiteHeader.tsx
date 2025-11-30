@@ -17,7 +17,7 @@ const NAV_LINKS = [
   { label: "Compte client", href: "/compte-client" },
 ];
 
-// ✨ Réseaux sociaux (tu peux changer les liens)
+// ✨ Réseaux sociaux
 const SOCIAL_LINKS = [
   {
     name: "Facebook",
@@ -95,10 +95,7 @@ const SOCIAL_LINKS = [
           stroke="currentColor"
           strokeWidth="1.6"
         />
-        <polygon
-          points="11 10 15 12 11 14"
-          fill="currentColor"
-        />
+        <polygon points="11 10 15 12 11 14" fill="currentColor" />
       </svg>
     ),
   },
@@ -263,16 +260,8 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : réseaux + compte */}
+        {/* Footer drawer : seulement icônes + Mon compte */}
         <div style={styles.drawerFooter}>
-          <div style={{ fontWeight: 800, marginBottom: 4 }}>Contact</div>
-          <div style={{ opacity: 0.8, fontSize: "0.9rem" }}>
-            +33 7 45 21 49 22
-          </div>
-          <div style={{ opacity: 0.8, fontSize: "0.9rem" }}>
-            Instagram & TikTok : mr.fezzz
-          </div>
-
           <div style={styles.socialRow}>
             {SOCIAL_LINKS.map((s) => (
               <a
@@ -465,7 +454,7 @@ const styles: Record<string, CSSProperties> = {
   },
 
   socialRow: {
-    marginTop: 10,
+    marginTop: 4,
     display: "flex",
     justifyContent: "center",
     gap: 8,
