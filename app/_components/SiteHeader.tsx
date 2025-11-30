@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 const NAV_LINKS = [
   { label: "Accueil", href: "/" },
@@ -21,10 +22,10 @@ type SocialLink = {
   name: string;
   href: string;
   bg: string;
-  icon: JSX.Element;
+  icon: ReactNode;
 };
 
-// ✨ Réseaux sociaux
+// ✨ Réseaux sociaux couleur
 const SOCIAL_LINKS: SocialLink[] = [
   {
     name: "Instagram",
@@ -60,7 +61,6 @@ const SOCIAL_LINKS: SocialLink[] = [
     bg: "#000000",
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-        {/* note simple */}
         <rect x="11" y="6.5" width="2.4" height="8.5" rx="1.2" fill="white" />
         <circle cx="10" cy="15" r="1.6" fill="white" />
       </svg>
@@ -111,7 +111,6 @@ const SOCIAL_LINKS: SocialLink[] = [
     bg: "#FFFC00",
     icon: (
       <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16">
-        {/* corps du fantôme */}
         <g stroke="black" strokeWidth="0.9">
           <circle cx="12" cy="10.2" r="3" fill="white" />
           <rect
@@ -233,7 +232,7 @@ export default function SiteHeader() {
           </a>
         </nav>
 
-        {/* Footer drawer : titre + icônes + Mon compte */}
+        {/* Footer drawer : Contact + icônes + Mon compte */}
         <div style={styles.drawerFooter}>
           <div style={styles.footerTitle}>Contact</div>
 
