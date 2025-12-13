@@ -12,17 +12,19 @@ export default function FloatingAccountButton() {
       </Link>
 
       <style>{`
-        /* 📱 Mobile */
+        /* 📱 MOBILE */
         @media (max-width: 700px) {
 
           .account-btn {
             top: 18px !important;
-            right: 68px !important; /* laisse la place au panier */
-            padding: 6px !important;
+            right: 78px !important; /* éloigné du panier */
+            padding: 8px !important;
           }
 
           .account-icon {
-            font-size: 1rem !important;
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 0.95rem !important;
           }
 
           .account-text {
@@ -38,25 +40,33 @@ const styles: Record<string, CSSProperties> = {
   wrap: {
     position: "fixed",
     top: 18,
-    right: 110, // aligné à gauche du panier
+    right: 120, // 📌 Desktop : plus éloigné du panier
     zIndex: 80,
+
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
     padding: "6px 10px",
-    borderRadius: 999,
-    color: "white",
+
     textDecoration: "none",
+    color: "white",
   },
 
   icon: {
-    fontSize: "1.2rem",
+    width: 34,
+    height: 34,
+
+    borderRadius: "999px",
+    border: "1px solid rgba(255,255,255,0.7)", // 📌 même style que dans le menu
     display: "grid",
     placeItems: "center",
+
+    fontSize: "1rem",
+    background: "rgba(255,255,255,0.05)",
   },
 
   text: {
-    fontSize: "0.9rem",
+    fontSize: "0.93rem",
     fontWeight: 700,
   },
 };
