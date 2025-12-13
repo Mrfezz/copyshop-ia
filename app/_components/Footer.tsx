@@ -1,8 +1,8 @@
 "use client";
 
 // app/_components/Footer.tsx
-import type React from "react";
 import { useState } from "react";
+import type { CSSProperties, FormEvent } from "react";
 
 const COLORS = {
   bgTop: "#0b1026",
@@ -23,10 +23,10 @@ const COLORS = {
 export default function Footer() {
   const [email, setEmail] = useState("");
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email) return;
-    // Ici tu peux brancher un vrai service newsletter plus tard
+    // Tu brancheras un vrai service newsletter plus tard
     alert("Merci ! Tu es bien inscrit(e) à la newsletter.");
     setEmail("");
   }
@@ -45,7 +45,11 @@ export default function Footer() {
             nouveaux arrivages.
           </p>
 
-          <form onSubmit={onSubmit} style={styles.newsForm} className="foot-news-form">
+          <form
+            onSubmit={onSubmit}
+            style={styles.newsForm}
+            className="foot-news-form"
+          >
             <input
               type="email"
               required
@@ -79,13 +83,46 @@ export default function Footer() {
           <div style={styles.colCard}>
             <h4 style={styles.colTitle}>Navigation</h4>
             <ul style={styles.colList}>
-              <li><a href="/" style={styles.link}>Accueil</a></li>
-              <li><a href="/packs-ia" style={styles.link}>Packs IA</a></li>
-              <li><a href="/services-digitaux" style={styles.link}>Services digitaux</a></li>
-              <li><a href="/newsletter" style={styles.link}>Newsletter</a></li>
-              <li><a href="/suivre-ma-commande" style={styles.link}>Suivre ma commande</a></li>
-              <li><a href="/contact" style={styles.link}>Contact</a></li>
-              <li><a href="/qui-sommes-nous" style={styles.link}>Qui sommes-nous ?</a></li>
+              <li>
+                <a href="/" style={styles.link}>
+                  Accueil
+                </a>
+              </li>
+              <li>
+                <a href="/packs-ia" style={styles.link}>
+                  Packs IA
+                </a>
+              </li>
+              <li>
+                <a href="/services-digitaux" style={styles.link}>
+                  Services digitaux
+                </a>
+              </li>
+              <li>
+                <a href="/newsletter" style={styles.link}>
+                  Newsletter
+                </a>
+              </li>
+              <li>
+                <a href="/faq" style={styles.link}>
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <a href="/suivre-ma-commande" style={styles.link}>
+                  Suivre ma commande
+                </a>
+              </li>
+              <li>
+                <a href="/contact" style={styles.link}>
+                  Contact
+                </a>
+              </li>
+              <li>
+                <a href="/qui-sommes-nous" style={styles.link}>
+                  Qui sommes-nous ?
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -132,7 +169,7 @@ export default function Footer() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   footer: {
     position: "relative",
     color: COLORS.text,
