@@ -18,19 +18,24 @@ export default function FloatingAccountButton() {
         style={styles.button}
       >
         <span style={styles.icon}>👤</span>
-        <span style={styles.label}>Mon compte</span>
+        <span data-label="text" style={styles.label}>
+          Mon compte
+        </span>
       </Link>
 
-      {/* Responsive : sur mobile on garde juste l'icône */}
+      {/* Ajustements mobile */}
       <style>{`
-        @media (max-width: 640px) {
+        @media (max-width: 700px) {
           .float-account-btn {
+            top: 70px !important;      /* plus bas que le header */
+            right: 16px !important;    /* collé au bord droit */
             padding-inline: 10px !important;
             gap: 4px !important;
             font-size: 0.8rem !important;
           }
-          .float-account-btn span[data-label="text"] {
-            display: none;
+
+          .float-account-btn [data-label="text"] {
+            display: none;             /* on cache le texte -> icône seule */
           }
         }
       `}</style>
@@ -42,7 +47,7 @@ const styles: Record<string, CSSProperties> = {
   button: {
     position: "fixed",
     top: 18,
-    right: 90, // décalé pour laisser la place au panier
+    right: 90, // à côté du bouton panier sur desktop
     zIndex: 70,
     display: "inline-flex",
     alignItems: "center",
@@ -70,5 +75,5 @@ const styles: Record<string, CSSProperties> = {
   },
   label: {
     display: "inline-block",
-  } as CSSProperties,
+  },
 };
