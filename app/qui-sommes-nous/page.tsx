@@ -1,5 +1,5 @@
 // app/qui-sommes-nous/page.tsx
-import type React from "react";
+import type { CSSProperties } from "react";
 
 const COLORS = {
   bgTop: "#0b1026",
@@ -20,7 +20,7 @@ const COLORS = {
 export default function QuiSommesNousPage() {
   return (
     <main style={styles.page}>
-      {/* Fond dégradé + points comme les autres pages */}
+      {/* Fond comme sur les autres pages */}
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
 
@@ -36,7 +36,7 @@ export default function QuiSommesNousPage() {
           </p>
         </header>
 
-        {/* 3 BLOCS : MISSION / VISION / APPROCHE */}
+        {/* MISSION / VISION / APPROCHE */}
         <section
           className="qs-grid-3"
           style={styles.grid3}
@@ -55,21 +55,21 @@ export default function QuiSommesNousPage() {
             <h2 style={styles.cardTitle}>Notre vision</h2>
             <p style={styles.cardText}>
               Rendre la création de boutique en ligne aussi simple que remplir
-              un formulaire, grâce à l&apos;IA et des process ultra cadrés.
+              un formulaire, grâce à l&apos;IA et à des process ultra cadrés.
             </p>
           </article>
 
           <article style={styles.card}>
             <h2 style={styles.cardTitle}>Notre approche</h2>
             <p style={styles.cardText}>
-              Du concret, pas de blabla : des boutiques propres, optimisées pour
-              la conversion, un support humain et un suivi WhatsApp quand tu en
-              as besoin.
+              Du concret, pas de blabla : des boutiques propres, optimisées
+              pour la conversion, un support humain et un suivi WhatsApp quand
+              tu en as besoin.
             </p>
           </article>
         </section>
 
-        {/* QUI EST DERRIÈRE + RÉCAP */}
+        {/* QUI EST DERRIÈRE + EN BREF */}
         <section
           className="qs-grid-2"
           style={{ ...styles.grid2, marginTop: 28 }}
@@ -156,7 +156,7 @@ export default function QuiSommesNousPage() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     position: "relative",
     minHeight: "100vh",
