@@ -18,29 +18,24 @@ export default function FloatingAccountButton() {
         style={styles.button}
       >
         <span style={styles.icon}>👤</span>
-        <span data-label="text" style={styles.label}>Mon compte</span>
+        <span className="account-text" style={styles.label}>Mon compte</span>
       </Link>
 
       <style>{`
-        /* 📱 MOBILE (iPhone, Android) — rétrécir et décaler */
+        /* 📱 Mobile : on masque le texte */
         @media (max-width: 700px) {
-          .float-account-btn {
-            top: 18px !important;
-            right: 120px !important; /* 👉 décale vers la gauche pour libérer de la place au panier */
-            padding: 6px 10px !important;
-            font-size: 0.72rem !important;
-            gap: 4px !important;
+          .account-text {
+            display: none !important;
           }
-        }
 
-        /* 📱 Très petit écran — uniquement l'icône */
-        @media (max-width: 400px) {
-          .float-account-btn [data-label="text"] {
-            display: none;
-          }
           .float-account-btn {
-            right: 100px !important;
-            padding: 6px !important;
+            top: 64px !important;
+            right: 16px !important;
+            padding: 10px !important;
+            width: 45px !important;
+            height: 45px !important;
+            border-radius: 999px !important;
+            justify-content: center !important;
           }
         }
       `}</style>
@@ -49,10 +44,11 @@ export default function FloatingAccountButton() {
 }
 
 const styles: Record<string, CSSProperties> = {
+  // Desktop par défaut (texte visible)
   button: {
     position: "fixed",
     top: 18,
-    right: 100, // Desktop OK
+    right: 90, // juste à côté du panier
     zIndex: 70,
     display: "inline-flex",
     alignItems: "center",
@@ -68,10 +64,9 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 24px rgba(106,47,214,0.45)",
     backdropFilter: "blur(8px)",
   },
-
   icon: {
-    width: 20,
-    height: 20,
+    width: 22,
+    height: 22,
     borderRadius: "999px",
     border: "1px solid rgba(255,255,255,0.6)",
     display: "grid",
@@ -79,7 +74,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "0.8rem",
     background: "rgba(15,23,42,0.85)",
   },
-
   label: {
     display: "inline-block",
   },
