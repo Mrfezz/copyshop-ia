@@ -264,18 +264,24 @@ export default function SiteHeader() {
             <span
               aria-hidden="true"
               style={{
-                width: 22,
-                height: 22,
+                width: 32,
+                height: 32,
                 borderRadius: "999px",
-                border: "1px solid rgba(148,163,255,0.7)",
                 display: "grid",
                 placeItems: "center",
-                fontSize: 12,
+                fontSize: 15,
+                fontWeight: 700,
+                // 🌈 contour dégradé rose → violet ultra fin
+                border: "2px solid transparent",
+                background:
+                  "linear-gradient(#090d20,#090d20) padding-box, linear-gradient(135deg, #e64aa7, #6a2fd6) border-box",
               }}
             >
               👤
             </span>
-            <span>Mon compte</span>
+            <span style={{ fontSize: "0.95rem", fontWeight: 700 }}>
+              Mon compte
+            </span>
           </Link>
         </div>
       </aside>
