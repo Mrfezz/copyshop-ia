@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { label: "FAQ", href: "/faq" },
   { label: "Newsletter", href: "/newsletter" },
   { label: "Contact", href: "/contact" },
+  { label: "Qui sommes-nous ?", href: "/qui-sommes-nous" },
 ];
 
 type SocialLink = {
