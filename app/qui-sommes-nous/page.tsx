@@ -139,6 +139,126 @@ export default function QuiSommesNousPage() {
             </article>
           </div>
         </section>
+
+        {/* TIMELINE PARCOURS */}
+        <section style={styles.timelineSection}>
+          <h2 style={styles.cardTitle}>Notre parcours en quelques étapes</h2>
+          <p style={styles.timelineIntro}>
+            On ne s&apos;est pas réveillé un matin avec Copyshop IA. C&apos;est le
+            résultat de plusieurs années d&apos;essais, de tests et de projets.
+          </p>
+
+          <div className="qs-timeline" style={styles.timelineGrid}>
+            <article style={styles.timelineItem}>
+              <div style={styles.timelineHead}>
+                <span style={styles.timelineYear}>2019</span>
+                <span style={styles.timelineDot} />
+              </div>
+              <p style={styles.timelineTitle}>Premiers pas en e-commerce</p>
+              <p style={styles.timelineText}>
+                Découverte du e-commerce, tests de premières boutiques, premières
+                erreurs (et premiers apprentissages).
+              </p>
+            </article>
+
+            <article style={styles.timelineItem}>
+              <div style={styles.timelineHead}>
+                <span style={styles.timelineYear}>2020–2021</span>
+                <span style={styles.timelineDot} />
+              </div>
+              <p style={styles.timelineTitle}>Boutiques rentables & clients</p>
+              <p style={styles.timelineText}>
+                Création de boutiques pour soi et pour d&apos;autres, focus sur
+                le branding, les offres et la conversion.
+              </p>
+            </article>
+
+            <article style={styles.timelineItem}>
+              <div style={styles.timelineHead}>
+                <span style={styles.timelineYear}>2022–2023</span>
+                <span style={styles.timelineDot} />
+              </div>
+              <p style={styles.timelineTitle}>Automatisation & IA</p>
+              <p style={styles.timelineText}>
+                Utilisation massive de l&apos;IA pour gagner du temps sur les
+                textes, la structure, les pages et les process.
+              </p>
+            </article>
+
+            <article style={styles.timelineItem}>
+              <div style={styles.timelineHead}>
+                <span style={styles.timelineYear}>2024+</span>
+                <span style={styles.timelineDot} />
+              </div>
+              <p style={styles.timelineTitle}>Lancement Copyshop IA</p>
+              <p style={styles.timelineText}>
+                Création de Copyshop IA pour proposer des packs, des services et
+                un outil IA qui automatisent une grosse partie du travail.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* POURQUOI NOUS FAIRE CONFIANCE */}
+        <section style={styles.trustSection}>
+          <h2 style={styles.cardTitle}>Pourquoi nous faire confiance ?</h2>
+          <p style={styles.timelineIntro}>
+            Notre but n&apos;est pas de vendre un “rêve” mais de livrer un
+            résultat concret : une boutique claire, crédible et prête à encaisser.
+          </p>
+
+          <div className="qs-grid-3" style={styles.trustGrid}>
+            <article style={styles.trustCard}>
+              <p style={styles.trustNumber}>+ de 20</p>
+              <p style={styles.trustLabel}>boutiques e-commerce créées ou optimisées</p>
+            </article>
+
+            <article style={styles.trustCard}>
+              <p style={styles.trustNumber}>48h–7j</p>
+              <p style={styles.trustLabel}>
+                délai moyen pour livrer une boutique selon le pack choisi
+              </p>
+            </article>
+
+            <article style={styles.trustCard}>
+              <p style={styles.trustNumber}>WhatsApp</p>
+              <p style={styles.trustLabel}>
+                un vrai humain derrière l&apos;écran, disponible pour répondre et ajuster
+              </p>
+            </article>
+          </div>
+        </section>
+
+        {/* CTA FINAL */}
+        <section style={styles.ctaSection}>
+          <div style={styles.ctaCard}>
+            <h2 style={styles.ctaTitle}>On parle de ton projet ?</h2>
+            <p style={styles.ctaText}>
+              Que tu aies déjà une boutique ou que tu partes de zéro, on peut
+              regarder ensemble ce qui est le plus adapté pour toi : pack IA,
+              service à la carte ou accompagnement plus poussé.
+            </p>
+
+            <div style={styles.ctaButtons}>
+              <a
+                href="https://wa.me/33745214922"
+                target="_blank"
+                rel="noreferrer"
+                style={styles.ctaPrimary}
+              >
+                Discuter sur WhatsApp
+              </a>
+              <a href="/contact" style={styles.ctaSecondary}>
+                Passer par le formulaire
+              </a>
+            </div>
+
+            <p style={styles.ctaSub}>
+              Réponse moyenne : 8h (Lun–Sam 9h–18h). Pas d&apos;obligation, on
+              fait le point tranquillement.
+            </p>
+          </div>
+        </section>
       </section>
 
       {/* Responsive */}
@@ -148,6 +268,9 @@ export default function QuiSommesNousPage() {
             grid-template-columns: 1fr !important;
           }
           .qs-grid-2 {
+            grid-template-columns: 1fr !important;
+          }
+          .qs-timeline {
             grid-template-columns: 1fr !important;
           }
         }
@@ -285,5 +408,152 @@ const styles: Record<string, CSSProperties> = {
     margin: "0 0 6px",
     fontSize: "1rem",
     color: COLORS.text,
+  },
+
+  // Timeline
+  timelineSection: {
+    marginTop: 40,
+  },
+  timelineIntro: {
+    fontSize: "0.98rem",
+    color: COLORS.muted,
+    maxWidth: 640,
+    lineHeight: 1.6,
+    margin: "4px 0 16px",
+  },
+  timelineGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0,1fr))",
+    gap: 16,
+  },
+  timelineItem: {
+    background: "rgba(14,18,48,0.9)",
+    borderRadius: 16,
+    border: `1px solid ${COLORS.border}`,
+    padding: "14px 14px 16px",
+    position: "relative",
+  },
+  timelineHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  timelineYear: {
+    fontWeight: 800,
+    fontSize: "0.9rem",
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    color: COLORS.muted,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 999,
+    border: "2px solid rgba(190, 242, 255, 0.7)",
+    boxShadow: "0 0 0 4px rgba(56,189,248,0.25)",
+  },
+  timelineTitle: {
+    fontWeight: 800,
+    fontSize: "1rem",
+    margin: "4px 0 4px",
+    color: COLORS.text,
+  },
+  timelineText: {
+    fontSize: "0.95rem",
+    color: COLORS.muted,
+    lineHeight: 1.5,
+    margin: 0,
+  },
+
+  // Trust section
+  trustSection: {
+    marginTop: 40,
+  },
+  trustGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0,1fr))",
+    gap: 18,
+    marginTop: 12,
+  },
+  trustCard: {
+    background: "rgba(14,18,48,0.9)",
+    borderRadius: 16,
+    border: `1px solid ${COLORS.border}`,
+    padding: "16px 18px 18px",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+  },
+  trustNumber: {
+    fontSize: "1.5rem",
+    fontWeight: 900,
+    margin: "0 0 4px",
+  },
+  trustLabel: {
+    fontSize: "0.95rem",
+    color: COLORS.muted,
+    lineHeight: 1.5,
+    margin: 0,
+  },
+
+  // CTA
+  ctaSection: {
+    marginTop: 46,
+  },
+  ctaCard: {
+    background:
+      "linear-gradient(135deg, rgba(67,56,202,0.35), rgba(230,74,167,0.25))",
+    borderRadius: 22,
+    border: "1px solid rgba(191,219,254,0.35)",
+    padding: "22px 20px 22px",
+    boxShadow: "0 18px 60px rgba(0,0,0,0.55)",
+    textAlign: "center",
+  },
+  ctaTitle: {
+    fontSize: "1.6rem",
+    fontWeight: 900,
+    margin: "0 0 8px",
+  },
+  ctaText: {
+    fontSize: "0.98rem",
+    color: COLORS.text,
+    maxWidth: 620,
+    margin: "0 auto 14px",
+    lineHeight: 1.6,
+  },
+  ctaButtons: {
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 8,
+  },
+  ctaPrimary: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 16px",
+    borderRadius: 999,
+    fontWeight: 900,
+    textDecoration: "none",
+    color: "#fff",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    boxShadow: "0 10px 25px rgba(106,47,214,0.4)",
+  },
+  ctaSecondary: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 16px",
+    borderRadius: 999,
+    fontWeight: 900,
+    textDecoration: "none",
+    color: COLORS.text,
+    background: "rgba(15,23,42,0.6)",
+    border: `1px solid ${COLORS.border}`,
+  },
+  ctaSub: {
+    fontSize: "0.9rem",
+    color: COLORS.muted,
+    margin: 0,
   },
 };
