@@ -106,6 +106,15 @@ export const PRODUCTS = {
       "Un logo pro + mini charte graphique pour une boutique crédible et mémorable. Parfait pour renforcer la confiance et booster tes ventes.",
   },
 
+  // ⭐ Nouveau service : Nom de domaine
+  "nom-domaine": {
+    name: "Nom de domaine (mise en ligne + configuration)",
+    priceLabel: "49,99€",
+    priceId: "price_NOM_DOMAINE", // <-- remplace par le vrai price_ Stripe
+    description:
+      "Recherche d’un nom de domaine disponible (.fr ou .com), achat + configuration complète sur ta boutique Shopify, mise en ligne sur Google. Validité 1 an (renouvellement non pris en charge).",
+  },
+
   "contact-fournisseur": {
     name: "Contact fournisseur (Chine/Émirats)",
     priceLabel: "120€",

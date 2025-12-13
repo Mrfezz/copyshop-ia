@@ -101,12 +101,14 @@ export default function ServicesALaCartePage() {
         </p>
       </section>
 
-      {/* ✅ AJOUT className="gridCards" pour le responsive */}
       <section className="gridCards" style={styles.grid}>
         {SERVICES.map((s) => (
           <article key={s.title} style={styles.card}>
-            {s.tag && <div style={styles.tag}>{s.tag}</div>}
-            {s.isNew && <div style={styles.newBadge}>Nouveau</div>}
+            {/* Ligne du haut : Nouveau + Tag de catégorie */}
+            <div style={styles.cardTop}>
+              {s.isNew && <span style={styles.newBadge}>Nouveau</span>}
+              {s.tag && <span style={styles.tag}>{s.tag}</span>}
+            </div>
 
             <h2 style={styles.cardTitle}>{s.title}</h2>
 
@@ -123,8 +125,6 @@ export default function ServicesALaCartePage() {
 
             <div style={styles.priceRow}>
               <div style={styles.price}>{s.price}</div>
-
-              {/* ✅ REDIRECTION PAIEMENT STRIPE */}
               <Link
                 href={`/paiement?product=${s.productKey}`}
                 style={styles.btn}
@@ -156,7 +156,6 @@ export default function ServicesALaCartePage() {
         </Link>
       </div>
 
-      {/* responsive */}
       <style>{`
         @media (max-width: 1024px) {
           .gridCards { grid-template-columns: 1fr !important; }
@@ -235,35 +234,35 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
   },
 
-  tag: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    padding: "0.22rem 0.5rem",
-    borderRadius: 999,
-    fontWeight: 900,
-    fontSize: "0.7rem",
-    background: "rgba(255,255,255,0.12)",
-    maxWidth: "55%",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+  // 🔹 nouvelle ligne haut de carte
+  cardTop: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
 
   newBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    padding: "0.22rem 0.6rem",
+    padding: "0.16rem 0.55rem",
     borderRadius: 999,
     fontWeight: 900,
-    fontSize: "0.7rem",
-    letterSpacing: "0.06em",
+    fontSize: "0.65rem",
+    letterSpacing: "0.08em",
     textTransform: "uppercase",
     background:
       "linear-gradient(90deg, rgba(236,72,153,0.9), rgba(129,140,248,0.95))",
     color: "#fff",
-    boxShadow: "0 0 18px rgba(236,72,153,0.35)",
+    boxShadow: "0 0 14px rgba(236,72,153,0.35)",
+    whiteSpace: "nowrap",
+  },
+
+  tag: {
+    padding: "0.16rem 0.5rem",
+    borderRadius: 999,
+    fontWeight: 800,
+    fontSize: "0.7rem",
+    background: "rgba(255,255,255,0.12)",
+    whiteSpace: "nowrap",
   },
 
   domainBadge: {
