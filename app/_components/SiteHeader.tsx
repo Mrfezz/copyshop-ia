@@ -1,4 +1,3 @@
-// app/_components/SiteHeader.tsx
 "use client";
 
 import Link from "next/link";
@@ -26,7 +25,13 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Facebook",
     href: "https://facebook.com",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+      >
         <path
           d="M12 3C7.6 3 4 6.6 4 11c0 4 2.9 7.3 6.8 7.9v-5.6H9.2V11h1.6V9.7c0-2 1-3.1 3.2-3.1h2v2.3h-1.3c-.8 0-1.1.4-1.1 1.1V11h2.3l-.4 2.3h-1.9v5.7C17 18.5 20 15.2 20 11 20 6.6 16.4 3 12 3Z"
           fill="currentColor"
@@ -38,7 +43,13 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Instagram",
     href: "https://www.instagram.com/mr.fez___",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+      >
         <rect
           x="4"
           y="4"
@@ -63,7 +74,13 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "TikTok",
     href: "https://www.tiktok.com/@mr.fezzz",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+      >
         <path
           d="M15 7.2V10c0 1.9-1.2 3.1-2.9 3.1-1.3 0-2.4 1-2.4 2.4A2.6 2.6 0 0 0 12.5 18c1.7 0 2.9-1.3 2.9-3.1V9.9a4.7 4.7 0 0 0 3.2 1.2V9a3.6 3.6 0 0 1-3.3-2.6L15 6.1V7.2Z"
           stroke="currentColor"
@@ -84,7 +101,13 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "Snapchat",
     href: "https://www.snapchat.com/@mr.fezz?invite_id=-rdCgPvj&locale=fr_FR&share_id=UK77Sd92TDaGvxvhI95X2w&sid=698c777c36ea4bb3aca7b6aabade36e2",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+      >
         <path
           d="M12 4.5c-2 0-3.3 1.5-3.4 3.3-.1 1.7.2 2.4-.4 3.1-.4.5-1.1.7-1.7.8v1.1c.8.1 1.3.5 1.9 1-.6.4-1.4.7-2.5.9.4.8 1.3 1.4 2.4 1.6.7.1 1.2.5 1.5.9.5.6 1.2 1.2 2.2 1.2s1.7-.6 2.2-1.2c.3-.4.8-.8 1.5-.9 1.1-.2 2-.8 2.4-1.6-1.1-.2-1.9-.5-2.5-.9.6-.5 1.1-.9 1.9-1v-1.1c-.6-.1-1.3-.3-1.7-.8-.6-.7-.3-1.4-.4-3.1C15.3 6 14 4.5 12 4.5Z"
           stroke="currentColor"
@@ -99,7 +122,13 @@ const SOCIAL_LINKS: SocialLink[] = [
     name: "WhatsApp",
     href: "https://wa.me/33745214922",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none">
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        fill="none"
+      >
         <path
           d="M12 4.5A7.1 7.1 0 0 0 5 11.6c0 1.3.3 2.3.9 3.3L5 19l4.3-1c.9.4 1.9.6 2.7.6a7.1 7.1 0 0 0 0-14.1Z"
           stroke="currentColor"
@@ -153,12 +182,6 @@ export default function SiteHeader() {
           <Link href="/" style={styles.brand}>
             COPYSHOP IA
           </Link>
-
-          {/* Info droite (desktop) */}
-          <div className="rightHint" style={styles.rightHint}>
-            by Mr Fez <br />
-            +33 7 45 21 49 22
-          </div>
         </div>
       </header>
 
@@ -256,13 +279,6 @@ export default function SiteHeader() {
           </Link>
         </div>
       </aside>
-
-      {/* Responsive : cache le bloc texte de droite sur mobile */}
-      <style>{`
-        @media (max-width: 700px) {
-          .rightHint { display: none; }
-        }
-      `}</style>
     </>
   );
 }
@@ -281,7 +297,7 @@ const styles: Record<string, CSSProperties> = {
     margin: "0 auto",
     padding: "10px 14px",
     display: "grid",
-    gridTemplateColumns: "auto 1fr auto",
+    gridTemplateColumns: "auto 1fr",
     alignItems: "center",
     gap: 12,
   },
@@ -292,12 +308,6 @@ const styles: Record<string, CSSProperties> = {
     textDecoration: "none",
     fontSize: "1.05rem",
     justifySelf: "start",
-  },
-  rightHint: {
-    color: "rgba(238,241,255,0.75)",
-    fontSize: "0.8rem",
-    textAlign: "right",
-    lineHeight: 1.2,
   },
 
   burger: {
