@@ -142,8 +142,6 @@ export default function HomePage() {
       <NewsletterSection />
       <CountdownTimer />
       <ContactSection />
-      <BundleOffer />
-      <ImpactText />
 
       <style>{responsiveCss}</style>
     </main>
@@ -508,47 +506,6 @@ function ContactSection() {
               WhatsApp direct
             </a>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function BundleOffer() {
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.bundleCard}>
-          <div style={styles.bundleTitle}>🌟 Offre bundle</div>
-          <p style={styles.p}>
-            Ajoute un service (logo, branding, automation) et économise 10%.
-          </p>
-          <a href="/services-digitaux" style={styles.primaryBtn}>
-            Voir les services
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ImpactText() {
-  const stats = [
-    { n: "100%", label: "Boutiques prêtes à vendre" },
-    { n: "24h", label: "Livraison moyenne" },
-    { n: "8h", label: "Réponse support" },
-  ];
-
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.statsGrid}>
-          {stats.map((s) => (
-            <div key={s.label} style={styles.statCard}>
-              <div style={styles.statN}>{s.n}</div>
-              <div style={styles.statLabel}>{s.label}</div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
@@ -983,7 +940,7 @@ const styles: Record<string, React.CSSProperties> = {
   timeValue: { fontSize: "1.4rem", fontWeight: 900 },
   timeLabel: { fontSize: "0.8rem", color: COLORS.muted, fontWeight: 800 },
   timerExpired: { fontWeight: 900, color: COLORS.muted },
-  
+
   contactCard: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -996,40 +953,6 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
   },
   contactBtns: { display: "flex", gap: 8, flexWrap: "wrap" },
-
-  bundleCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 18,
-    padding: "18px 16px",
-    display: "grid",
-    gap: 8,
-    textAlign: "center",
-  },
-  bundleTitle: {
-    fontWeight: 900,
-    fontSize: "1.2rem",
-    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
-    WebkitBackgroundClip: "text",
-    color: "transparent",
-  },
-
-  statsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3,minmax(0,1fr))",
-    gap: 12,
-  },
-  statCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 16,
-    padding: "16px 14px",
-    textAlign: "center",
-    display: "grid",
-    gap: 6,
-  },
-  statN: { fontWeight: 900, fontSize: "2rem" },
-  statLabel: { color: COLORS.muted, fontWeight: 800 },
 };
 
 const responsiveCss = `
@@ -1053,6 +976,5 @@ const responsiveCss = `
     .featuresGrid { grid-template-columns: 1fr !important; }
     .reviewsGrid { grid-template-columns: 1fr !important; }
     .newsCard { grid-template-columns: 1fr !important; text-align:center; }
-    .statsGrid { grid-template-columns: 1fr !important; }
   }
 `;
