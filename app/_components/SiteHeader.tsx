@@ -11,8 +11,6 @@ const NAV_LINKS = [
   { label: "Packs IA Shopify", href: "/packs-ia" },
   { label: "Services digitaux", href: "/services-digitaux" },
   { label: "Services à la carte", href: "/services-a-la-carte" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Newsletter", href: "/newsletter" },
   { label: "Contact", href: "/contact" },
   { label: "Qui sommes-nous ?", href: "/qui-sommes-nous" },
 ];
