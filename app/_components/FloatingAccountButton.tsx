@@ -16,11 +16,10 @@ export default function FloatingAccountButton() {
       </Link>
 
       <style>{`
-        /* 📱 MOBILE */
         @media (max-width: 700px) {
           .account-btn {
-            top: 10px !important;      /* légèrement plus haut pour éviter les collisions */
-            right: 78px !important;    /* laisse la place au panier à droite */
+            top: 10px !important;
+            right: 78px !important;
             padding: 6px !important;
           }
 
@@ -31,7 +30,7 @@ export default function FloatingAccountButton() {
           }
 
           .account-text {
-            display: none !important;  /* sur mobile : seulement l'icône */
+            display: none !important;
           }
         }
       `}</style>
@@ -42,8 +41,8 @@ export default function FloatingAccountButton() {
 const styles: Record<string, CSSProperties> = {
   wrap: {
     position: "fixed",
-    top: 18,          // aligné avec le panier sur desktop
-    right: 118,       // espace propre entre compte et panier
+    top: 12,     // ⭐️ AJUSTÉ (avant 18) → aligne parfaitement avec le panier
+    right: 118,
     zIndex: 80,
 
     display: "flex",
@@ -60,7 +59,6 @@ const styles: Record<string, CSSProperties> = {
     height: 36,
     borderRadius: "999px",
 
-    // Dégradé fin rose → violet sur le contour
     border: "2px solid transparent",
     background:
       "linear-gradient(rgba(15,15,30,0.9), rgba(15,15,30,0.9)) padding-box," +
