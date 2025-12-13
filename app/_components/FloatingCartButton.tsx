@@ -29,18 +29,17 @@ const styles: Record<string, React.CSSProperties> = {
   btn: {
     position: "fixed",
     top: 16,
-    right: 16,     // ✅ à droite
-    left: "auto",  // ✅ force à ne jamais être à gauche
+    right: 16,
+    left: "auto",
     zIndex: 9999,
 
     width: 46,
     height: 46,
-    borderRadius: 12, // ✅ simple, carré arrondi (style discret)
+    borderRadius: 12,
     display: "grid",
     placeItems: "center",
     textDecoration: "none",
 
-    // ✅ couleur digital Copyshop
     background:
       "linear-gradient(135deg, #141a4a 0%, #6a2fd6 55%, #e64aa7 100%)",
     border: "1px solid rgba(255,255,255,0.25)",

@@ -1,255 +1,164 @@
-// app/paiement/page.tsx
-"use client";
+// app/services-a-la-carte/page.tsx
+import Link from "next/link";
+import type React from "react";
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-} from "react";
-import { useRouter } from "next/navigation";
-import { PRODUCTS, type ProductKey } from "@/lib/products";
-
-type ProductLike = {
-  name: string;
-  price?: string;
-  priceLabel?: string;
-  description?: string;
-  desc?: string;
-  points?: string[];
-  bullets?: string[];
+type Service = {
+  title: string;
+  price: string;
+  desc: string;
+  tag?: string;
+  productKey:
+    | "kbis-24h"
+    | "logo-shopify"
+    | "nom-domaine"
+    | "contact-fournisseur"
+    | "shopify-paiement"
+    | "reseaux-sociaux"
+    | "flyer-image-video"
+    | "recharge-ia"
+    | "optimisation-boutique";
 };
 
-const COLORS = {
-  bgTop: "#0b1026",
-  bgMid: "#0f1635",
-  bgBottom: "#171a52",
+const SERVICES: Service[] = [
+  {
+    title: "Création Kbis en 24h",
+    price: "100€",
+    desc: "On s’occupe de la création de ta micro-entreprise/société et on te livre ton Kbis rapidement.",
+    tag: "Administratif",
+    productKey: "kbis-24h",
+  },
+  {
+    title: "Logo boutique Shopify",
+    price: "119,99€",
+    desc: "Logo professionnel + mini charte graphique pour une boutique crédible et prête à vendre.",
+    tag: "Branding",
+    productKey: "logo-shopify",
+  },
+  {
+    title: "Nom de domaine .fr / .com",
+    price: "49,99€",
+    desc: "On trouve un nom de domaine disponible (.fr ou .com), on le connecte à ta boutique et on le rend visible sur Google pendant 1 an. Renouvellement annuel non pris en charge.",
+    tag: "Nouveau",
+    productKey: "nom-domaine",
+  },
+  {
+    title: "Contact fournisseur (Chine / Émirats)",
+    price: "120€",
+    desc: "Sourcing + prise de contact + vérification basique, puis mise en relation avec un fournisseur fiable.",
+    tag: "Fournisseur",
+    productKey: "contact-fournisseur",
+  },
+  {
+    title: "Activation Shopify Payments",
+    price: "39,99€",
+    desc: "Configuration complète pour activer les paiements Shopify et encaisser sans blocage.",
+    tag: "Paiement",
+    productKey: "shopify-paiement",
+  },
+  {
+    title: "Création réseaux sociaux",
+    price: "49,99€",
+    desc: "Création/optimisation de tes pages Instagram, Facebook et TikTok avec un branding cohérent.",
+    tag: "Social",
+    productKey: "reseaux-sociaux",
+  },
+  {
+    title: "Création flyer image & vidéo",
+    price: "100€",
+    desc: "Flyer pro (image) + version vidéo/story prête pour Meta Ads, TikTok Ads et Snapchat.",
+    tag: "Visuels",
+    productKey: "flyer-image-video",
+  },
+  {
+    title: "Recharge boutiques IA",
+    price: "29,99€",
+    desc: "Ajoute 5 boutiques IA supplémentaires à ton pack Basic/Premium.",
+    tag: "Recharge",
+    productKey: "recharge-ia",
+  },
+  {
+    title: "Optimisation boutique (conversion)",
+    price: "179,99€",
+    desc: "Audit + optimisation homepage, page produit et upsells pour booster ton taux d’achat.",
+    tag: "Optimisation",
+    productKey: "optimisation-boutique",
+  },
+];
 
-  text: "#eef1ff",
-  muted: "#c9d2ff",
-
-  cardBg: "rgba(14,18,48,0.92)",
-  border: "rgba(255,255,255,0.12)",
-
-  violet: "#6a2fd6",
-  violetDeep: "#4338ca",
-  pink: "#e64aa7",
-};
-
-// ✅ Texte de secours si un produit n’a pas de description
-const DEFAULT_DESCS: Record<string, string> = {
-  // Services digitaux
-  "services-essentiel":
-    "Le pack parfait pour lancer ta boutique vite et proprement. Base solide, pro et prête à vendre.",
-  "services-pro":
-    "Passe au niveau supérieur : accompagnement + administratif + sourcing pour sécuriser ton business.",
-  "services-business":
-    "Lancement premium clé en main : optimisation complète, fournisseur géré et boutique prête à scaler.",
-
-  // Packs IA
-  "ia-basic":
-    "Accès immédiat à Copyshop IA pour générer ta boutique Shopify en quelques minutes.",
-  "ia-premium":
-    "Le meilleur équilibre pour tester plusieurs niches et accélérer tes résultats avec l’IA.",
-  "ia-ultime":
-    "Scaling illimité : génération sans limite + branding complet. Le pack ultime pour aller très loin.",
-
-  // À la carte
-  "kbis-24h":
-    "On crée ta micro-entreprise/société et tu reçois ton Kbis rapidement. Zéro stress administratif.",
-  "logo-shopify":
-    "Un logo pro + mini charte graphique pour rendre ta boutique crédible dès le premier regard.",
-  "nom-domaine":
-    "On trouve un nom disponible (.fr ou .com), on achète et on le connecte à ta boutique Shopify, avec mise en ligne sur Google. Validité 1 an (renouvellement à ta charge).",
-  "contact-fournisseur":
-    "On te trouve un fournisseur fiable, on vérifie, puis on te met en relation pour que tu puisses vendre sereinement.",
-  "shopify-paiement":
-    "Activation complète des paiements Shopify pour encaisser sans blocage et vendre direct.",
-  "reseaux-sociaux":
-    "On te prépare des réseaux propres et cohérents (Insta, FB, TikTok) prêts à convertir.",
-  "flyer-image-video":
-    "Flyer pro + version vidéo/story pour Meta, TikTok et Snap. Prêt pour lancer ta pub.",
-  "recharge-ia":
-    "Ajoute 5 boutiques IA supplémentaires à ton pack pour tester encore plus de produits.",
-  "optimisation-boutique":
-    "Audit + optimisation (homepage, produit, upsell) pour booster ton taux d’achat et tes conversions.",
-};
-
-export default function PaiementPage() {
-  const router = useRouter();
-
-  // ✅ on lit ?product= côté client uniquement
-  const [keyParam, setKeyParam] = useState<ProductKey | null>(null);
-  const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const sp = new URLSearchParams(window.location.search);
-    const rawKey = sp.get("product") as ProductKey | null;
-
-    if (rawKey && rawKey in PRODUCTS) {
-      setKeyParam(rawKey);
-    } else {
-      setKeyParam(null);
-    }
-
-    setReady(true);
-  }, []);
-
-  const product = useMemo<ProductLike | null>(() => {
-    if (!keyParam) return null;
-    return PRODUCTS[keyParam] as unknown as ProductLike;
-  }, [keyParam]);
-
-  const priceLabel = product?.priceLabel ?? product?.price ?? "—";
-
-  const rawDescription = product?.description ?? product?.desc ?? "";
-  const description =
-    rawDescription.trim() ||
-    (keyParam ? DEFAULT_DESCS[keyParam] : "") ||
-    "Accès immédiat après paiement. Support Copyshop inclus.";
-
-  const points: string[] | null = product?.points ?? product?.bullets ?? null;
-
-  const handlePay = async () => {
-    if (!product || !keyParam) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // ✅ le backend attend productKey
-        body: JSON.stringify({ productKey: keyParam }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data?.url) {
-        throw new Error(
-          data?.error || "Impossible de créer la session de paiement."
-        );
-      }
-
-      window.location.href = data.url;
-    } catch (e: any) {
-      setError(e?.message || "Erreur lors du paiement.");
-      setLoading(false);
-    }
-  };
-
-  // ✅ 1) Pendant le premier rendu (SSR + avant useEffect)
-  if (!ready) {
-    return (
-      <main style={styles.page}>
-        <div style={styles.bgGradient} />
-        <div style={styles.bgDots} />
-
-        <section style={styles.container}>
-          <div style={styles.card}>
-            <h1 style={styles.title}>Préparation du paiement…</h1>
-            <p style={styles.sub}>
-              Merci de patienter, on charge ton produit Copyshop IA.
-            </p>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  // ✅ 2) Après lecture des params : produit introuvable
-  if (!product) {
-    return (
-      <main style={styles.page}>
-        <div style={styles.bgGradient} />
-        <div style={styles.bgDots} />
-
-        <section style={styles.container}>
-          <div style={styles.card}>
-            <h1 style={styles.title}>Produit introuvable</h1>
-            <p style={styles.sub}>
-              Le lien de paiement est invalide ou incomplet.
-            </p>
-
-            <button onClick={() => router.push("/")} style={styles.btnAlt}>
-              Retour à l’accueil
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  // ✅ 3) Produit OK
+export default function ServicesALaCartePage() {
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
 
-      <section style={styles.container}>
-        <header style={styles.header}>
-          <p style={styles.kicker}>PAIEMENT SÉCURISÉ</p>
-          <h1 style={styles.title}>Finaliser ta commande</h1>
-          <p style={styles.sub}>
-            Tu es à un clic de débloquer ton accès Copyshop IA.
-          </p>
-        </header>
-
-        <article style={styles.card}>
-          <div style={styles.badge}>Paiement unique</div>
-
-          <h2 style={styles.cardTitle}>{product.name}</h2>
-
-          <p style={styles.desc}>{description}</p>
-
-          {points?.length ? (
-            <ul style={styles.list}>
-              {points.map((p) => (
-                <li key={p} style={styles.listItem}>
-                  <span style={styles.check}>✓</span>
-                  <span>{p}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div style={styles.priceRow}>
-            <div>
-              <div style={styles.price}>{priceLabel}</div>
-              <div style={styles.priceNote}>Paiement unique</div>
-            </div>
-
-            <button
-              onClick={handlePay}
-              disabled={loading}
-              style={{
-                ...styles.btnPay,
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              {loading ? "Redirection vers Stripe..." : "Payer maintenant"}
-            </button>
-          </div>
-
-          {error && <div style={styles.errorBox}>⚠️ {error}</div>}
-        </article>
+      <section style={styles.hero}>
+        <p style={styles.kicker}>SERVICES À LA CARTE</p>
+        <h1 style={styles.heroTitle}>Besoin d’un service précis ?</h1>
+        <p style={styles.heroDesc}>
+          Choisis ce dont tu as besoin, on le fait pour toi rapidement.
+        </p>
       </section>
+
+      {/* ✅ AJOUT className="gridCards" pour le responsive */}
+      <section className="gridCards" style={styles.grid}>
+        {SERVICES.map((s) => (
+          <article key={s.title} style={styles.card}>
+            {s.tag && <div style={styles.tag}>{s.tag}</div>}
+
+            <h2 style={styles.cardTitle}>{s.title}</h2>
+            <p style={styles.cardDesc}>{s.desc}</p>
+
+            <div style={styles.priceRow}>
+              <div style={styles.price}>{s.price}</div>
+
+              {/* ✅ REDIRECTION PAIEMENT STRIPE */}
+              <Link
+                href={`/paiement?product=${s.productKey}`}
+                style={styles.btn}
+              >
+                Commander
+              </Link>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section style={styles.bottom}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 900 }}>
+            Tu veux plutôt un pack complet ?
+          </h3>
+          <p style={{ marginTop: 6, color: "#c9d2ff" }}>
+            Regarde les Services digitaux personnalisés.
+          </p>
+        </div>
+        <Link href="/services-digitaux" style={styles.btnGhost}>
+          Voir les packs
+        </Link>
+      </section>
+
+      <div style={{ textAlign: "center", marginTop: 18 }}>
+        <Link href="/" style={styles.linkBack}>
+          ← Retour accueil
+        </Link>
+      </div>
+
+      {/* responsive */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .gridCards { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </main>
   );
 }
 
-const styles: Record<string, CSSProperties> = {
+const styles: Record<string, React.CSSProperties> = {
   page: {
     position: "relative",
     minHeight: "100vh",
     padding: "2.5rem 1.25rem 3rem",
-    color: COLORS.text,
+    color: "#eef1ff",
     overflow: "hidden",
   },
 
@@ -259,7 +168,7 @@ const styles: Record<string, CSSProperties> = {
     background:
       "radial-gradient(1200px circle at 10% -10%, #3a6bff33, transparent 50%)," +
       "radial-gradient(900px circle at 90% 10%, #8b5cf633, transparent 45%)," +
-      `linear-gradient(180deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 45%, ${COLORS.bgBottom} 100%)`,
+      "linear-gradient(180deg, #0b1026 0%, #0f1635 45%, #171a52 100%)",
     zIndex: -2,
   },
 
@@ -277,156 +186,124 @@ const styles: Record<string, CSSProperties> = {
     pointerEvents: "none",
   },
 
-  container: {
-    maxWidth: 860,
-    margin: "0 auto",
-    padding: "56px 10px 28px",
-    position: "relative",
-    zIndex: 1,
-  },
-
-  header: {
-    textAlign: "center",
-    marginBottom: 22,
-  },
-
+  hero: { maxWidth: 1100, margin: "0 auto 2.2rem" },
   kicker: {
+    letterSpacing: "0.35em",
     fontSize: "0.8rem",
-    color: COLORS.muted,
     fontWeight: 800,
-    letterSpacing: "0.25em",
-    textTransform: "uppercase",
+    opacity: 0.8,
     margin: 0,
   },
-
-  title: {
-    fontSize: "clamp(2.1rem, 4vw, 3.0rem)",
+  heroTitle: {
+    fontSize: "clamp(2.1rem, 4vw, 3.1rem)",
     fontWeight: 900,
-    margin: "8px 0 6px",
+    margin: "0.7rem 0 0.4rem",
   },
+  heroDesc: { color: "#c9d2ff", margin: 0, fontSize: "1.05rem" },
 
-  sub: {
-    fontSize: "1.05rem",
-    color: COLORS.muted,
-    margin: 0,
+  grid: {
+    maxWidth: 1100,
+    margin: "0 auto",
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0,1fr))",
+    gap: "1rem",
   },
 
   card: {
-    position: "relative",
-    background: COLORS.cardBg,
-    border: `1px solid ${COLORS.border}`,
+    background: "rgba(13,18,45,0.95)",
     borderRadius: 18,
-    padding: "22px",
-    boxShadow: "0 12px 35px rgba(0,0,0,0.35)",
+    padding: "1.4rem 1.2rem 1.2rem",
+    border: "1px solid rgba(120,140,255,0.35)",
+    boxShadow: "0 12px 35px rgba(0,0,0,0.25)",
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    minHeight: 220,
+    position: "relative",
   },
 
-  badge: {
+  tag: {
     position: "absolute",
-    top: 14,
-    right: 14,
-    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
-    color: "#fff",
-    fontWeight: 900,
-    padding: "6px 10px",
+    top: 8,
+    right: 8,
+    padding: "0.22rem 0.5rem",
     borderRadius: 999,
-    fontSize: "0.8rem",
+    fontWeight: 900,
+    fontSize: "0.7rem",
+    background: "rgba(255,255,255,0.12)",
+    maxWidth: "45%",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 
   cardTitle: {
-    fontSize: "1.7rem",
+    fontSize: "1.25rem",
     fontWeight: 900,
-    margin: "6px 0 0",
-  },
-
-  desc: {
-    color: COLORS.muted,
-    margin: "4px 0 8px",
-    lineHeight: 1.5,
-  },
-
-  list: {
-    listStyle: "none",
-    padding: 0,
     margin: 0,
-    display: "grid",
-    gap: 8,
+    paddingRight: "90px",
   },
 
-  listItem: {
-    display: "flex",
-    gap: 10,
-    alignItems: "flex-start",
-  },
-
-  check: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    background: "rgba(255,255,255,0.08)",
-    display: "grid",
-    placeItems: "center",
-    fontWeight: 900,
-    color: "#fff",
-    flex: "0 0 auto",
-    marginTop: 2,
+  cardDesc: {
+    marginTop: 8,
+    color: "#c9d2ff",
+    fontSize: "0.98rem",
+    flex: 1,
   },
 
   priceRow: {
-    marginTop: 10,
-    padding: "12px 14px",
+    marginTop: 12,
+    background: "linear-gradient(90deg,#1e1b4b,#4338ca,#7c3aed)",
+    padding: "0.7rem 0.8rem",
     borderRadius: 12,
-    background: `linear-gradient(90deg, #0b0f2a 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 10,
+    gap: "0.6rem",
   },
+  price: { fontSize: "1.4rem", fontWeight: 900, color: "white" },
 
-  price: {
-    fontSize: "2rem",
-    fontWeight: 900,
-    color: "#fff",
-  },
-
-  priceNote: {
-    fontSize: "0.95rem",
-    fontWeight: 700,
-    color: "#fff",
-    opacity: 0.9,
-  },
-
-  btnPay: {
-    padding: "10px 16px",
+  btn: {
+    padding: "0.5rem 0.9rem",
     borderRadius: 999,
+    background: "white",
+    color: "#0b1026",
     fontWeight: 900,
-    border: "none",
-    color: "#fff",
-    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
-    boxShadow: "0 8px 18px rgba(106,47,214,0.35)",
+    textDecoration: "none",
+    fontSize: "0.9rem",
     whiteSpace: "nowrap",
   },
 
-  btnAlt: {
-    marginTop: 8,
-    padding: "10px 14px",
-    borderRadius: 999,
-    fontWeight: 900,
-    border: `1px solid ${COLORS.border}`,
-    color: COLORS.text,
-    background: "rgba(255,255,255,0.06)",
-    cursor: "pointer",
+  bottom: {
+    maxWidth: 1100,
+    margin: "1.6rem auto 0",
+    borderRadius: 18,
+    padding: "1.2rem",
+    background:
+      "linear-gradient(180deg, rgba(18,25,68,0.95), rgba(10,15,38,0.95))",
+    border: "1px solid rgba(120,140,255,0.35)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1rem",
   },
 
-  errorBox: {
-    marginTop: 8,
-    background: "rgba(239,68,68,0.12)",
-    border: "1px solid rgba(239,68,68,0.35)",
-    padding: "10px 12px",
-    borderRadius: 10,
+  btnGhost: {
+    padding: "0.75rem 1.1rem",
+    borderRadius: 999,
+    border: "1px solid rgba(120,140,255,0.55)",
+    color: "#eef1ff",
+    background: "rgba(10,15,38,0.35)",
+    fontWeight: 800,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    whiteSpace: "nowrap",
+  },
+
+  linkBack: {
+    color: "#c9d2ff",
+    textDecoration: "none",
     fontWeight: 700,
   },
 };
