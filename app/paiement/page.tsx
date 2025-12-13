@@ -37,7 +37,7 @@ const COLORS = {
 };
 
 // ✅ Texte de secours si un produit n’a pas de description
-const DEFAULT_DESCS: Partial<Record<ProductKey, string>> = {
+const DEFAULT_DESCS: Record<string, string> = {
   // Services digitaux
   "services-essentiel":
     "Le pack parfait pour lancer ta boutique vite et proprement. Base solide, pro et prête à vendre.",
@@ -59,6 +59,8 @@ const DEFAULT_DESCS: Partial<Record<ProductKey, string>> = {
     "On crée ta micro-entreprise/société et tu reçois ton Kbis rapidement. Zéro stress administratif.",
   "logo-shopify":
     "Un logo pro + mini charte graphique pour rendre ta boutique crédible dès le premier regard.",
+  "nom-domaine":
+    "On trouve un nom disponible (.fr ou .com), on achète et on le connecte à ta boutique Shopify, avec mise en ligne sur Google. Validité 1 an (renouvellement à ta charge).",
   "contact-fournisseur":
     "On te trouve un fournisseur fiable, on vérifie, puis on te met en relation pour que tu puisses vendre sereinement.",
   "shopify-paiement":
