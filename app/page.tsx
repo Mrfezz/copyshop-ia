@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const COLORS = {
   bgTop: "#0b1026",
@@ -40,8 +40,7 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle:
-      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -62,8 +61,7 @@ const FEATURES = [
   },
   {
     title: "Support WhatsApp",
-    text:
-      "Tu bloques sur un truc ? Tu nous écris et on t’aide direct.",
+    text: "Tu bloques sur un truc ? Tu nous écris et on t’aide direct.",
     icon: "💬",
   },
 ];
@@ -76,8 +74,7 @@ const TESTIMONIALS = [
   },
   {
     name: "Inès",
-    text:
-      "Le design est trop propre pour le prix. Franchement ça fait premium.",
+    text: "Le design est trop propre pour le prix. Franchement ça fait premium.",
   },
   {
     name: "Yanis",
@@ -139,9 +136,6 @@ export default function HomePage() {
       <ReviewsSection />
       <MiniSlideshow />
       <HomeFAQ />
-      <NewsletterSection />
-      <CountdownTimer />
-      <ContactSection />
 
       <style>{responsiveCss}</style>
     </main>
@@ -155,24 +149,15 @@ function HeroSlideshow() {
 
   return (
     <section style={styles.heroSection}>
-      <div style={styles.heroCard}>
+      <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          <div style={styles.heroKicker}>
-            {HERO_SLIDES[active].kicker}
-          </div>
-          <h1 style={styles.heroTitle}>
-            {HERO_SLIDES[active].title}
-          </h1>
-          <p style={styles.heroSub}>
-            {HERO_SLIDES[active].subtitle}
-          </p>
+          <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
+          <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
+          <p style={styles.heroSub}>{HERO_SLIDES[active].subtitle}</p>
 
           <div style={styles.heroBtns}>
             {HERO_SLIDES[active].ctaText && (
-              <a
-                href={HERO_SLIDES[active].ctaLink}
-                style={styles.primaryBtn}
-              >
+              <a href={HERO_SLIDES[active].ctaLink} style={styles.primaryBtn}>
                 {HERO_SLIDES[active].ctaText}
               </a>
             )}
@@ -254,7 +239,7 @@ function FeaturesScrolling() {
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
-        <div style={styles.featuresGrid}>
+        <div style={styles.featuresGrid} className="featuresGrid">
           {FEATURES.map((f) => (
             <article key={f.title} style={styles.featureCard}>
               <div style={styles.featureIcon}>{f.icon}</div>
@@ -272,7 +257,7 @@ function FeaturedProduct() {
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
-        <div style={styles.split}>
+        <div style={styles.split} className="split">
           <div style={styles.mockImage}>
             <div style={styles.mockBadge}>Boutique générée</div>
           </div>
@@ -281,10 +266,18 @@ function FeaturedProduct() {
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
             <ul style={styles.checkList}>
-              <li style={styles.checkItem}><span style={styles.check}>✓</span> Home optimisée conversion</li>
-              <li style={styles.checkItem}><span style={styles.check}>✓</span> Pages : packs, FAQ, contact, services</li>
-              <li style={styles.checkItem}><span style={styles.check}>✓</span> Identité visuelle cohérente</li>
-              <li style={styles.checkItem}><span style={styles.check}>✓</span> Textes marketing + SEO</li>
+              <li style={styles.checkItem}>
+                <span style={styles.check}>✓</span> Home optimisée conversion
+              </li>
+              <li style={styles.checkItem}>
+                <span style={styles.check}>✓</span> Pages : packs, FAQ, contact, services
+              </li>
+              <li style={styles.checkItem}>
+                <span style={styles.check}>✓</span> Identité visuelle cohérente
+              </li>
+              <li style={styles.checkItem}>
+                <span style={styles.check}>✓</span> Textes marketing + SEO
+              </li>
             </ul>
 
             <div style={{ marginTop: 14 }}>
@@ -308,7 +301,7 @@ function ReviewsSection() {
           <h2 style={styles.h2}>Ils ont testé Copyshop IA</h2>
         </div>
 
-        <div style={styles.reviewsGrid}>
+        <div style={styles.reviewsGrid} className="reviewsGrid">
           {TESTIMONIALS.map((t) => (
             <article key={t.name} style={styles.reviewCard}>
               <div style={styles.reviewText}>"{t.text}"</div>
@@ -328,7 +321,9 @@ function MiniSlideshow() {
       <div style={styles.sectionInner}>
         <div style={styles.miniRow}>
           {items.map((it) => (
-            <div key={it} style={styles.miniChip}>{it}</div>
+            <div key={it} style={styles.miniChip}>
+              {it}
+            </div>
           ))}
         </div>
       </div>
@@ -372,12 +367,12 @@ function HomeFAQ() {
                 </button>
 
                 <div
-                  ref={(el) => { refs.current[i] = el; }}
+                  ref={(el) => {
+                    refs.current[i] = el;
+                  }}
                   style={{
                     ...styles.answerOuter,
-                    maxHeight: isOpen
-                      ? refs.current[i]?.scrollHeight ?? 0
-                      : 0,
+                    maxHeight: isOpen ? refs.current[i]?.scrollHeight ?? 0 : 0,
                     opacity: isOpen ? 1 : 0,
                     transform: isOpen ? "translateY(0)" : "translateY(-4px)",
                   }}
@@ -389,124 +384,7 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>
-          Une autre question ? Écris-nous sur WhatsApp.
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function NewsletterSection() {
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.newsCard}>
-          <div>
-            <p style={styles.kicker}>Newsletter</p>
-            <h2 style={styles.h2}>Promos & nouveautés</h2>
-            <p style={styles.p}>
-              Reçois des réductions et des conseils pour vendre plus vite.
-            </p>
-          </div>
-
-          <form
-            style={styles.newsForm}
-            onSubmit={(e) => e.preventDefault()}
-          >
-            <input
-              type="email"
-              required
-              placeholder="Ton email"
-              style={styles.input}
-            />
-            <button type="submit" style={styles.primaryBtn}>
-              S’abonner
-            </button>
-          </form>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CountdownTimer() {
-  const target = useMemo(() => new Date("2025-12-01T22:59:00+01:00"), []);
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const diff = target.getTime() - now.getTime();
-  const expired = diff <= 0;
-
-  const d = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-  const h = Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24));
-  const m = Math.max(0, Math.floor((diff / (1000 * 60)) % 60));
-  const s = Math.max(0, Math.floor((diff / 1000) % 60));
-
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.timerCard}>
-          <div style={styles.timerLeft}>
-            <div style={styles.timerTitle}>Offre spéciale en cours 🔥</div>
-            <div style={styles.timerSub}>
-              -10% sur le pack Premium cette semaine.
-            </div>
-          </div>
-
-          <div style={styles.timerRight}>
-            {expired ? (
-              <div style={styles.timerExpired}>Offre terminée</div>
-            ) : (
-              <>
-                <TimeBox label="Jours" value={d} />
-                <TimeBox label="Heures" value={h} />
-                <TimeBox label="Minutes" value={m} />
-                <TimeBox label="Secondes" value={s} />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TimeBox({ label, value }: { label: string; value: number }) {
-  return (
-    <div style={styles.timeBox}>
-      <div style={styles.timeValue}>{String(value).padStart(2, "0")}</div>
-      <div style={styles.timeLabel}>{label}</div>
-    </div>
-  );
-}
-
-function ContactSection() {
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.contactCard}>
-          <div>
-            <p style={styles.kicker}>Service client</p>
-            <h2 style={styles.h2}>Besoin d’aide ?</h2>
-            <p style={styles.p}>
-              On répond généralement en moins de 8h.
-            </p>
-          </div>
-
-          <div style={styles.contactBtns}>
-            <a href="/contact" style={styles.primaryBtn}>
-              Page contact
-            </a>
-            <a href="https://wa.me/33745214922" style={styles.ghostBtn}>
-              WhatsApp direct
-            </a>
-          </div>
-        </div>
+        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
       </div>
     </section>
   );
@@ -633,8 +511,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 260,
     height: 260,
     borderRadius: "50%",
-    background:
-      `radial-gradient(circle, ${COLORS.violet}55, transparent 60%)`,
+    background: `radial-gradient(circle, ${COLORS.violet}55, transparent 60%)`,
     filter: "blur(10px)",
     opacity: 0.9,
   },
@@ -659,8 +536,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: 140,
     height: 140,
     borderRadius: "50%",
-    background:
-      `linear-gradient(135deg, ${COLORS.violetDeep}, ${COLORS.violet})`,
+    background: `linear-gradient(135deg, ${COLORS.violetDeep}, ${COLORS.violet})`,
     display: "grid",
     placeItems: "center",
     boxShadow: "0 14px 40px rgba(106,47,214,0.5)",
@@ -701,7 +577,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionInner: { display: "grid", gap: 18 },
 
-  sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
+  sectionHeader: {
+    display: "grid",
+    gap: 8,
+    textAlign: "center",
+    marginBottom: 8,
+  },
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -801,7 +682,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
   },
 
-  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
+  checkList: {
+    listStyle: "none",
+    padding: 0,
+    margin: "12px 0 0",
+    display: "grid",
+    gap: 8,
+  },
   checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
@@ -831,7 +718,12 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
-  miniRow: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" },
+  miniRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   miniChip: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -893,66 +785,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
     fontSize: "1rem",
   },
-
-  newsCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 18,
-    padding: "18px 16px",
-    display: "grid",
-    gridTemplateColumns: "1.2fr 0.8fr",
-    gap: 14,
-    alignItems: "center",
-  },
-  newsForm: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "end" },
-  input: {
-    minWidth: 220,
-    padding: "10px 12px",
-    borderRadius: 999,
-    border: `1px solid ${COLORS.panelBorder}`,
-    background: "rgba(0,0,0,0.25)",
-    color: COLORS.text,
-    outline: "none",
-  },
-
-  timerCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 18,
-    padding: "16px 14px",
-    display: "grid",
-    gridTemplateColumns: "1fr auto",
-    gap: 12,
-    alignItems: "center",
-  },
-  timerLeft: { display: "grid", gap: 4 },
-  timerTitle: { fontWeight: 900, fontSize: "1.2rem" },
-  timerSub: { color: COLORS.muted, fontWeight: 700 },
-  timerRight: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" },
-  timeBox: {
-    minWidth: 72,
-    textAlign: "center",
-    background: "rgba(0,0,0,0.25)",
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 12,
-    padding: "8px 10px",
-  },
-  timeValue: { fontSize: "1.4rem", fontWeight: 900 },
-  timeLabel: { fontSize: "0.8rem", color: COLORS.muted, fontWeight: 800 },
-  timerExpired: { fontWeight: 900, color: COLORS.muted },
-
-  contactCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 18,
-    padding: "18px 16px",
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-    alignItems: "center",
-  },
-  contactBtns: { display: "flex", gap: 8, flexWrap: "wrap" },
 };
 
 const responsiveCss = `
@@ -975,6 +807,5 @@ const responsiveCss = `
   @media (max-width: 820px) {
     .featuresGrid { grid-template-columns: 1fr !important; }
     .reviewsGrid { grid-template-columns: 1fr !important; }
-    .newsCard { grid-template-columns: 1fr !important; text-align:center; }
   }
 `;
