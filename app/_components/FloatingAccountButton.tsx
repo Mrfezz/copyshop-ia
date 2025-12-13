@@ -16,15 +16,15 @@ export default function FloatingAccountButton() {
         @media (max-width: 700px) {
 
           .account-btn {
-            top: 18px !important;
-            right: 78px !important; /* éloigné du panier */
-            padding: 8px !important;
+            top: 10px !important; /* 🔼 remonté sans toucher COPYSHOP IA */
+            right: 78px !important;
+            padding: 6px !important;
           }
 
           .account-icon {
             width: 30px !important;
             height: 30px !important;
-            font-size: 0.95rem !important;
+            font-size: 0.9rem !important;
           }
 
           .account-text {
@@ -39,8 +39,8 @@ export default function FloatingAccountButton() {
 const styles: Record<string, CSSProperties> = {
   wrap: {
     position: "fixed",
-    top: 18,
-    right: 120, // 📌 Desktop : plus éloigné du panier
+    top: 12,                // 🔼 légèrement remonté pour ne plus toucher la ligne
+    right: 120,             // décalé du panier
     zIndex: 80,
 
     display: "flex",
@@ -57,12 +57,17 @@ const styles: Record<string, CSSProperties> = {
     height: 34,
 
     borderRadius: "999px",
-    border: "1px solid rgba(255,255,255,0.7)", // 📌 même style que dans le menu
+
+    /* 🎨 Dégradé rose → violet très fin */
+    border: "2px solid transparent",
+    background: `
+      linear-gradient(rgba(15,15,30,0.9), rgba(15,15,30,0.9)) padding-box,
+      linear-gradient(90deg, #e64aa7, #6a2fd6) border-box
+    `,
+
     display: "grid",
     placeItems: "center",
-
     fontSize: "1rem",
-    background: "rgba(255,255,255,0.05)",
   },
 
   text: {
