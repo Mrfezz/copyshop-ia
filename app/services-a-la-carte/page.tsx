@@ -10,12 +10,14 @@ type Service = {
   productKey:
     | "kbis-24h"
     | "logo-shopify"
+    | "nom-domaine"
     | "contact-fournisseur"
     | "shopify-paiement"
     | "reseaux-sociaux"
     | "flyer-image-video"
     | "recharge-ia"
     | "optimisation-boutique";
+  isNew?: boolean;
 };
 
 const SERVICES: Service[] = [
@@ -32,6 +34,14 @@ const SERVICES: Service[] = [
     desc: "Logo professionnel + mini charte graphique pour une boutique crédible et prête à vendre.",
     tag: "Branding",
     productKey: "logo-shopify",
+  },
+  {
+    title: "Nom de domaine (mise en ligne + configuration)",
+    price: "49,99€",
+    desc: "Recherche d’un nom disponible (nomdeboutique.fr ou nomdeboutique.com), achat et configuration complète avec ta boutique Shopify, mise en ligne sur Google. Validité 1 an (renouvellement non pris en charge).",
+    tag: "Nom de domaine",
+    productKey: "nom-domaine",
+    isNew: true,
   },
   {
     title: "Contact fournisseur (Chine / Émirats)",
@@ -96,8 +106,19 @@ export default function ServicesALaCartePage() {
         {SERVICES.map((s) => (
           <article key={s.title} style={styles.card}>
             {s.tag && <div style={styles.tag}>{s.tag}</div>}
+            {s.isNew && <div style={styles.newBadge}>Nouveau</div>}
 
             <h2 style={styles.cardTitle}>{s.title}</h2>
+
+            {s.productKey === "nom-domaine" && (
+              <div style={styles.domainBadge}>
+                <span style={styles.domainDot} />
+                <span>.fr</span>
+                <span style={styles.domainSeparator}>•</span>
+                <span>.com</span>
+              </div>
+            )}
+
             <p style={styles.cardDesc}>{s.desc}</p>
 
             <div style={styles.priceRow}>
@@ -211,6 +232,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     minHeight: 220,
     position: "relative",
+    overflow: "hidden",
   },
 
   tag: {
@@ -222,10 +244,52 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     fontSize: "0.7rem",
     background: "rgba(255,255,255,0.12)",
-    maxWidth: "45%",
+    maxWidth: "55%",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+  },
+
+  newBadge: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    padding: "0.22rem 0.6rem",
+    borderRadius: 999,
+    fontWeight: 900,
+    fontSize: "0.7rem",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    background:
+      "linear-gradient(90deg, rgba(236,72,153,0.9), rgba(129,140,248,0.95))",
+    color: "#fff",
+    boxShadow: "0 0 18px rgba(236,72,153,0.35)",
+  },
+
+  domainBadge: {
+    marginTop: 6,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "0.2rem 0.55rem",
+    borderRadius: 999,
+    fontSize: "0.8rem",
+    fontWeight: 700,
+    color: "#e5e7ff",
+    background:
+      "linear-gradient(90deg, rgba(30,64,175,0.6), rgba(139,92,246,0.9))",
+    border: "1px solid rgba(191,219,254,0.6)",
+  },
+
+  domainDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "999px",
+    background: "#22c55e",
+  },
+
+  domainSeparator: {
+    opacity: 0.7,
   },
 
   cardTitle: {
