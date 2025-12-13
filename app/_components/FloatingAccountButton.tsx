@@ -7,30 +7,22 @@ export default function FloatingAccountButton() {
   return (
     <>
       <Link href="/compte-client" className="account-btn" style={styles.wrap}>
-        <span className="account-icon" style={styles.icon}>
-          👤
-        </span>
-        <span className="account-text" style={styles.text}>
-          Mon compte
-        </span>
+        <span className="account-icon" style={styles.icon}>👤</span>
       </Link>
 
       <style>{`
+        /* 📱 MOBILE : icône seule + position adaptée */
         @media (max-width: 700px) {
           .account-btn {
             top: 10px !important;
             right: 78px !important;
-            padding: 6px !important;
+            padding: 4px !important;
           }
 
           .account-icon {
             width: 30px !important;
             height: 30px !important;
-            font-size: 0.9rem !important;
-          }
-
-          .account-text {
-            display: none !important;
+            font-size: 0.95rem !important;
           }
         }
       `}</style>
@@ -41,17 +33,13 @@ export default function FloatingAccountButton() {
 const styles: Record<string, CSSProperties> = {
   wrap: {
     position: "fixed",
-    top: 12,     // ⭐️ AJUSTÉ (avant 18) → aligne parfaitement avec le panier
-    right: 118,
+    top: 14,            // ⭐ aligné avec le panier
+    right: 118,         // ⭐ laisse juste l’espace parfait entre les deux bulles
     zIndex: 80,
-
+    padding: 4,
     display: "flex",
     alignItems: "center",
-    gap: 8,
-    padding: "6px 10px",
-
     textDecoration: "none",
-    color: "white",
   },
 
   icon: {
@@ -59,6 +47,7 @@ const styles: Record<string, CSSProperties> = {
     height: 36,
     borderRadius: "999px",
 
+    /* ⭐ Dégradé propre rose → violet (bord fin premium) */
     border: "2px solid transparent",
     background:
       "linear-gradient(rgba(15,15,30,0.9), rgba(15,15,30,0.9)) padding-box," +
@@ -67,10 +56,6 @@ const styles: Record<string, CSSProperties> = {
     display: "grid",
     placeItems: "center",
     fontSize: "1.1rem",
-  },
-
-  text: {
-    fontSize: "0.95rem",
-    fontWeight: 700,
+    color: "white",
   },
 };
