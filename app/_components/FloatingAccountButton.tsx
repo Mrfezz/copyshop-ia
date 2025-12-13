@@ -23,19 +23,26 @@ export default function FloatingAccountButton() {
         </span>
       </Link>
 
-      {/* Ajustements mobile */}
       <style>{`
+        /* Mobile : plus petit mais toujours à côté du panier */
         @media (max-width: 700px) {
           .float-account-btn {
-            top: 70px !important;      /* plus bas que le header */
-            right: 16px !important;    /* collé au bord droit */
-            padding-inline: 10px !important;
+            top: 18px !important;          /* même hauteur que le header/panier */
+            right: 80px !important;        /* juste à gauche du panier */
+            padding: 6px 10px !important;  /* plus compact */
+            font-size: 0.75rem !important;
             gap: 4px !important;
-            font-size: 0.8rem !important;
           }
+        }
 
+        /* Très petit écran : que l'icône pour ne pas empiéter sur le logo */
+        @media (max-width: 400px) {
           .float-account-btn [data-label="text"] {
-            display: none;             /* on cache le texte -> icône seule */
+            display: none;
+          }
+          .float-account-btn {
+            right: 60px !important;
+            padding: 6px !important;
           }
         }
       `}</style>
@@ -47,7 +54,7 @@ const styles: Record<string, CSSProperties> = {
   button: {
     position: "fixed",
     top: 18,
-    right: 90, // à côté du bouton panier sur desktop
+    right: 90, // Desktop : à gauche du panier (qui est collé au bord droit)
     zIndex: 70,
     display: "inline-flex",
     alignItems: "center",
