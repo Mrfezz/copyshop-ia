@@ -18,30 +18,28 @@ export default function FloatingAccountButton() {
         style={styles.button}
       >
         <span style={styles.icon}>👤</span>
-        <span data-label="text" style={styles.label}>
-          Mon compte
-        </span>
+        <span data-label="text" style={styles.label}>Mon compte</span>
       </Link>
 
       <style>{`
-        /* Mobile : plus petit mais toujours à côté du panier */
+        /* 📱 MOBILE (iPhone, Android) — rétrécir et décaler */
         @media (max-width: 700px) {
           .float-account-btn {
-            top: 18px !important;          /* même hauteur que le header/panier */
-            right: 80px !important;        /* juste à gauche du panier */
-            padding: 6px 10px !important;  /* plus compact */
-            font-size: 0.75rem !important;
+            top: 18px !important;
+            right: 120px !important; /* 👉 décale vers la gauche pour libérer de la place au panier */
+            padding: 6px 10px !important;
+            font-size: 0.72rem !important;
             gap: 4px !important;
           }
         }
 
-        /* Très petit écran : que l'icône pour ne pas empiéter sur le logo */
+        /* 📱 Très petit écran — uniquement l'icône */
         @media (max-width: 400px) {
           .float-account-btn [data-label="text"] {
             display: none;
           }
           .float-account-btn {
-            right: 60px !important;
+            right: 100px !important;
             padding: 6px !important;
           }
         }
@@ -54,7 +52,7 @@ const styles: Record<string, CSSProperties> = {
   button: {
     position: "fixed",
     top: 18,
-    right: 90, // Desktop : à gauche du panier (qui est collé au bord droit)
+    right: 100, // Desktop OK
     zIndex: 70,
     display: "inline-flex",
     alignItems: "center",
@@ -70,16 +68,18 @@ const styles: Record<string, CSSProperties> = {
     boxShadow: "0 10px 24px rgba(106,47,214,0.45)",
     backdropFilter: "blur(8px)",
   },
+
   icon: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderRadius: "999px",
     border: "1px solid rgba(255,255,255,0.6)",
     display: "grid",
     placeItems: "center",
-    fontSize: "0.9rem",
+    fontSize: "0.8rem",
     background: "rgba(15,23,42,0.85)",
   },
+
   label: {
     display: "inline-block",
   },
