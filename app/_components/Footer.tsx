@@ -235,7 +235,12 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 18,
     padding: "22px 18px",
     textAlign: "center",
+
+    // ✅ FIX: empêche l’input de “déborder” visuellement hors du card arrondi
+    overflow: "hidden",
+    boxSizing: "border-box",
   },
+
   newsTitle: {
     fontSize: "1.5rem",
     fontWeight: 900,
@@ -247,17 +252,30 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 600,
   },
+
   newsForm: {
     marginTop: 14,
     display: "grid",
     gridTemplateColumns: "1fr auto",
     gap: 10,
     alignItems: "center",
-    maxWidth: 640,
-    marginInline: "auto",
-  },
-  newsInput: {
+
+    // ✅ FIX: le form ne dépassera jamais le bloc
     width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+
+    // ✅ FIX: petit padding interne = l’input ne touche jamais le bord du card
+    paddingInline: 6,
+  },
+
+  newsInput: {
+    display: "block",
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
+
     background: "rgba(255,255,255,0.06)",
     border: `1px solid ${COLORS.boxBorder}`,
     borderRadius: 10,
@@ -266,7 +284,10 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "1rem",
     outline: "none",
   },
+
   newsBtn: {
+    minWidth: 0,
+    boxSizing: "border-box",
     padding: "12px 18px",
     borderRadius: 10,
     border: "none",
@@ -315,7 +336,6 @@ const styles: Record<string, CSSProperties> = {
     color: "#e6e9ff",
   },
 
-  // Slightly tighter list for mobile columns
   colListCompact: {
     listStyle: "none",
     padding: 0,

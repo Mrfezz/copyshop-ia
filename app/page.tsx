@@ -79,8 +79,7 @@ const TESTIMONIALS = [
   },
   {
     name: "Yanis",
-    text:
-      "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
+    text: "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
   },
 ];
 
@@ -135,7 +134,6 @@ export default function HomePage() {
       <FeaturesScrolling />
       <FeaturedProduct />
 
-      {/* ✅ Bloc “Qui sommes-nous ?” */}
       <AboutSection />
 
       <ReviewsSection />
@@ -152,7 +150,7 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
-  // ✅ FIX DÉCALAGE: on mesure les 2 slides et on verrouille la hauteur du bloc
+  // ✅ Fix “décalage” (hauteur stable) : on mesure les 2 slides avec EXACTEMENT la même largeur
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -165,14 +163,12 @@ function HeroSlideshow() {
   };
 
   useLayoutEffect(() => {
-    // 1) première mesure
     computeMaxHeight();
 
-    // 2) re-mesure après rendu / fonts
+    // Fonts / reflow
     const raf1 = requestAnimationFrame(() => computeMaxHeight());
     const raf2 = requestAnimationFrame(() => computeMaxHeight());
 
-    // 3) resize
     const onResize = () => computeMaxHeight();
     window.addEventListener("resize", onResize);
 
@@ -181,14 +177,13 @@ function HeroSlideshow() {
       cancelAnimationFrame(raf2);
       window.removeEventListener("resize", onResize);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          {/* ✅ Mesure invisible (mêmes styles que le visible) */}
+          {/* ✅ Mesure invisible (même largeur que le contenu visible) */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -203,7 +198,9 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
+                  {s.ctaText && (
+                    <span style={styles.primaryBtn}>{s.ctaText}</span>
+                  )}
                   <span style={styles.ghostBtn}>WhatsApp</span>
                 </div>
 
@@ -222,7 +219,6 @@ function HeroSlideshow() {
               ...styles.heroSlideWrap,
               minHeight: fixedHeight || undefined,
             }}
-            className="heroSlideWrap"
           >
             <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
             <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
@@ -256,7 +252,8 @@ function HeroSlideshow() {
           </div>
         </div>
 
-        <div style={styles.heroRight}>
+        {/* ✅ IMPORTANT: className pour que le CSS mobile puisse cacher ce bloc */}
+        <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} />
           <div style={styles.heroIllustration}>
             <div style={styles.heroIlluRing} />
@@ -291,7 +288,8 @@ function VideoSection() {
           <p style={styles.kicker}>Démo rapide</p>
           <h2 style={styles.h2}>Voir comment ça marche</h2>
           <p style={styles.p}>
-            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien prêt à vendre.
+            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien
+            prêt à vendre.
           </p>
         </div>
 
@@ -344,7 +342,8 @@ function FeaturedProduct() {
                 <span style={styles.check}>✓</span> Home optimisée conversion
               </li>
               <li style={styles.checkItem}>
-                <span style={styles.check}>✓</span> Pages : packs, FAQ, contact, services
+                <span style={styles.check}>✓</span> Pages : packs, FAQ, contact,
+                services
               </li>
               <li style={styles.checkItem}>
                 <span style={styles.check}>✓</span> Identité visuelle cohérente
@@ -392,14 +391,16 @@ function AboutSection() {
               style={styles.aboutText}
             >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
-              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
-              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
-              raccourci pour lancer ton business plus sereinement.
+              passionné par le e-commerce, le marketing digital et
+              l&apos;automatisation. Après plusieurs projets lancés et
+              accompagnés, l&apos;objectif est simple : te proposer un raccourci
+              pour lancer ton business plus sereinement.
               <br />
               <br />
-              Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
-              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
-              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
+              Chaque pack, chaque service et chaque formation a été pensé pour
+              être <strong>actionnable</strong>, <strong>compréhensible</strong>{" "}
+              et adapté à la réalité du terrain : petits budgets, manque de
+              temps, besoin de résultats rapides.
             </p>
 
             <button
@@ -570,12 +571,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 22,
     padding: "28px 26px",
     backdropFilter: "blur(6px)",
-
-    /* ✅ fallback anti-saut */
-    minHeight: 420,
   },
 
-  heroLeft: { display: "grid", gap: 10 },
+  heroLeft: { display: "grid", gap: 10, position: "relative" },
 
   heroSlideWrap: {
     display: "grid",
@@ -585,17 +583,16 @@ const styles: Record<string, React.CSSProperties> = {
 
   heroMeasureWrap: {
     position: "absolute",
+    inset: 0,
     visibility: "hidden",
     pointerEvents: "none",
     opacity: 0,
-    height: "auto",
     overflow: "hidden",
   },
   heroMeasureItem: {
     display: "grid",
     gap: 10,
-    padding: 0,
-    width: "min(680px, 100%)",
+    width: "100%",
   },
 
   heroKicker: {
@@ -841,19 +838,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
   },
 
-  checkList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "12px 0 0",
-    display: "grid",
-    gap: 8,
-  },
-  checkItem: {
-    display: "flex",
-    gap: 8,
-    alignItems: "center",
-    fontWeight: 700,
-  },
+  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
+  checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
     height: 20,
@@ -866,7 +852,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
   },
 
-  // ✅ About
   aboutHero: {
     position: "relative",
     borderRadius: 22,
@@ -968,12 +953,7 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
-  miniRow: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
+  miniRow: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" },
   miniChip: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -1050,15 +1030,16 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
+  /* ✅ FIX MOBILE DÉFINITIF: on cache le bloc IA (droite) => plus de “saut” */
   @media (max-width: 900px) {
-    .heroCard { grid-template-columns: 1fr !important; min-height: 520px !important; }
+    .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
+    .heroRight { display: none !important; }
   }
 
   @media (max-width: 820px) {
     .featuresGrid { grid-template-columns: 1fr !important; }
     .reviewsGrid { grid-template-columns: 1fr !important; }
 
-    /* ✅ About: éviter pavé sur mobile */
     .aboutText {
       display: -webkit-box;
       -webkit-box-orient: vertical;
