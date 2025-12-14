@@ -50,11 +50,13 @@ const HERO_SLIDES: Slide[] = [
 const TESTIMONIALS = [
   {
     name: "Julien",
-    text: "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
+    text:
+      "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
   },
   {
     name: "Inès",
-    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
+    text:
+      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
@@ -82,7 +84,9 @@ function useAutoplay(length: number, delay = 6000) {
 
   useEffect(() => {
     if (length <= 1) return;
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % length), delay);
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % length);
+    }, delay);
     return () => window.clearInterval(id);
   }, [length, delay]);
 
@@ -102,8 +106,7 @@ export default function HomePage() {
       {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ ORDI : côte à côte, image plus étroite + très longue en hauteur */}
-      {/* ✅ MOBILE : colonne, image “en haut” + on cache la barre noire */}
+      {/* ✅ Bloc propre : image téléphone + texte long */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -126,7 +129,9 @@ function HeroSlideshow() {
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
   const computeMaxHeight = () => {
-    const heights = measureRefs.current.map((el) => el?.getBoundingClientRect().height ?? 0);
+    const heights = measureRefs.current.map(
+      (el) => el?.getBoundingClientRect().height ?? 0
+    );
     const max = Math.max(0, ...heights);
     if (max > 0) setFixedHeight(Math.ceil(max));
   };
@@ -152,6 +157,7 @@ function HeroSlideshow() {
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
+          {/* Mesure invisible */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -179,7 +185,13 @@ function HeroSlideshow() {
             ))}
           </div>
 
-          <div style={{ ...styles.heroSlideWrap, minHeight: fixedHeight || undefined }}>
+          {/* Visible */}
+          <div
+            style={{
+              ...styles.heroSlideWrap,
+              minHeight: fixedHeight || undefined,
+            }}
+          >
             <div style={styles.heroKicker}>{cta.kicker}</div>
             <h1 style={styles.heroTitle}>{cta.title}</h1>
             <p style={styles.heroSub}>{cta.subtitle}</p>
@@ -212,6 +224,7 @@ function HeroSlideshow() {
           </div>
         </div>
 
+        {/* Rond IA conservé */}
         <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} className="heroGlow" />
           <div style={styles.heroIllustration} className="heroIllustration">
@@ -284,42 +297,45 @@ function FeaturedProduct() {
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* ✅ Image : moins carrée + plus longue en hauteur + on masque la barre noire */}
-          <div
-            style={styles.mockImage}
-            className="mockImage"
-            onClick={() => setPreview(true)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setPreview(true);
-            }}
-            aria-label="Ouvrir l’image en grand"
-          >
-            <div style={styles.mockMediaInner} className="mockMediaInner">
-              <img
-                src="/images/boutique-client.jpg"
-                alt="Boutique créée pour un client"
-                style={styles.mockMediaImg}
-                className="mockMediaImg"
-              />
-            </div>
-
-            {/* ✅ masque doux en haut (cache “Livraison offerte” / bande noire) */}
-            <div style={styles.mockTopMask} className="mockTopMask" aria-hidden />
-
-            <div style={styles.mockBadge}>Boutique générée</div>
-
-            <Link
-              href="/services-digitaux#demo"
-              style={styles.videoCtaBtn}
-              onClick={(e) => e.stopPropagation()}
+          {/* ✅ Visu téléphone (vertical) */}
+          <div style={styles.phoneColumn}>
+            <div
+              style={styles.phoneFrame}
+              role="button"
+              tabIndex={0}
+              onClick={() => setPreview(true)}
+              onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                if (e.key === "Enter" || e.key === " ") setPreview(true);
+              }}
+              aria-label="Ouvrir l’aperçu en grand"
             >
-              Voir la vidéo
-            </Link>
+              <div style={styles.phoneBezel} />
+
+              <div style={styles.phoneScreen}>
+                <img
+                  src="/images/boutique-client.jpg"
+                  alt="Boutique créée pour un client"
+                  style={styles.phoneImg}
+                  draggable={false}
+                />
+
+                {/* ✅ masque permanent de la barre noire “Livraison OFFERTE…” */}
+                <div style={styles.topMask} aria-hidden />
+
+                <div style={styles.mockBadge}>Boutique générée</div>
+
+                <Link
+                  href="/services-digitaux#demo"
+                  style={styles.videoCtaBtn}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Voir la vidéo
+                </Link>
+              </div>
+            </div>
           </div>
 
-          {/* Texte long */}
+          {/* ✅ Texte long */}
           <div>
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
@@ -330,8 +346,8 @@ function FeaturedProduct() {
               pages indispensables déjà en place, et une expérience mobile propre.
               <br />
               <br />
-              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les
-              pubs. Nous, on s’occupe du reste.
+              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les pubs.
+              Nous, on s’occupe du reste.
             </p>
 
             <ul style={{ ...styles.checkList, marginTop: 12 }}>
@@ -357,6 +373,7 @@ function FeaturedProduct() {
           </div>
         </div>
 
+        {/* ✅ Aperçu grand (même frame + masque barre noire) */}
         {preview && (
           <div
             style={styles.lightbox}
@@ -376,12 +393,23 @@ function FeaturedProduct() {
               ✕
             </button>
 
-            <img
-              src="/images/boutique-client.jpg"
-              alt="Aperçu de la boutique"
-              style={styles.lightboxImg}
+            <div
+              style={styles.lightboxCard}
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <div style={{ ...styles.phoneFrame, maxWidth: 520 }}>
+                <div style={styles.phoneBezel} />
+                <div style={styles.phoneScreen}>
+                  <img
+                    src="/images/boutique-client.jpg"
+                    alt="Aperçu de la boutique"
+                    style={styles.phoneImg}
+                    draggable={false}
+                  />
+                  <div style={styles.topMask} aria-hidden />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -571,7 +599,11 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none",
   },
 
-  heroSection: { padding: "96px 20px 30px", maxWidth: 1200, margin: "0 auto" },
+  heroSection: {
+    padding: "96px 20px 30px",
+    maxWidth: 1200,
+    margin: "0 auto",
+  },
   heroCard: {
     position: "relative",
     display: "grid",
@@ -715,6 +747,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   section: { padding: "54px 20px", maxWidth: 1200, margin: "0 auto" },
   sectionInner: { display: "grid", gap: 18 },
+
   sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
 
   kicker: {
@@ -757,61 +790,81 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  /* ✅ image moins “géante” (plus étroite) + hauteur auto via stretch */
+  /* ✅ split: desktop côte à côte */
   split: {
     display: "grid",
-    gridTemplateColumns: "minmax(300px, 500px) 1fr",
-    gap: 22,
-    alignItems: "stretch",
+    gridTemplateColumns: "0.95fr 1.05fr",
+    gap: 24,
+    alignItems: "start",
   },
 
-  /* ✅ moins carré : plus de hauteur + arrondis plus forts */
-  mockImage: {
-    borderRadius: 30,
-    background: "linear-gradient(135deg, rgba(106,47,214,0.18), rgba(58,107,255,0.12))",
+  /* ✅ colonne image centrée */
+  phoneColumn: {
+    display: "grid",
+    justifyItems: "center",
+    alignContent: "start",
+  },
+
+  /* ✅ frame téléphone (plus long, moins “carré”) */
+  phoneFrame: {
+    width: "100%",
+    maxWidth: 430,
+    aspectRatio: "9 / 16",
+    borderRadius: 34,
     border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(255,255,255,0.06)",
+    boxShadow: "0 20px 55px rgba(0,0,0,0.35)",
+    padding: 12,
     position: "relative",
     cursor: "pointer",
-    overflow: "hidden",
-    minHeight: 560, // ✅ long de haut en bas
-    alignSelf: "stretch",
-    boxShadow: "0 22px 60px rgba(0,0,0,0.35)",
   },
-
-  mockMediaInner: {
+  phoneBezel: {
     position: "absolute",
-    inset: 0,
-    padding: 0,
-    display: "grid",
-    placeItems: "stretch",
+    top: 10,
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: 110,
+    height: 26,
+    borderRadius: 999,
+    background: "rgba(0,0,0,0.25)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    zIndex: 5,
   },
-
-  /* ✅ on “coupe” le haut (barre noire) en mettant le focus vers le bas */
-  mockMediaImg: {
+  phoneScreen: {
+    position: "relative",
     width: "100%",
     height: "100%",
-    objectFit: "cover",
-    objectPosition: "center 85%", // ✅ cache le haut (barre noire)
-    transform: "scale(1.02)",
+    borderRadius: 26,
+    overflow: "hidden",
+    background: "rgba(10,12,30,0.65)",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+  phoneImg: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    objectPosition: "center",
   },
 
-  /* ✅ masque supplémentaire (au cas où) */
-  mockTopMask: {
+  /* ✅ masque: la barre noire ne sera JAMAIS visible */
+  topMask: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 74,
+    height: 78, // <- ajuste ici si tu veux masquer + ou -
     background:
-      "linear-gradient(180deg, rgba(11,16,38,0.98) 0%, rgba(11,16,38,0.55) 55%, rgba(11,16,38,0.00) 100%)",
-    zIndex: 2,
+      `linear-gradient(180deg, ${COLORS.bgTop} 0%, rgba(11,16,38,0.65) 55%, rgba(11,16,38,0) 100%)`,
+    zIndex: 4,
     pointerEvents: "none",
   },
 
   mockBadge: {
     position: "absolute",
-    top: 12,
-    left: 12,
+    top: 14,
+    left: 14,
     background: COLORS.panel,
     border: `1px solid ${COLORS.panelBorder}`,
     color: COLORS.text,
@@ -819,13 +872,13 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: "0.85rem",
-    zIndex: 3,
+    zIndex: 6,
   },
 
   videoCtaBtn: {
     position: "absolute",
-    right: 12,
-    bottom: 12,
+    right: 14,
+    bottom: 14,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -837,7 +890,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    zIndex: 4,
+    zIndex: 6,
     cursor: "pointer",
   },
 
@@ -850,15 +903,10 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
     padding: 18,
   },
-  lightboxImg: {
-    maxWidth: "92vw",
-    maxHeight: "85vh",
-    width: "auto",
-    height: "auto",
-    objectFit: "contain",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(10,12,30,0.8)",
+  lightboxCard: {
+    width: "min(94vw, 560px)",
+    display: "grid",
+    placeItems: "center",
   },
   lightboxClose: {
     position: "fixed",
@@ -1040,26 +1088,32 @@ const responsiveCss = `
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 
-  /* ✅ MOBILE : colonne */
-  @media (max-width: 900px) {
+  /* ✅ mobile/ tablette: colonne */
+  @media (max-width: 980px) {
     .split { grid-template-columns: 1fr !important; }
+  }
 
-    /* ✅ image en haut, pas trop haute */
-    .mockImage { min-height: 0 !important; height: 220px !important; border-radius: 26px !important; }
-    .mockMediaImg { object-fit: cover !important; object-position: center 88% !important; }
-
-    /* masque un peu plus court sur mobile */
-    .mockTopMask { height: 64px !important; }
-
-    /* Hero responsive */
-    .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
+  @media (max-width: 900px) {
+    .heroCard { 
+      grid-template-columns: 1fr !important; 
+      min-height: auto !important; 
+    }
     .heroRight { margin-top: 18px !important; min-height: auto !important; }
     .heroGlow { width: 190px !important; height: 190px !important; filter: blur(8px) !important; opacity: 0.85 !important; }
     .heroIllustration { width: 140px !important; height: 140px !important; }
     .heroIlluInner { width: 90px !important; height: 90px !important; }
     .heroIlluText { font-size: 1.6rem !important; }
+  }
+
+  /* ✅ mobile: visu moins haut (il “prend le haut” sans être géant) */
+  @media (max-width: 520px) {
+    .split > div:first-child {
+      justify-items: stretch !important;
+    }
   }
 
   @media (max-width: 820px) {
@@ -1071,7 +1125,12 @@ const responsiveCss = `
       overflow: hidden;
       -webkit-line-clamp: 6;
     }
-    .aboutText.expanded { -webkit-line-clamp: unset; display: block; }
-    .aboutToggle { display: inline-flex !important; }
+    .aboutText.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
+    .aboutToggle {
+      display: inline-flex !important;
+    }
   }
 `;
