@@ -41,8 +41,7 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle:
-      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -76,13 +75,11 @@ const TESTIMONIALS = [
   },
   {
     name: "Inès",
-    text:
-      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
+    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
-    text:
-      "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
+    text: "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
   },
 ];
 
@@ -141,7 +138,6 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
-  // ✅ Fix “décalage” (hauteur stable) : on mesure les 2 slides avec EXACTEMENT la même largeur
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -156,7 +152,6 @@ function HeroSlideshow() {
   useLayoutEffect(() => {
     computeMaxHeight();
 
-    // Fonts / reflow
     const raf1 = requestAnimationFrame(() => computeMaxHeight());
     const raf2 = requestAnimationFrame(() => computeMaxHeight());
 
@@ -174,7 +169,6 @@ function HeroSlideshow() {
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          {/* ✅ Mesure invisible (même largeur que le contenu visible) */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -189,9 +183,7 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && (
-                    <span style={styles.primaryBtn}>{s.ctaText}</span>
-                  )}
+                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
                   <span style={styles.ghostBtn}>WhatsApp</span>
                 </div>
 
@@ -204,7 +196,6 @@ function HeroSlideshow() {
             ))}
           </div>
 
-          {/* ✅ Contenu visible: hauteur verrouillée */}
           <div
             style={{
               ...styles.heroSlideWrap,
@@ -243,7 +234,6 @@ function HeroSlideshow() {
           </div>
         </div>
 
-        {/* ✅ ON GARDE le rond IA. Sur mobile on le rétrécit via CSS */}
         <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} className="heroGlow" />
           <div style={styles.heroIllustration} className="heroIllustration">
@@ -273,6 +263,7 @@ function ScrollingTextBar({ text }: { text: string }) {
   );
 }
 
+/* ✅ ON NE TOUCHE PAS À TA DÉMO */
 function VideoSection() {
   return (
     <section style={styles.section}>
@@ -281,8 +272,7 @@ function VideoSection() {
           <p style={styles.kicker}>Démo rapide</p>
           <h2 style={styles.h2}>Voir comment ça marche</h2>
           <p style={styles.p}>
-            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien
-            prêt à vendre.
+            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien prêt à vendre.
           </p>
         </div>
 
@@ -319,27 +309,40 @@ function FeaturesScrolling() {
 }
 
 function FeaturedProduct() {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const openPreview = () => setPreview("/images/boutique-client.jpg");
+  const closePreview = () => setPreview(null);
+
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          <div style={styles.mockImage}>
-            <img
-              src="/images/boutique-client.jpg"
-              alt="Boutique créée pour un client"
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: "center",
-                borderRadius: 18,
-              }}
-            />
+          {/* IMAGE (miniature) + popup */}
+          <div
+            style={styles.mockImage}
+            onClick={openPreview}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") openPreview();
+            }}
+          >
+            <div style={styles.mockMediaInner}>
+              <img
+                src="/images/boutique-client.jpg"
+                alt="Boutique créée pour un client"
+                style={styles.mockMediaImg}
+              />
+            </div>
+
             <div style={styles.mockBadge}>Boutique générée</div>
 
-            <Link href="/services-digitaux#demo" style={styles.videoCtaBtn}>
+            <Link
+              href="/services-digitaux#demo"
+              style={styles.videoCtaBtn}
+              onClick={(e) => e.stopPropagation()}
+            >
               Voir la vidéo
             </Link>
           </div>
@@ -369,6 +372,29 @@ function FeaturedProduct() {
             </div>
           </div>
         </div>
+
+        {preview && (
+          <div style={styles.lightbox} onClick={closePreview} role="dialog" aria-modal="true">
+            <button
+              type="button"
+              style={styles.lightboxClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                closePreview();
+              }}
+              aria-label="Fermer"
+            >
+              ✕
+            </button>
+
+            <img
+              src={preview}
+              alt="Aperçu de la boutique"
+              style={styles.lightboxImg}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </section>
   );
@@ -391,24 +417,21 @@ function AboutSection() {
           <div style={styles.aboutHeroContent}>
             <p style={styles.aboutKicker}>Qui sommes-nous ?</p>
 
-            <h2 style={styles.aboutTitle}>
-              Copyshop IA, pensé pour aller droit au résultat.
-            </h2>
+            <h2 style={styles.aboutTitle}>Copyshop IA, pensé pour aller droit au résultat.</h2>
 
             <p
               className={`aboutText ${expanded ? "expanded" : ""}`}
               style={styles.aboutText}
             >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
-              passionné par le e-commerce, le marketing digital et l&apos;automatisation.
-              Après plusieurs projets lancés et accompagnés, l&apos;objectif est simple :
-              te proposer un raccourci pour lancer ton business plus sereinement.
+              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
+              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
+              raccourci pour lancer ton business plus sereinement.
               <br />
               <br />
               Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
-              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à
-              la réalité du terrain : petits budgets, manque de temps, besoin de
-              résultats rapides.
+              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
+              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
             </p>
 
             <button
@@ -523,9 +546,7 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>
-          Une autre question ? Écris-nous sur WhatsApp.
-        </div>
+        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
       </div>
     </section>
   );
@@ -825,14 +846,33 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 18,
     alignItems: "center",
   },
+
+  /* ✅ Image moins grande */
   mockImage: {
-    height: 320,
+    height: 260,
     borderRadius: 18,
     background:
       "linear-gradient(135deg, rgba(106,47,214,0.3), rgba(58,107,255,0.2))",
     border: `1px solid ${COLORS.panelBorder}`,
     position: "relative",
+    cursor: "pointer",
   },
+
+  /* ✅ image “contenue” (moins grosse visuellement) */
+  mockMediaInner: {
+    position: "absolute",
+    inset: 0,
+    padding: 12,
+    display: "grid",
+    placeItems: "center",
+  },
+  mockMediaImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    borderRadius: 14,
+  },
+
   mockBadge: {
     position: "absolute",
     top: 12,
@@ -844,7 +884,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: "0.85rem",
+    zIndex: 2,
   },
+
   videoCtaBtn: {
     position: "absolute",
     right: 12,
@@ -860,16 +902,45 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    zIndex: 2,
+    zIndex: 3,
+    cursor: "pointer",
   },
 
-  checkList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "12px 0 0",
+  /* ✅ popup */
+  lightbox: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(0,0,0,0.72)",
     display: "grid",
-    gap: 8,
+    placeItems: "center",
+    padding: 18,
   },
+  lightboxImg: {
+    maxWidth: "92vw",
+    maxHeight: "85vh",
+    width: "auto",
+    height: "auto",
+    objectFit: "contain",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(10,12,30,0.8)",
+  },
+  lightboxClose: {
+    position: "fixed",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(0,0,0,0.35)",
+    color: "white",
+    fontSize: "1.2rem",
+    cursor: "pointer",
+  },
+
+  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
   checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
@@ -1061,7 +1132,6 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
-  /* ✅ MOBILE: on garde le rond IA, mais en plus petit (on ne le cache plus) */
   @media (max-width: 900px) {
     .heroCard { 
       grid-template-columns: 1fr !important; 
