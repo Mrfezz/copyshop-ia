@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const COLORS = {
   bgTop: "#0b1026",
@@ -151,38 +151,94 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
+  // ✅ Pour éviter le “saut” de hauteur entre les 2 slides
+  const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [fixedHeight, setFixedHeight] = useState<number>(0);
+
+  const computeMaxHeight = () => {
+    const heights = measureRefs.current.map(
+      (el) => el?.getBoundingClientRect().height ?? 0
+    );
+    const max = Math.max(0, ...heights);
+    if (max > 0) setFixedHeight(Math.ceil(max));
+  };
+
+  useLayoutEffect(() => {
+    computeMaxHeight();
+    const onResize = () => computeMaxHeight();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
-          <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
-          <p style={styles.heroSub}>{HERO_SLIDES[active].subtitle}</p>
+          {/* ✅ Mesure invisible des slides (pour garder une hauteur fixe) */}
+          <div style={styles.heroMeasureWrap} aria-hidden>
+            {HERO_SLIDES.map((s, i) => (
+              <div
+                key={i}
+                ref={(el) => {
+                  measureRefs.current[i] = el;
+                }}
+                style={styles.heroMeasureItem}
+              >
+                <div style={styles.heroKicker}>{s.kicker}</div>
+                <h1 style={styles.heroTitle}>{s.title}</h1>
+                <p style={styles.heroSub}>{s.subtitle}</p>
 
-          <div style={styles.heroBtns}>
-            {HERO_SLIDES[active].ctaText && (
-              <a href={HERO_SLIDES[active].ctaLink} style={styles.primaryBtn}>
-                {HERO_SLIDES[active].ctaText}
-              </a>
-            )}
-            <a href="https://wa.me/33745214922" style={styles.ghostBtn}>
-              WhatsApp
-            </a>
+                <div style={styles.heroBtns}>
+                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
+                  <span style={styles.ghostBtn}>WhatsApp</span>
+                </div>
+
+                <div style={styles.dotsRow}>
+                  {HERO_SLIDES.map((_, j) => (
+                    <span key={j} style={styles.dot} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div style={styles.dotsRow}>
-            {HERO_SLIDES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActive(i)}
-                style={{
-                  ...styles.dot,
-                  opacity: i === active ? 1 : 0.35,
-                  transform: i === active ? "scale(1.1)" : "scale(1)",
-                }}
-                aria-label={`slide ${i + 1}`}
-              />
-            ))}
+          {/* ✅ Contenu visible */}
+          <div
+            style={{
+              ...styles.heroSlideWrap,
+              minHeight: fixedHeight ? fixedHeight : undefined,
+            }}
+          >
+            <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
+            <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
+            <p style={styles.heroSub}>{HERO_SLIDES[active].subtitle}</p>
+
+            <div style={styles.heroBtns}>
+              {HERO_SLIDES[active].ctaText && (
+                <a href={HERO_SLIDES[active].ctaLink} style={styles.primaryBtn}>
+                  {HERO_SLIDES[active].ctaText}
+                </a>
+              )}
+              <a href="https://wa.me/33745214922" style={styles.ghostBtn}>
+                WhatsApp
+              </a>
+            </div>
+
+            <div style={styles.dotsRow}>
+              {HERO_SLIDES.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActive(i)}
+                  style={{
+                    ...styles.dot,
+                    opacity: i === active ? 1 : 0.35,
+                    transform: i === active ? "scale(1.1)" : "scale(1)",
+                  }}
+                  aria-label={`slide ${i + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -322,8 +378,8 @@ function AboutSection() {
               style={styles.aboutText}
             >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong> passionné par le
-              e-commerce, le marketing digital et l'automatisation. Après plusieurs projets lancés
-              et accompagnés, l'objectif est simple : te proposer un raccourci pour lancer ton
+              e-commerce, le marketing digital et l&apos;automatisation. Après plusieurs projets lancés
+              et accompagnés, l&apos;objectif est simple : te proposer un raccourci pour lancer ton
               business plus sereinement.
               <br />
               <br />
@@ -332,7 +388,6 @@ function AboutSection() {
               du terrain : petits budgets, manque de temps, besoin de résultats rapides.
             </p>
 
-            {/* ✅ Mobile: Voir plus / Voir moins */}
             <button
               type="button"
               className="aboutToggle"
@@ -394,8 +449,6 @@ function MiniSlideshow() {
 
 function HomeFAQ() {
   const [open, setOpen] = useState<number | null>(0);
-
-  // ✅ IMPORTANT: tableau de refs (corrige l’erreur TS)
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   return (
@@ -447,7 +500,9 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
+        <div style={styles.bottomNote}>
+          Une autre question ? Écris-nous sur WhatsApp.
+        </div>
       </div>
     </section>
   );
@@ -492,6 +547,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto",
   },
   heroCard: {
+    position: "relative",
     display: "grid",
     gridTemplateColumns: "1.2fr 0.8fr",
     gap: 22,
@@ -501,7 +557,30 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "28px 26px",
     backdropFilter: "blur(6px)",
   },
+
   heroLeft: { display: "grid", gap: 10 },
+
+  // ✅ WRAP pour fixer la hauteur
+  heroSlideWrap: {
+    display: "grid",
+    gap: 10,
+    alignContent: "start",
+  },
+  // ✅ Mesure invisible
+  heroMeasureWrap: {
+    position: "absolute",
+    visibility: "hidden",
+    pointerEvents: "none",
+    opacity: 0,
+    height: "auto",
+    overflow: "hidden",
+  },
+  heroMeasureItem: {
+    display: "grid",
+    gap: 10,
+    padding: 0,
+  },
+
   heroKicker: {
     fontSize: "0.8rem",
     fontWeight: 900,
@@ -769,7 +848,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    // ✅ retouche “couleurs du site”
     filter: "contrast(1.18) brightness(0.62) saturate(1.18)",
     transform: "scale(1.02)",
   },
@@ -812,7 +890,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 860,
   },
   aboutToggleBtn: {
-    display: "none", // ✅ affiché seulement sur mobile via CSS
+    display: "none",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
