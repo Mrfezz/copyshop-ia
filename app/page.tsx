@@ -40,8 +40,7 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle:
-      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -198,9 +197,7 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && (
-                    <span style={styles.primaryBtn}>{s.ctaText}</span>
-                  )}
+                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
                   <span style={styles.ghostBtn}>WhatsApp</span>
                 </div>
 
@@ -252,13 +249,15 @@ function HeroSlideshow() {
           </div>
         </div>
 
-        {/* ✅ IMPORTANT: className pour que le CSS mobile puisse cacher ce bloc */}
+        {/* ✅ ON GARDE le rond IA. Sur mobile on le rétrécit via CSS */}
         <div style={styles.heroRight} className="heroRight">
-          <div style={styles.heroGlow} />
-          <div style={styles.heroIllustration}>
-            <div style={styles.heroIlluRing} />
-            <div style={styles.heroIlluInner}>
-              <div style={styles.heroIlluText}>IA</div>
+          <div style={styles.heroGlow} className="heroGlow" />
+          <div style={styles.heroIllustration} className="heroIllustration">
+            <div style={styles.heroIlluRing} className="heroIlluRing" />
+            <div style={styles.heroIlluInner} className="heroIlluInner">
+              <div style={styles.heroIlluText} className="heroIlluText">
+                IA
+              </div>
             </div>
           </div>
         </div>
@@ -288,8 +287,7 @@ function VideoSection() {
           <p style={styles.kicker}>Démo rapide</p>
           <h2 style={styles.h2}>Voir comment ça marche</h2>
           <p style={styles.p}>
-            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien
-            prêt à vendre.
+            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien prêt à vendre.
           </p>
         </div>
 
@@ -342,8 +340,7 @@ function FeaturedProduct() {
                 <span style={styles.check}>✓</span> Home optimisée conversion
               </li>
               <li style={styles.checkItem}>
-                <span style={styles.check}>✓</span> Pages : packs, FAQ, contact,
-                services
+                <span style={styles.check}>✓</span> Pages : packs, FAQ, contact, services
               </li>
               <li style={styles.checkItem}>
                 <span style={styles.check}>✓</span> Identité visuelle cohérente
@@ -382,25 +379,21 @@ function AboutSection() {
           <div style={styles.aboutHeroContent}>
             <p style={styles.aboutKicker}>Qui sommes-nous ?</p>
 
-            <h2 style={styles.aboutTitle}>
-              Copyshop IA, pensé pour aller droit au résultat.
-            </h2>
+            <h2 style={styles.aboutTitle}>Copyshop IA, pensé pour aller droit au résultat.</h2>
 
             <p
               className={`aboutText ${expanded ? "expanded" : ""}`}
               style={styles.aboutText}
             >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
-              passionné par le e-commerce, le marketing digital et
-              l&apos;automatisation. Après plusieurs projets lancés et
-              accompagnés, l&apos;objectif est simple : te proposer un raccourci
-              pour lancer ton business plus sereinement.
+              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
+              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
+              raccourci pour lancer ton business plus sereinement.
               <br />
               <br />
-              Chaque pack, chaque service et chaque formation a été pensé pour
-              être <strong>actionnable</strong>, <strong>compréhensible</strong>{" "}
-              et adapté à la réalité du terrain : petits budgets, manque de
-              temps, besoin de résultats rapides.
+              Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
+              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
+              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
             </p>
 
             <button
@@ -515,9 +508,7 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>
-          Une autre question ? Écris-nous sur WhatsApp.
-        </div>
+        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
       </div>
     </section>
   );
@@ -1030,10 +1021,38 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
-  /* ✅ FIX MOBILE DÉFINITIF: on cache le bloc IA (droite) => plus de “saut” */
+  /* ✅ MOBILE: on garde le rond IA, mais en plus petit (on ne le cache plus) */
   @media (max-width: 900px) {
-    .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
-    .heroRight { display: none !important; }
+    .heroCard { 
+      grid-template-columns: 1fr !important; 
+      min-height: auto !important; 
+    }
+
+    .heroRight {
+      margin-top: 18px !important;
+      min-height: auto !important;
+    }
+
+    .heroGlow {
+      width: 190px !important;
+      height: 190px !important;
+      filter: blur(8px) !important;
+      opacity: 0.85 !important;
+    }
+
+    .heroIllustration {
+      width: 140px !important;
+      height: 140px !important;
+    }
+
+    .heroIlluInner {
+      width: 90px !important;
+      height: 90px !important;
+    }
+
+    .heroIlluText {
+      font-size: 1.6rem !important;
+    }
   }
 
   @media (max-width: 820px) {
