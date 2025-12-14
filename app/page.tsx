@@ -50,13 +50,11 @@ const HERO_SLIDES: Slide[] = [
 const TESTIMONIALS = [
   {
     name: "Julien",
-    text:
-      "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
+    text: "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
   },
   {
     name: "Inès",
-    text:
-      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
+    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
@@ -84,9 +82,7 @@ function useAutoplay(length: number, delay = 6000) {
 
   useEffect(() => {
     if (length <= 1) return;
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % length);
-    }, delay);
+    const id = window.setInterval(() => setIndex((i) => (i + 1) % length), delay);
     return () => window.clearInterval(id);
   }, [length, delay]);
 
@@ -106,7 +102,7 @@ export default function HomePage() {
       {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ Bloc propre : texte long + image à côté */}
+      {/* ✅ Bloc propre : ORDI côte à côte / MOBILE colonne (image en haut pas trop haute) */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -130,16 +126,13 @@ function HeroSlideshow() {
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
   const computeMaxHeight = () => {
-    const heights = measureRefs.current.map(
-      (el) => el?.getBoundingClientRect().height ?? 0
-    );
+    const heights = measureRefs.current.map((el) => el?.getBoundingClientRect().height ?? 0);
     const max = Math.max(0, ...heights);
     if (max > 0) setFixedHeight(Math.ceil(max));
   };
 
   useLayoutEffect(() => {
     computeMaxHeight();
-
     const raf1 = requestAnimationFrame(() => computeMaxHeight());
     const raf2 = requestAnimationFrame(() => computeMaxHeight());
 
@@ -188,12 +181,7 @@ function HeroSlideshow() {
           </div>
 
           {/* Visible */}
-          <div
-            style={{
-              ...styles.heroSlideWrap,
-              minHeight: fixedHeight || undefined,
-            }}
-          >
+          <div style={{ ...styles.heroSlideWrap, minHeight: fixedHeight || undefined }}>
             <div style={styles.heroKicker}>{cta.kicker}</div>
             <h1 style={styles.heroTitle}>{cta.title}</h1>
             <p style={styles.heroSub}>{cta.subtitle}</p>
@@ -288,11 +276,9 @@ function FeaturedProduct() {
 
   useEffect(() => {
     if (!preview) return;
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPreview(false);
     };
-
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [preview]);
@@ -301,9 +287,10 @@ function FeaturedProduct() {
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* Image mini + popup */}
+          {/* IMAGE (click = popup) */}
           <div
             style={styles.mockImage}
+            className="mockImage"
             onClick={() => setPreview(true)}
             role="button"
             tabIndex={0}
@@ -312,11 +299,12 @@ function FeaturedProduct() {
             }}
             aria-label="Ouvrir l’image en grand"
           >
-            <div style={styles.mockMediaInner}>
+            <div style={styles.mockMediaInner} className="mockMediaInner">
               <img
                 src="/images/boutique-client.jpg"
                 alt="Boutique créée pour un client"
                 style={styles.mockMediaImg}
+                className="mockMediaImg"
               />
             </div>
 
@@ -331,7 +319,7 @@ function FeaturedProduct() {
             </Link>
           </div>
 
-          {/* Texte long */}
+          {/* TEXTE LONG */}
           <div>
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
@@ -342,8 +330,8 @@ function FeaturedProduct() {
               pages indispensables déjà en place, et une expérience mobile propre.
               <br />
               <br />
-              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les pubs.
-              Nous, on s’occupe du reste.
+              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les
+              pubs. Nous, on s’occupe du reste.
             </p>
 
             <ul style={{ ...styles.checkList, marginTop: 12 }}>
@@ -369,7 +357,7 @@ function FeaturedProduct() {
           </div>
         </div>
 
-        {/* Popup image */}
+        {/* POPUP IMAGE */}
         {preview && (
           <div
             style={styles.lightbox}
@@ -732,7 +720,6 @@ const styles: Record<string, React.CSSProperties> = {
 
   section: { padding: "54px 20px", maxWidth: 1200, margin: "0 auto" },
   sectionInner: { display: "grid", gap: 18 },
-
   sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
 
   kicker: {
@@ -1029,24 +1016,29 @@ const responsiveCss = `
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  @media (max-width: 980px) {
-    .split { grid-template-columns: 1fr !important; }
-  }
-
+  /* ✅ MOBILE/TABLET : la section image+texte passe en colonne */
   @media (max-width: 900px) {
-    .heroCard { 
-      grid-template-columns: 1fr !important; 
-      min-height: auto !important; 
-    }
+    .split { grid-template-columns: 1fr !important; }
+
+    /* ✅ l'image prend juste le haut (pas énorme) */
+    .mockImage { height: 220px !important; }
+    .mockMediaInner { padding: 0 !important; }
+    .mockMediaImg { object-fit: cover !important; border-radius: 18px !important; }
+
+    /* Hero responsive (rond IA en plus petit) */
+    .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
     .heroRight { margin-top: 18px !important; min-height: auto !important; }
     .heroGlow { width: 190px !important; height: 190px !important; filter: blur(8px) !important; opacity: 0.85 !important; }
     .heroIllustration { width: 140px !important; height: 140px !important; }
     .heroIlluInner { width: 90px !important; height: 90px !important; }
     .heroIlluText { font-size: 1.6rem !important; }
+  }
+
+  /* ✅ PLUS PETIT MOBILE : encore un peu moins haut */
+  @media (max-width: 640px) {
+    .mockImage { height: 200px !important; }
   }
 
   @media (max-width: 820px) {
@@ -1058,12 +1050,7 @@ const responsiveCss = `
       overflow: hidden;
       -webkit-line-clamp: 6;
     }
-    .aboutText.expanded {
-      -webkit-line-clamp: unset;
-      display: block;
-    }
-    .aboutToggle {
-      display: inline-flex !important;
-    }
+    .aboutText.expanded { -webkit-line-clamp: unset; display: block; }
+    .aboutToggle { display: inline-flex !important; }
   }
 `;
