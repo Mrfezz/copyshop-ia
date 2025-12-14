@@ -41,7 +41,8 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle:
+      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -75,11 +76,13 @@ const TESTIMONIALS = [
   },
   {
     name: "Inès",
-    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
+    text:
+      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
-    text: "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
+    text:
+      "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
   },
 ];
 
@@ -186,7 +189,9 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
+                  {s.ctaText && (
+                    <span style={styles.primaryBtn}>{s.ctaText}</span>
+                  )}
                   <span style={styles.ghostBtn}>WhatsApp</span>
                 </div>
 
@@ -276,7 +281,8 @@ function VideoSection() {
           <p style={styles.kicker}>Démo rapide</p>
           <h2 style={styles.h2}>Voir comment ça marche</h2>
           <p style={styles.p}>
-            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien prêt à vendre.
+            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien
+            prêt à vendre.
           </p>
         </div>
 
@@ -318,7 +324,24 @@ function FeaturedProduct() {
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
           <div style={styles.mockImage}>
+            <img
+              src="/images/boutique-client.jpg"
+              alt="Boutique créée pour un client"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                borderRadius: 18,
+              }}
+            />
             <div style={styles.mockBadge}>Boutique générée</div>
+
+            <Link href="/services-digitaux#demo" style={styles.videoCtaBtn}>
+              Voir la vidéo
+            </Link>
           </div>
 
           <div>
@@ -368,21 +391,24 @@ function AboutSection() {
           <div style={styles.aboutHeroContent}>
             <p style={styles.aboutKicker}>Qui sommes-nous ?</p>
 
-            <h2 style={styles.aboutTitle}>Copyshop IA, pensé pour aller droit au résultat.</h2>
+            <h2 style={styles.aboutTitle}>
+              Copyshop IA, pensé pour aller droit au résultat.
+            </h2>
 
             <p
               className={`aboutText ${expanded ? "expanded" : ""}`}
               style={styles.aboutText}
             >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
-              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
-              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
-              raccourci pour lancer ton business plus sereinement.
+              passionné par le e-commerce, le marketing digital et l&apos;automatisation.
+              Après plusieurs projets lancés et accompagnés, l&apos;objectif est simple :
+              te proposer un raccourci pour lancer ton business plus sereinement.
               <br />
               <br />
               Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
-              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
-              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
+              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à
+              la réalité du terrain : petits budgets, manque de temps, besoin de
+              résultats rapides.
             </p>
 
             <button
@@ -497,7 +523,9 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
+        <div style={styles.bottomNote}>
+          Une autre question ? Écris-nous sur WhatsApp.
+        </div>
       </div>
     </section>
   );
@@ -817,8 +845,31 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 999,
     fontSize: "0.85rem",
   },
+  videoCtaBtn: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 14px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "white",
+    textDecoration: "none",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    border: "1px solid rgba(255,255,255,0.18)",
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    zIndex: 2,
+  },
 
-  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
+  checkList: {
+    listStyle: "none",
+    padding: 0,
+    margin: "12px 0 0",
+    display: "grid",
+    gap: 8,
+  },
   checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
