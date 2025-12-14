@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 const COLORS = {
   bgTop: "#0b1026",
@@ -215,9 +216,9 @@ function HeroSlideshow() {
                   {HERO_SLIDES[active].ctaText}
                 </a>
               )}
-              <a href="https://wa.me/33745214922" style={styles.ghostBtn}>
+              <Link href="/contact" style={styles.ghostBtn}>
                 Contactez-nous
-              </a>
+              </Link>
             </div>
 
             <div style={styles.dotsRow}>
