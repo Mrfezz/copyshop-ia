@@ -68,7 +68,7 @@ const FEATURES = [
 
 const TESTIMONIALS = [
   {
-    name: "Samir",
+    name: "Julien",
     text:
       "J’ai reçu ma boutique en 1 journée. J’ai juste ajouté mes produits et c’était carré.",
   },
@@ -77,7 +77,7 @@ const TESTIMONIALS = [
     text: "Le design est trop propre pour le prix. Franchement ça fait premium.",
   },
   {
-    name: "Yanis",
+    name: "Hugo",
     text: "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
   },
 ];
