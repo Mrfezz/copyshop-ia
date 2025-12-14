@@ -47,26 +47,6 @@ const HERO_SLIDES: Slide[] = [
   },
 ];
 
-const FEATURES = [
-  {
-    title: "Boutique 100% prête",
-    text:
-      "Pages légales, branding, collections, textes, images. Tu reçois un site vraiment clean.",
-    icon: "⚡️",
-  },
-  {
-    title: "Optimisé pour vendre",
-    text:
-      "Structure pensée conversion : sections, CTA, psychologie d’achat, UX mobile.",
-    icon: "🧠",
-  },
-  {
-    title: "Support WhatsApp",
-    text: "Tu bloques sur un truc ? Tu nous écris et on t’aide direct.",
-    icon: "💬",
-  },
-];
-
 const TESTIMONIALS = [
   {
     name: "Julien",
@@ -75,7 +55,8 @@ const TESTIMONIALS = [
   },
   {
     name: "Inès",
-    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
+    text:
+      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
@@ -100,6 +81,7 @@ const FAQS = [
 
 function useAutoplay(length: number, delay = 6000) {
   const [index, setIndex] = useState(0);
+
   useEffect(() => {
     if (length <= 1) return;
     const id = window.setInterval(() => {
@@ -107,6 +89,7 @@ function useAutoplay(length: number, delay = 6000) {
     }, delay);
     return () => window.clearInterval(id);
   }, [length, delay]);
+
   return [index, setIndex] as const;
 }
 
@@ -117,9 +100,13 @@ export default function HomePage() {
       <div style={styles.bgDots} />
 
       <HeroSlideshow />
+
       <ScrollingTextBar text="COPYSHOP IA • Génère ta boutique Shopify • Packs à vie • Formations E-COM • Packs IA Shopify • Services digitaux • Services à la carte" />
+
+      {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
-      <FeaturesScrolling />
+
+      {/* ✅ Bloc propre : texte long + image à côté */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -138,6 +125,7 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
+  // Fix hauteur stable
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -165,10 +153,13 @@ function HeroSlideshow() {
     };
   }, []);
 
+  const cta = HERO_SLIDES[active];
+
   return (
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
+          {/* Mesure invisible */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -184,7 +175,7 @@ function HeroSlideshow() {
 
                 <div style={styles.heroBtns}>
                   {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
-                  <span style={styles.ghostBtn}>WhatsApp</span>
+                  <span style={styles.ghostBtn}>Contact</span>
                 </div>
 
                 <div style={styles.dotsRow}>
@@ -196,21 +187,22 @@ function HeroSlideshow() {
             ))}
           </div>
 
+          {/* Visible */}
           <div
             style={{
               ...styles.heroSlideWrap,
               minHeight: fixedHeight || undefined,
             }}
           >
-            <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
-            <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
-            <p style={styles.heroSub}>{HERO_SLIDES[active].subtitle}</p>
+            <div style={styles.heroKicker}>{cta.kicker}</div>
+            <h1 style={styles.heroTitle}>{cta.title}</h1>
+            <p style={styles.heroSub}>{cta.subtitle}</p>
 
             <div style={styles.heroBtns}>
-              {HERO_SLIDES[active].ctaText && (
-                <a href={HERO_SLIDES[active].ctaLink} style={styles.primaryBtn}>
-                  {HERO_SLIDES[active].ctaText}
-                </a>
+              {cta.ctaText && cta.ctaLink && (
+                <Link href={cta.ctaLink} style={styles.primaryBtn}>
+                  {cta.ctaText}
+                </Link>
               )}
               <Link href="/contact" style={styles.ghostBtn}>
                 Contactez-nous
@@ -234,6 +226,7 @@ function HeroSlideshow() {
           </div>
         </div>
 
+        {/* Rond IA conservé */}
         <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} className="heroGlow" />
           <div style={styles.heroIllustration} className="heroIllustration">
@@ -290,43 +283,34 @@ function VideoSection() {
   );
 }
 
-function FeaturesScrolling() {
-  return (
-    <section style={styles.section}>
-      <div style={styles.sectionInner}>
-        <div style={styles.featuresGrid} className="featuresGrid">
-          {FEATURES.map((f) => (
-            <article key={f.title} style={styles.featureCard}>
-              <div style={styles.featureIcon}>{f.icon}</div>
-              <h3 style={styles.h3}>{f.title}</h3>
-              <p style={styles.p}>{f.text}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function FeaturedProduct() {
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
 
-  const openPreview = () => setPreview("/images/boutique-client.jpg");
-  const closePreview = () => setPreview(null);
+  useEffect(() => {
+    if (!preview) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreview(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [preview]);
 
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* IMAGE (miniature) + popup */}
+          {/* Image mini + popup */}
           <div
             style={styles.mockImage}
-            onClick={openPreview}
+            onClick={() => setPreview(true)}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") openPreview();
+              if (e.key === "Enter" || e.key === " ") setPreview(true);
             }}
+            aria-label="Ouvrir l’image en grand"
           >
             <div style={styles.mockMediaInner}>
               <img
@@ -347,10 +331,22 @@ function FeaturedProduct() {
             </Link>
           </div>
 
+          {/* Texte long */}
           <div>
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
-            <ul style={styles.checkList}>
+
+            <p style={{ ...styles.p, marginTop: 10 }}>
+              Ici, l’objectif c’est de te livrer une boutique <strong>prête à vendre</strong>, pas un
+              squelette vide. Structure conversion, sections claires, identité visuelle cohérente,
+              pages indispensables déjà en place, et une expérience mobile propre.
+              <br />
+              <br />
+              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les pubs.
+              Nous, on s’occupe du reste.
+            </p>
+
+            <ul style={{ ...styles.checkList, marginTop: 12 }}>
               <li style={styles.checkItem}>
                 <span style={styles.check}>✓</span> Home optimisée conversion
               </li>
@@ -366,21 +362,27 @@ function FeaturedProduct() {
             </ul>
 
             <div style={{ marginTop: 14 }}>
-              <a href="/services-digitaux" style={styles.primaryBtn}>
+              <Link href="/services-digitaux" style={styles.primaryBtn}>
                 Choisir un pack
-              </a>
+              </Link>
             </div>
           </div>
         </div>
 
+        {/* Popup image */}
         {preview && (
-          <div style={styles.lightbox} onClick={closePreview} role="dialog" aria-modal="true">
+          <div
+            style={styles.lightbox}
+            onClick={() => setPreview(false)}
+            role="dialog"
+            aria-modal="true"
+          >
             <button
               type="button"
               style={styles.lightboxClose}
               onClick={(e) => {
                 e.stopPropagation();
-                closePreview();
+                setPreview(false);
               }}
               aria-label="Fermer"
             >
@@ -388,7 +390,7 @@ function FeaturedProduct() {
             </button>
 
             <img
-              src={preview}
+              src="/images/boutique-client.jpg"
               alt="Aperçu de la boutique"
               style={styles.lightboxImg}
               onClick={(e) => e.stopPropagation()}
@@ -419,10 +421,7 @@ function AboutSection() {
 
             <h2 style={styles.aboutTitle}>Copyshop IA, pensé pour aller droit au résultat.</h2>
 
-            <p
-              className={`aboutText ${expanded ? "expanded" : ""}`}
-              style={styles.aboutText}
-            >
+            <p className={`aboutText ${expanded ? "expanded" : ""}`} style={styles.aboutText}>
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
               passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
               plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
@@ -444,9 +443,9 @@ function AboutSection() {
               {expanded ? "Voir moins" : "Voir plus"}
             </button>
 
-            <a href="/qui-sommes-nous" style={styles.aboutBtn}>
+            <Link href="/qui-sommes-nous" style={styles.aboutBtn}>
               Découvrir
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -603,12 +602,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   heroLeft: { display: "grid", gap: 10, position: "relative" },
-
-  heroSlideWrap: {
-    display: "grid",
-    gap: 10,
-    alignContent: "start",
-  },
+  heroSlideWrap: { display: "grid", gap: 10, alignContent: "start" },
 
   heroMeasureWrap: {
     position: "absolute",
@@ -618,11 +612,7 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0,
     overflow: "hidden",
   },
-  heroMeasureItem: {
-    display: "grid",
-    gap: 10,
-    width: "100%",
-  },
+  heroMeasureItem: { display: "grid", gap: 10, width: "100%" },
 
   heroKicker: {
     fontSize: "0.8rem",
@@ -638,12 +628,7 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "-0.02em",
     margin: 0,
   },
-  heroSub: {
-    fontSize: "1.05rem",
-    color: COLORS.muted,
-    margin: 0,
-    maxWidth: 640,
-  },
+  heroSub: { fontSize: "1.05rem", color: COLORS.muted, margin: 0, maxWidth: 640 },
   heroBtns: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 },
 
   primaryBtn: {
@@ -685,12 +670,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all .25s ease",
   },
 
-  heroRight: {
-    position: "relative",
-    display: "grid",
-    placeItems: "center",
-    minHeight: 220,
-  },
+  heroRight: { position: "relative", display: "grid", placeItems: "center", minHeight: 220 },
   heroGlow: {
     position: "absolute",
     width: 260,
@@ -726,12 +706,7 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
     boxShadow: "0 14px 40px rgba(106,47,214,0.5)",
   },
-  heroIlluText: {
-    fontSize: "3rem",
-    fontWeight: 900,
-    color: "white",
-    letterSpacing: "0.07em",
-  },
+  heroIlluText: { fontSize: "3rem", fontWeight: 900, color: "white", letterSpacing: "0.07em" },
 
   scrollBar: {
     marginTop: 16,
@@ -755,19 +730,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
   },
 
-  section: {
-    padding: "54px 20px",
-    maxWidth: 1200,
-    margin: "0 auto",
-  },
+  section: { padding: "54px 20px", maxWidth: 1200, margin: "0 auto" },
   sectionInner: { display: "grid", gap: 18 },
 
-  sectionHeader: {
-    display: "grid",
-    gap: 8,
-    textAlign: "center",
-    marginBottom: 8,
-  },
+  sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
+
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -776,29 +743,15 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
-  h2: {
-    fontSize: "clamp(1.7rem, 3vw, 2.3rem)",
-    fontWeight: 900,
-    margin: 0,
-  },
-  h3: {
-    fontSize: "1.2rem",
-    fontWeight: 900,
-    margin: 0,
-  },
-  p: {
-    color: COLORS.muted,
-    fontSize: "1.02rem",
-    margin: 0,
-    lineHeight: 1.7,
-  },
+  h2: { fontSize: "clamp(1.7rem, 3vw, 2.3rem)", fontWeight: 900, margin: 0 },
+  h3: { fontSize: "1.2rem", fontWeight: 900, margin: 0 },
+  p: { color: COLORS.muted, fontSize: "1.02rem", margin: 0, lineHeight: 1.7 },
 
   videoBox: {
     position: "relative",
     borderRadius: 18,
     minHeight: 280,
-    background:
-      "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+    background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
     border: `1px solid ${COLORS.panelBorder}`,
     overflow: "hidden",
   },
@@ -823,42 +776,18 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  featuresGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3,minmax(0,1fr))",
-    gap: 14,
-  },
-  featureCard: {
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 16,
-    padding: "18px 16px",
-    display: "grid",
-    gap: 8,
-    minHeight: 180,
-    backdropFilter: "blur(6px)",
-  },
-  featureIcon: { fontSize: "1.6rem" },
+  split: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "center" },
 
-  split: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 18,
-    alignItems: "center",
-  },
-
-  /* ✅ Image moins grande */
   mockImage: {
     height: 260,
     borderRadius: 18,
-    background:
-      "linear-gradient(135deg, rgba(106,47,214,0.3), rgba(58,107,255,0.2))",
+    background: "linear-gradient(135deg, rgba(106,47,214,0.3), rgba(58,107,255,0.2))",
     border: `1px solid ${COLORS.panelBorder}`,
     position: "relative",
     cursor: "pointer",
+    overflow: "hidden",
   },
 
-  /* ✅ image “contenue” (moins grosse visuellement) */
   mockMediaInner: {
     position: "absolute",
     inset: 0,
@@ -866,12 +795,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
   },
-  mockMediaImg: {
-    width: "100%",
-    height: "100%",
-    objectFit: "contain",
-    borderRadius: 14,
-  },
+  mockMediaImg: { width: "100%", height: "100%", objectFit: "contain", borderRadius: 14 },
 
   mockBadge: {
     position: "absolute",
@@ -906,7 +830,6 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
   },
 
-  /* ✅ popup */
   lightbox: {
     position: "fixed",
     inset: 0,
@@ -997,11 +920,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
     margin: 0,
   },
-  aboutTitle: {
-    fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
-    fontWeight: 900,
-    margin: 0,
-  },
+  aboutTitle: { fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, margin: 0 },
   aboutText: {
     fontSize: "1.05rem",
     color: "rgba(238,241,255,0.95)",
@@ -1039,11 +958,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifySelf: "center",
   },
 
-  reviewsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3,minmax(0,1fr))",
-    gap: 14,
-  },
+  reviewsGrid: { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 },
   reviewCard: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -1093,11 +1008,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     cursor: "pointer",
   },
-  faqPlus: {
-    fontSize: "1.4rem",
-    fontWeight: 900,
-    transition: "transform .25s ease, opacity .25s ease",
-  },
+  faqPlus: { fontSize: "1.4rem", fontWeight: 900, transition: "transform .25s ease, opacity .25s ease" },
   answerOuter: {
     overflow: "hidden",
     transition: "max-height .35s ease, opacity .35s ease, transform .35s ease",
@@ -1110,13 +1021,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.7,
     borderTop: "1px dashed rgba(255,255,255,0.08)",
   },
-  bottomNote: {
-    marginTop: 18,
-    textAlign: "center",
-    fontWeight: 800,
-    color: COLORS.muted,
-    fontSize: "1rem",
-  },
+  bottomNote: { marginTop: 18, textAlign: "center", fontWeight: 800, color: COLORS.muted, fontSize: "1rem" },
 };
 
 const responsiveCss = `
@@ -1137,36 +1042,14 @@ const responsiveCss = `
       grid-template-columns: 1fr !important; 
       min-height: auto !important; 
     }
-
-    .heroRight {
-      margin-top: 18px !important;
-      min-height: auto !important;
-    }
-
-    .heroGlow {
-      width: 190px !important;
-      height: 190px !important;
-      filter: blur(8px) !important;
-      opacity: 0.85 !important;
-    }
-
-    .heroIllustration {
-      width: 140px !important;
-      height: 140px !important;
-    }
-
-    .heroIlluInner {
-      width: 90px !important;
-      height: 90px !important;
-    }
-
-    .heroIlluText {
-      font-size: 1.6rem !important;
-    }
+    .heroRight { margin-top: 18px !important; min-height: auto !important; }
+    .heroGlow { width: 190px !important; height: 190px !important; filter: blur(8px) !important; opacity: 0.85 !important; }
+    .heroIllustration { width: 140px !important; height: 140px !important; }
+    .heroIlluInner { width: 90px !important; height: 90px !important; }
+    .heroIlluText { font-size: 1.6rem !important; }
   }
 
   @media (max-width: 820px) {
-    .featuresGrid { grid-template-columns: 1fr !important; }
     .reviewsGrid { grid-template-columns: 1fr !important; }
 
     .aboutText {
