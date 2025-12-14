@@ -102,7 +102,8 @@ export default function HomePage() {
       {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ Bloc propre : ORDI côte à côte / MOBILE colonne (image en haut pas trop haute) */}
+      {/* ✅ ORDI : côte à côte / image plus étroite + bloc très haut (stretch) */}
+      {/* ✅ MOBILE : colonne / image en haut (pas trop haute) */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -121,7 +122,6 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
-  // Fix hauteur stable
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -152,7 +152,6 @@ function HeroSlideshow() {
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          {/* Mesure invisible */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -180,7 +179,6 @@ function HeroSlideshow() {
             ))}
           </div>
 
-          {/* Visible */}
           <div style={{ ...styles.heroSlideWrap, minHeight: fixedHeight || undefined }}>
             <div style={styles.heroKicker}>{cta.kicker}</div>
             <h1 style={styles.heroTitle}>{cta.title}</h1>
@@ -214,7 +212,6 @@ function HeroSlideshow() {
           </div>
         </div>
 
-        {/* Rond IA conservé */}
         <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} className="heroGlow" />
           <div style={styles.heroIllustration} className="heroIllustration">
@@ -287,7 +284,7 @@ function FeaturedProduct() {
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* IMAGE (click = popup) */}
+          {/* ✅ Image : bloc étroit + très haut (stretch) */}
           <div
             style={styles.mockImage}
             className="mockImage"
@@ -319,7 +316,7 @@ function FeaturedProduct() {
             </Link>
           </div>
 
-          {/* TEXTE LONG */}
+          {/* Texte long */}
           <div>
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
@@ -357,7 +354,6 @@ function FeaturedProduct() {
           </div>
         </div>
 
-        {/* POPUP IMAGE */}
         {preview && (
           <div
             style={styles.lightbox}
@@ -763,26 +759,41 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  split: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, alignItems: "center" },
+  /* ✅ IMPORTANT : colonne image limitée en largeur + items stretch en hauteur */
+  split: {
+    display: "grid",
+    gridTemplateColumns: "minmax(320px, 520px) 1fr",
+    gap: 22,
+    alignItems: "stretch",
+  },
 
+  /* ✅ plus de height fixe : le bloc devient “long” (hauteur = hauteur du texte) */
   mockImage: {
-    height: 260,
     borderRadius: 18,
-    background: "linear-gradient(135deg, rgba(106,47,214,0.3), rgba(58,107,255,0.2))",
+    background: "linear-gradient(135deg, rgba(106,47,214,0.22), rgba(58,107,255,0.16))",
     border: `1px solid ${COLORS.panelBorder}`,
     position: "relative",
     cursor: "pointer",
     overflow: "hidden",
+    minHeight: 420,
+    alignSelf: "stretch",
   },
 
   mockMediaInner: {
     position: "absolute",
     inset: 0,
-    padding: 12,
+    padding: 14,
     display: "grid",
     placeItems: "center",
   },
-  mockMediaImg: { width: "100%", height: "100%", objectFit: "contain", borderRadius: 14 },
+
+  /* Desktop: on voit tout le visuel (pas coupé) */
+  mockMediaImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    borderRadius: 14,
+  },
 
   mockBadge: {
     position: "absolute",
@@ -1018,16 +1029,16 @@ const responsiveCss = `
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ✅ MOBILE/TABLET : la section image+texte passe en colonne */
+  /* ✅ MOBILE : colonne */
   @media (max-width: 900px) {
     .split { grid-template-columns: 1fr !important; }
 
-    /* ✅ l'image prend juste le haut (pas énorme) */
-    .mockImage { height: 220px !important; }
+    /* ✅ image en haut, pas trop haute, et “remplit le haut” */
+    .mockImage { min-height: 0 !important; height: 220px !important; }
     .mockMediaInner { padding: 0 !important; }
     .mockMediaImg { object-fit: cover !important; border-radius: 18px !important; }
 
-    /* Hero responsive (rond IA en plus petit) */
+    /* Hero responsive */
     .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
     .heroRight { margin-top: 18px !important; min-height: auto !important; }
     .heroGlow { width: 190px !important; height: 190px !important; filter: blur(8px) !important; opacity: 0.85 !important; }
@@ -1036,7 +1047,6 @@ const responsiveCss = `
     .heroIlluText { font-size: 1.6rem !important; }
   }
 
-  /* ✅ PLUS PETIT MOBILE : encore un peu moins haut */
   @media (max-width: 640px) {
     .mockImage { height: 200px !important; }
   }
