@@ -340,7 +340,7 @@ function FeaturedProduct() {
             </ul>
 
             <div style={{ marginTop: 14 }}>
-              <a href="/packs-ia" style={styles.primaryBtn}>
+              <a href="/services-digitaux" style={styles.primaryBtn}>
                 Choisir un pack
               </a>
             </div>
