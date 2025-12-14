@@ -58,7 +58,7 @@ export default function Footer() {
       <div style={styles.container}>
         {/* Newsletter */}
         <section style={styles.newsletterBox}>
-          <h3 style={styles.newsTitle}>Abonne-toi à la newsletter @</h3>
+          <h3 style={styles.newsTitle}>Abonne-toi à la Newsletter @</h3>
           <p style={styles.newsSub}>
             Reçois dans ta boîte mail des réductions, des conseils et nos nouveautés.
           </p>
