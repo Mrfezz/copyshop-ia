@@ -85,7 +85,7 @@ const TESTIMONIALS = [
 const FAQS = [
   {
     q: "Comment fonctionne Copyshop IA ?",
-    a: "Tu choisis un pack, tu envoies ton produit (image ou lien) et l’IA génère ta boutique complète.",
+    a: "Tu choisis un pack IA, tu envoies ton produit (image ou lien) et l’IA génère ta boutique complète.",
   },
   {
     q: "Combien de temps pour recevoir ma boutique ?",
@@ -94,10 +94,6 @@ const FAQS = [
   {
     q: "L’abonnement Shopify est inclus ?",
     a: "Non. Shopify est un service séparé. Nous on s’occupe de la boutique + design + contenu.",
-  },
-  {
-    q: "Vous faites aussi le Kbis / micro-entreprise ?",
-    a: "Oui. Kbis en 24h pour 100€. Écris-nous sur WhatsApp.",
   },
 ];
 
