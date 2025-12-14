@@ -70,11 +70,11 @@ const TESTIMONIALS = [
   {
     name: "Julien",
     text:
-      "J’ai reçu ma boutique en 1 journée. J’ai juste ajouté mes produits et c’était carré.",
+      "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
   },
   {
     name: "Inès",
-    text: "Le design est trop propre pour le prix. Franchement ça fait premium.",
+    text: "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
   },
   {
     name: "Hugo",
@@ -88,20 +88,12 @@ const FAQS = [
     a: "Tu choisis un pack, tu envoies ton produit (image ou lien) et l’IA génère ta boutique complète.",
   },
   {
-    q: "Est-ce que je dois déjà avoir une boutique Shopify ?",
-    a: "Non. Si tu n’en as pas, on te crée tout et tu n’as plus qu’à activer l’abonnement Shopify.",
-  },
-  {
     q: "Combien de temps pour recevoir ma boutique ?",
     a: "En général quelques minutes à quelques heures selon le pack et la charge.",
   },
   {
     q: "L’abonnement Shopify est inclus ?",
     a: "Non. Shopify est un service séparé. Nous on s’occupe de la boutique + design + contenu.",
-  },
-  {
-    q: "Puis-je générer plusieurs boutiques ?",
-    a: "Oui, selon ton pack. Basic = 5 boutiques, Premium = 15, Ultime = illimité.",
   },
   {
     q: "Vous faites aussi le Kbis / micro-entreprise ?",
@@ -128,7 +120,7 @@ export default function HomePage() {
       <div style={styles.bgDots} />
 
       <HeroSlideshow />
-      <ScrollingTextBar text="COPYSHOP IA • Génère ta boutique Shopify • Packs à vie • Support WhatsApp" />
+      <ScrollingTextBar text="COPYSHOP IA • Génère ta boutique Shopify • Packs à vie • Formations E-COM • Packs IA Shopify • Services digitaux • Services à la carte" />
       <VideoSection />
       <FeaturesScrolling />
       <FeaturedProduct />
@@ -228,7 +220,7 @@ function HeroSlideshow() {
                 </a>
               )}
               <a href="https://wa.me/33745214922" style={styles.ghostBtn}>
-                WhatsApp
+                Contactez-nous
               </a>
             </div>
 
