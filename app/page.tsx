@@ -102,8 +102,8 @@ export default function HomePage() {
       {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ ORDI : côte à côte / image plus étroite + bloc très haut (stretch) */}
-      {/* ✅ MOBILE : colonne / image en haut (pas trop haute) */}
+      {/* ✅ ORDI : côte à côte, image plus étroite + très longue en hauteur */}
+      {/* ✅ MOBILE : colonne, image “en haut” + on cache la barre noire */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -284,7 +284,7 @@ function FeaturedProduct() {
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* ✅ Image : bloc étroit + très haut (stretch) */}
+          {/* ✅ Image : moins carrée + plus longue en hauteur + on masque la barre noire */}
           <div
             style={styles.mockImage}
             className="mockImage"
@@ -304,6 +304,9 @@ function FeaturedProduct() {
                 className="mockMediaImg"
               />
             </div>
+
+            {/* ✅ masque doux en haut (cache “Livraison offerte” / bande noire) */}
+            <div style={styles.mockTopMask} className="mockTopMask" aria-hidden />
 
             <div style={styles.mockBadge}>Boutique générée</div>
 
@@ -568,11 +571,7 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none",
   },
 
-  heroSection: {
-    padding: "96px 20px 30px",
-    maxWidth: 1200,
-    margin: "0 auto",
-  },
+  heroSection: { padding: "96px 20px 30px", maxWidth: 1200, margin: "0 auto" },
   heroCard: {
     position: "relative",
     display: "grid",
@@ -727,7 +726,6 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
   },
   h2: { fontSize: "clamp(1.7rem, 3vw, 2.3rem)", fontWeight: 900, margin: 0 },
-  h3: { fontSize: "1.2rem", fontWeight: 900, margin: 0 },
   p: { color: COLORS.muted, fontSize: "1.02rem", margin: 0, lineHeight: 1.7 },
 
   videoBox: {
@@ -759,40 +757,55 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  /* ✅ IMPORTANT : colonne image limitée en largeur + items stretch en hauteur */
+  /* ✅ image moins “géante” (plus étroite) + hauteur auto via stretch */
   split: {
     display: "grid",
-    gridTemplateColumns: "minmax(320px, 520px) 1fr",
+    gridTemplateColumns: "minmax(300px, 500px) 1fr",
     gap: 22,
     alignItems: "stretch",
   },
 
-  /* ✅ plus de height fixe : le bloc devient “long” (hauteur = hauteur du texte) */
+  /* ✅ moins carré : plus de hauteur + arrondis plus forts */
   mockImage: {
-    borderRadius: 18,
-    background: "linear-gradient(135deg, rgba(106,47,214,0.22), rgba(58,107,255,0.16))",
+    borderRadius: 30,
+    background: "linear-gradient(135deg, rgba(106,47,214,0.18), rgba(58,107,255,0.12))",
     border: `1px solid ${COLORS.panelBorder}`,
     position: "relative",
     cursor: "pointer",
     overflow: "hidden",
-    minHeight: 420,
+    minHeight: 560, // ✅ long de haut en bas
     alignSelf: "stretch",
+    boxShadow: "0 22px 60px rgba(0,0,0,0.35)",
   },
 
   mockMediaInner: {
     position: "absolute",
     inset: 0,
-    padding: 14,
+    padding: 0,
     display: "grid",
-    placeItems: "center",
+    placeItems: "stretch",
   },
 
-  /* Desktop: on voit tout le visuel (pas coupé) */
+  /* ✅ on “coupe” le haut (barre noire) en mettant le focus vers le bas */
   mockMediaImg: {
     width: "100%",
     height: "100%",
-    objectFit: "contain",
-    borderRadius: 14,
+    objectFit: "cover",
+    objectPosition: "center 85%", // ✅ cache le haut (barre noire)
+    transform: "scale(1.02)",
+  },
+
+  /* ✅ masque supplémentaire (au cas où) */
+  mockTopMask: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 74,
+    background:
+      "linear-gradient(180deg, rgba(11,16,38,0.98) 0%, rgba(11,16,38,0.55) 55%, rgba(11,16,38,0.00) 100%)",
+    zIndex: 2,
+    pointerEvents: "none",
   },
 
   mockBadge: {
@@ -806,7 +819,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: "0.85rem",
-    zIndex: 2,
+    zIndex: 3,
   },
 
   videoCtaBtn: {
@@ -824,7 +837,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    zIndex: 3,
+    zIndex: 4,
     cursor: "pointer",
   },
 
@@ -1033,10 +1046,12 @@ const responsiveCss = `
   @media (max-width: 900px) {
     .split { grid-template-columns: 1fr !important; }
 
-    /* ✅ image en haut, pas trop haute, et “remplit le haut” */
-    .mockImage { min-height: 0 !important; height: 220px !important; }
-    .mockMediaInner { padding: 0 !important; }
-    .mockMediaImg { object-fit: cover !important; border-radius: 18px !important; }
+    /* ✅ image en haut, pas trop haute */
+    .mockImage { min-height: 0 !important; height: 220px !important; border-radius: 26px !important; }
+    .mockMediaImg { object-fit: cover !important; object-position: center 88% !important; }
+
+    /* masque un peu plus court sur mobile */
+    .mockTopMask { height: 64px !important; }
 
     /* Hero responsive */
     .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
@@ -1045,10 +1060,6 @@ const responsiveCss = `
     .heroIllustration { width: 140px !important; height: 140px !important; }
     .heroIlluInner { width: 90px !important; height: 90px !important; }
     .heroIlluText { font-size: 1.6rem !important; }
-  }
-
-  @media (max-width: 640px) {
-    .mockImage { height: 200px !important; }
   }
 
   @media (max-width: 820px) {
