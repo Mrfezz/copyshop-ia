@@ -40,7 +40,8 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle:
+      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -114,10 +115,10 @@ function useAutoplay(length: number, delay = 6000) {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     if (length <= 1) return;
-    const id = setInterval(() => {
+    const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % length);
     }, delay);
-    return () => clearInterval(id);
+    return () => window.clearInterval(id);
   }, [length, delay]);
   return [index, setIndex] as const;
 }
@@ -134,7 +135,7 @@ export default function HomePage() {
       <FeaturesScrolling />
       <FeaturedProduct />
 
-      {/* ✅ Bloc “Qui sommes-nous ?” (image en fond + texte dessus + mobile “voir plus”) */}
+      {/* ✅ Bloc “Qui sommes-nous ?” */}
       <AboutSection />
 
       <ReviewsSection />
@@ -151,7 +152,7 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
-  // ✅ Pour éviter le “saut” de hauteur entre les 2 slides
+  // ✅ FIX DÉCALAGE: on mesure les 2 slides et on verrouille la hauteur du bloc
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -164,10 +165,22 @@ function HeroSlideshow() {
   };
 
   useLayoutEffect(() => {
+    // 1) première mesure
     computeMaxHeight();
+
+    // 2) re-mesure après rendu / fonts
+    const raf1 = requestAnimationFrame(() => computeMaxHeight());
+    const raf2 = requestAnimationFrame(() => computeMaxHeight());
+
+    // 3) resize
     const onResize = () => computeMaxHeight();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      window.removeEventListener("resize", onResize);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,7 +188,7 @@ function HeroSlideshow() {
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          {/* ✅ Mesure invisible des slides (pour garder une hauteur fixe) */}
+          {/* ✅ Mesure invisible (mêmes styles que le visible) */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -203,12 +216,13 @@ function HeroSlideshow() {
             ))}
           </div>
 
-          {/* ✅ Contenu visible */}
+          {/* ✅ Contenu visible: hauteur verrouillée */}
           <div
             style={{
               ...styles.heroSlideWrap,
-              minHeight: fixedHeight ? fixedHeight : undefined,
+              minHeight: fixedHeight || undefined,
             }}
+            className="heroSlideWrap"
           >
             <div style={styles.heroKicker}>{HERO_SLIDES[active].kicker}</div>
             <h1 style={styles.heroTitle}>{HERO_SLIDES[active].title}</h1>
@@ -377,10 +391,10 @@ function AboutSection() {
               className={`aboutText ${expanded ? "expanded" : ""}`}
               style={styles.aboutText}
             >
-              <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong> passionné par le
-              e-commerce, le marketing digital et l&apos;automatisation. Après plusieurs projets lancés
-              et accompagnés, l&apos;objectif est simple : te proposer un raccourci pour lancer ton
-              business plus sereinement.
+              <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
+              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
+              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
+              raccourci pour lancer ton business plus sereinement.
               <br />
               <br />
               Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
@@ -556,17 +570,19 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 22,
     padding: "28px 26px",
     backdropFilter: "blur(6px)",
+
+    /* ✅ fallback anti-saut */
+    minHeight: 420,
   },
 
   heroLeft: { display: "grid", gap: 10 },
 
-  // ✅ WRAP pour fixer la hauteur
   heroSlideWrap: {
     display: "grid",
     gap: 10,
     alignContent: "start",
   },
-  // ✅ Mesure invisible
+
   heroMeasureWrap: {
     position: "absolute",
     visibility: "hidden",
@@ -579,6 +595,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 10,
     padding: 0,
+    width: "min(680px, 100%)",
   },
 
   heroKicker: {
@@ -719,7 +736,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionInner: { display: "grid", gap: 18 },
 
-  sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
+  sectionHeader: {
+    display: "grid",
+    gap: 8,
+    textAlign: "center",
+    marginBottom: 8,
+  },
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -819,8 +841,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
   },
 
-  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
-  checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
+  checkList: {
+    listStyle: "none",
+    padding: 0,
+    margin: "12px 0 0",
+    display: "grid",
+    gap: 8,
+  },
+  checkItem: {
+    display: "flex",
+    gap: 8,
+    alignItems: "center",
+    fontWeight: 700,
+  },
   check: {
     width: 20,
     height: 20,
@@ -935,7 +968,12 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
-  miniRow: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" },
+  miniRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   miniChip: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -1013,7 +1051,7 @@ const responsiveCss = `
   }
 
   @media (max-width: 900px) {
-    .heroCard { grid-template-columns: 1fr !important; }
+    .heroCard { grid-template-columns: 1fr !important; min-height: 520px !important; }
   }
 
   @media (max-width: 820px) {
