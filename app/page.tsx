@@ -104,10 +104,9 @@ export default function HomePage() {
 
       <ScrollingTextBar text="COPYSHOP IA • Génère ta boutique Shopify • Packs à vie • Formations E-COM • Packs IA Shopify • Services digitaux • Services à la carte" />
 
-      {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ Bloc propre : texte long + image téléphone à côté (sans popup) */}
+      {/* ✅ Bloc : texte long + image téléphone à côté (sans popup) */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -126,7 +125,6 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
-  // Fix hauteur stable
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -160,7 +158,6 @@ function HeroSlideshow() {
     <section style={styles.heroSection}>
       <div style={styles.heroCard} className="heroCard">
         <div style={styles.heroLeft}>
-          {/* Mesure invisible */}
           <div style={styles.heroMeasureWrap} aria-hidden>
             {HERO_SLIDES.map((s, i) => (
               <div
@@ -190,7 +187,6 @@ function HeroSlideshow() {
             ))}
           </div>
 
-          {/* Visible */}
           <div
             style={{
               ...styles.heroSlideWrap,
@@ -229,7 +225,6 @@ function HeroSlideshow() {
           </div>
         </div>
 
-        {/* Rond IA conservé */}
         <div style={styles.heroRight} className="heroRight">
           <div style={styles.heroGlow} className="heroGlow" />
           <div style={styles.heroIllustration} className="heroIllustration">
@@ -259,7 +254,6 @@ function ScrollingTextBar({ text }: { text: string }) {
   );
 }
 
-/* ✅ ON NE TOUCHE PAS À TA DÉMO */
 function VideoSection() {
   return (
     <section style={styles.section}>
@@ -292,7 +286,6 @@ function FeaturedProduct() {
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* ✅ Visu téléphone (SANS popup) */}
           <div style={styles.phoneCol}>
             <div style={styles.phoneFrame} className="phoneFrame">
               <div style={styles.phoneScreen}>
@@ -310,12 +303,9 @@ function FeaturedProduct() {
               </Link>
             </div>
 
-            <div style={styles.phoneHint}>
-              (Visu réel — optimisé pour mobile)
-            </div>
+            <div style={styles.phoneHint}>(Visu réel — optimisé pour mobile)</div>
           </div>
 
-          {/* ✅ Texte long */}
           <div>
             <p style={styles.kicker}>Ce que tu reçois</p>
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
@@ -508,7 +498,9 @@ function HomeFAQ() {
           })}
         </div>
 
-        <div style={styles.bottomNote}>Une autre question ? Écris-nous sur WhatsApp.</div>
+        <div style={styles.bottomNote}>
+          Une autre question ? Écris-nous sur WhatsApp.
+        </div>
       </div>
     </section>
   );
@@ -738,47 +730,45 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  /* ✅ Desktop: image (col étroite) + texte (col large) */
+  /* ✅ Cadre un peu plus large (pour éviter coupe sur côtés) */
   split: {
     display: "grid",
-    gridTemplateColumns: "minmax(260px, 360px) 1fr",
+    gridTemplateColumns: "minmax(300px, 390px) 1fr",
     gap: 18,
     alignItems: "start",
   },
 
   phoneCol: { display: "grid", gap: 10, justifyItems: "center" },
 
-  /* ✅ Cadre téléphone (moins carré / plus haut) */
   phoneFrame: {
     width: "100%",
-    maxWidth: 360,
-    height: 620,
+    maxWidth: 390,
+    height: 640,
     borderRadius: 34,
     background: "rgba(255,255,255,0.06)",
     border: `1px solid ${COLORS.panelBorder}`,
     boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
     position: "relative",
-    padding: 12,
+    padding: 10,
     overflow: "hidden",
   },
 
-  /* Écran */
   phoneScreen: {
     position: "absolute",
-    inset: 12,
+    inset: 10,
     borderRadius: 26,
     overflow: "hidden",
     background: "#000",
     border: "1px solid rgba(255,255,255,0.10)",
   },
 
-  /* ✅ IMPORTANT : on remonte l’image pour que la barre noire ne soit jamais visible */
+  /* ✅ IMPORTANT : on remet la barre noire visible + on évite le crop */
   phoneImg: {
     width: "100%",
     height: "100%",
-    objectFit: "cover",
-    objectPosition: "center top",
-    transform: "translateY(-52px) scale(1.08)", // <- ajuste si besoin (-40, -60)
+    objectFit: "contain",     // <- tout rentre, pas de coupe sur côtés
+    objectPosition: "center", // <- centre
+    transform: "none",        // <- plus de remontage/crop (barre noire visible)
   },
 
   phoneHint: {
@@ -996,28 +986,24 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
-  /* ✅ Mobile: cadre téléphone plus petit (et toujours en haut) */
+  /* ✅ Mobile: un poil plus large pour éviter coupe + bien centré */
   @media (max-width: 520px) {
     .phoneFrame {
-      max-width: 320px !important;
-      height: 540px !important;
+      max-width: 360px !important;
+      height: 610px !important;
       padding: 10px !important;
       border-radius: 30px !important;
     }
   }
-
   @media (max-width: 380px) {
     .phoneFrame {
-      max-width: 290px !important;
-      height: 500px !important;
+      max-width: 330px !important;
+      height: 570px !important;
     }
   }
 
   @media (max-width: 900px) {
-    .heroCard { 
-      grid-template-columns: 1fr !important; 
-      min-height: auto !important; 
-    }
+    .heroCard { grid-template-columns: 1fr !important; min-height: auto !important; }
     .heroRight { margin-top: 18px !important; min-height: auto !important; }
     .heroGlow { width: 190px !important; height: 190px !important; filter: blur(8px) !important; opacity: 0.85 !important; }
     .heroIllustration { width: 140px !important; height: 140px !important; }
