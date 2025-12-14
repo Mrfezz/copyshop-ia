@@ -1,6 +1,6 @@
 "use client";
 
-// app/_components/Footer.tsx
+// app/components/footer.tsx
 import { useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 
@@ -20,13 +20,32 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
+const LEGAL_LINKS = [
+  { label: "Conditions de service", href: "/conditions-de-service" },
+  { label: "Politique d’expédition", href: "/politique-expedition" },
+  { label: "Conditions de vente", href: "/conditions-de-vente" },
+  { label: "Politique de remboursement", href: "/politique-remboursement" },
+  { label: "Politique de confidentialité", href: "/politique-confidentialite" },
+  { label: "Mentions légales", href: "/mentions-legales" },
+];
+
+const NAV_LINKS = [
+  { label: "Accueil", href: "/" },
+  { label: "Packs IA", href: "/packs-ia" },
+  { label: "Services digitaux", href: "/services-digitaux" },
+  { label: "Newsletter", href: "/newsletter" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Suivre ma commande", href: "/suivre-ma-commande" },
+  { label: "Contact", href: "/contact" },
+  { label: "Qui sommes-nous ?", href: "/qui-sommes-nous" },
+];
+
 export default function Footer() {
   const [email, setEmail] = useState("");
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!email) return;
-    // Tu brancheras un vrai service newsletter plus tard
     alert("Merci ! Tu es bien inscrit(e) à la newsletter.");
     setEmail("");
   }
@@ -39,17 +58,12 @@ export default function Footer() {
       <div style={styles.container}>
         {/* Newsletter */}
         <section style={styles.newsletterBox}>
-          <h3 style={styles.newsTitle}>Abonne-vous à notre newsletter !</h3>
+          <h3 style={styles.newsTitle}>Abonne-toi à la newsletter !</h3>
           <p style={styles.newsSub}>
-            Recevez dans votre boîte mail des réductions, des conseils et nos
-            nouveaux arrivages.
+            Reçois dans ta boîte mail des réductions, des conseils et nos nouveautés.
           </p>
 
-          <form
-            onSubmit={onSubmit}
-            style={styles.newsForm}
-            className="foot-news-form"
-          >
+          <form onSubmit={onSubmit} style={styles.newsForm} className="foot-news-form">
             <input
               type="email"
               required
@@ -64,18 +78,19 @@ export default function Footer() {
           </form>
         </section>
 
-        {/* Colonnes */}
-        <section style={styles.columns} className="footer-cols">
+        {/* ✅ DESKTOP : 3 blocs alignés */}
+        <section style={styles.columns} className="footer-cols footer-desktop">
           {/* Pages légales */}
           <div style={styles.colCard}>
             <h4 style={styles.colTitle}>Pages légales</h4>
             <ul style={styles.colList}>
-              <li>Conditions de service</li>
-              <li>Politique d’expédition</li>
-              <li>Conditions de vente</li>
-              <li>Politique de remboursement</li>
-              <li>Politique de confidentialité</li>
-              <li>Mentions légales</li>
+              {LEGAL_LINKS.map((l) => (
+                <li key={l.label}>
+                  <a href={l.href} style={styles.link}>
+                    {l.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -83,46 +98,13 @@ export default function Footer() {
           <div style={styles.colCard}>
             <h4 style={styles.colTitle}>Navigation</h4>
             <ul style={styles.colList}>
-              <li>
-                <a href="/" style={styles.link}>
-                  Accueil
-                </a>
-              </li>
-              <li>
-                <a href="/packs-ia" style={styles.link}>
-                  Packs IA
-                </a>
-              </li>
-              <li>
-                <a href="/services-digitaux" style={styles.link}>
-                  Services digitaux
-                </a>
-              </li>
-              <li>
-                <a href="/newsletter" style={styles.link}>
-                  Newsletter
-                </a>
-              </li>
-              <li>
-                <a href="/faq" style={styles.link}>
-                  FAQ
-                </a>
-              </li>
-              <li>
-                <a href="/suivre-ma-commande" style={styles.link}>
-                  Suivre ma commande
-                </a>
-              </li>
-              <li>
-                <a href="/contact" style={styles.link}>
-                  Contact
-                </a>
-              </li>
-              <li>
-                <a href="/qui-sommes-nous" style={styles.link}>
-                  Qui sommes-nous ?
-                </a>
-              </li>
+              {NAV_LINKS.map((l) => (
+                <li key={l.label}>
+                  <a href={l.href} style={styles.link}>
+                    {l.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -145,24 +127,77 @@ export default function Footer() {
           </div>
         </section>
 
+        {/* ✅ MOBILE : 2 blocs (fusion + infos) */}
+        <section className="footer-mobile" style={styles.mobileWrap}>
+          {/* Bloc fusionné */}
+          <div style={styles.colCard}>
+            <div style={styles.mobileTwoCols}>
+              <div>
+                <h4 style={styles.colTitle}>Pages légales</h4>
+                <ul style={styles.colListCompact}>
+                  {LEGAL_LINKS.map((l) => (
+                    <li key={l.label}>
+                      <a href={l.href} style={styles.link}>
+                        {l.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h4 style={styles.colTitle}>Navigation</h4>
+                <ul style={styles.colListCompact}>
+                  {NAV_LINKS.map((l) => (
+                    <li key={l.label}>
+                      <a href={l.href} style={styles.link}>
+                        {l.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Infos entreprise */}
+          <div style={styles.colCard}>
+            <h4 style={styles.colTitle}>Informations de l’entreprise</h4>
+
+            <div style={styles.infoLine}>
+              <strong>Nom :</strong> Copyshop IA
+            </div>
+            <div style={styles.infoLine}>
+              <strong>Site :</strong> www.copyshop-ia.com
+            </div>
+            <div style={styles.infoLine}>
+              <strong>WhatsApp :</strong> +33 7 45 21 49 22
+            </div>
+            <div style={styles.infoLine}>
+              <strong>Support :</strong> Lun–Sam 9h–18h
+            </div>
+          </div>
+        </section>
+
         {/* Bas footer */}
-        <div style={styles.bottomBar}>
-          © {new Date().getFullYear()} Copyshop IA — by Mr Fez
-        </div>
+        <div style={styles.bottomBar}>© {new Date().getFullYear()} Copyshop IA — by Mr Fez</div>
       </div>
 
-      {/* Responsive rapide */}
+      {/* Responsive */}
       <style>{`
         @media (max-width: 980px) {
-          .footer-cols {
-            grid-template-columns: 1fr !important;
-          }
           .foot-news-form {
             grid-template-columns: 1fr !important;
           }
           .foot-news-form button {
             width: 100% !important;
           }
+        }
+
+        /* ✅ Mobile: on cache la version desktop (3 blocs) et on affiche la fusion */
+        @media (max-width: 820px) {
+          .footer-desktop { display: none !important; }
+          .footer-mobile { display: grid !important; }
         }
       `}</style>
     </footer>
@@ -244,11 +279,19 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
+  // Desktop columns (3 cards)
   columns: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 14,
   },
+
+  // Mobile wrapper (hidden by default, shown via CSS)
+  mobileWrap: {
+    display: "none",
+    gap: 14,
+  },
+
   colCard: {
     background: COLORS.cardBg,
     border: `1px solid ${COLORS.boxBorder}`,
@@ -261,6 +304,7 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 900,
     margin: "0 0 10px",
   },
+
   colList: {
     listStyle: "none",
     padding: 0,
@@ -270,10 +314,30 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 600,
     color: "#e6e9ff",
   },
+
+  // Slightly tighter list for mobile columns
+  colListCompact: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+    display: "grid",
+    gap: 6,
+    fontWeight: 600,
+    color: "#e6e9ff",
+  },
+
+  mobileTwoCols: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    alignItems: "start",
+  },
+
   link: {
     color: "#e6e9ff",
     textDecoration: "none",
   },
+
   infoLine: {
     marginBottom: 8,
     color: "#e6e9ff",
