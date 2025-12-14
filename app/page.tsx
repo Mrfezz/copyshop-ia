@@ -133,6 +133,10 @@ export default function HomePage() {
       <VideoSection />
       <FeaturesScrolling />
       <FeaturedProduct />
+
+      {/* ✅ Bloc “Qui sommes-nous ?” (image en fond + texte dessus + mobile “voir plus”) */}
+      <AboutSection />
+
       <ReviewsSection />
       <MiniSlideshow />
       <HomeFAQ />
@@ -292,6 +296,63 @@ function FeaturedProduct() {
   );
 }
 
+function AboutSection() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <section style={styles.section}>
+      <div style={styles.sectionInner}>
+        <div style={styles.aboutHero} className="aboutHero">
+          <img
+            src="/images/qui-sommes-nous.jpg"
+            alt="Qui sommes-nous Copyshop IA"
+            style={styles.aboutHeroImg}
+          />
+          <div style={styles.aboutHeroOverlay} />
+
+          <div style={styles.aboutHeroContent}>
+            <p style={styles.aboutKicker}>Qui sommes-nous ?</p>
+
+            <h2 style={styles.aboutTitle}>
+              Copyshop IA, pensé pour aller droit au résultat.
+            </h2>
+
+            <p
+              className={`aboutText ${expanded ? "expanded" : ""}`}
+              style={styles.aboutText}
+            >
+              <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong> passionné par le
+              e-commerce, le marketing digital et l'automatisation. Après plusieurs projets lancés
+              et accompagnés, l'objectif est simple : te proposer un raccourci pour lancer ton
+              business plus sereinement.
+              <br />
+              <br />
+              Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
+              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
+              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
+            </p>
+
+            {/* ✅ Mobile: Voir plus / Voir moins */}
+            <button
+              type="button"
+              className="aboutToggle"
+              onClick={() => setExpanded((v) => !v)}
+              style={styles.aboutToggleBtn}
+              aria-expanded={expanded}
+            >
+              {expanded ? "Voir moins" : "Voir plus"}
+            </button>
+
+            <a href="/qui-sommes-nous" style={styles.aboutBtn}>
+              Découvrir
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ReviewsSection() {
   return (
     <section style={styles.section}>
@@ -333,6 +394,8 @@ function MiniSlideshow() {
 
 function HomeFAQ() {
   const [open, setOpen] = useState<number | null>(0);
+
+  // ✅ IMPORTANT: tableau de refs (corrige l’erreur TS)
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   return (
@@ -577,12 +640,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionInner: { display: "grid", gap: 18 },
 
-  sectionHeader: {
-    display: "grid",
-    gap: 8,
-    textAlign: "center",
-    marginBottom: 8,
-  },
+  sectionHeader: { display: "grid", gap: 8, textAlign: "center", marginBottom: 8 },
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -682,13 +740,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
   },
 
-  checkList: {
-    listStyle: "none",
-    padding: 0,
-    margin: "12px 0 0",
-    display: "grid",
-    gap: 8,
-  },
+  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
   checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
@@ -700,6 +752,93 @@ const styles: Record<string, React.CSSProperties> = {
     color: "white",
     fontSize: "0.9rem",
     fontWeight: 900,
+  },
+
+  // ✅ About
+  aboutHero: {
+    position: "relative",
+    borderRadius: 22,
+    overflow: "hidden",
+    minHeight: 380,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(13, 18, 50, 0.45)",
+  },
+  aboutHeroImg: {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    // ✅ retouche “couleurs du site”
+    filter: "contrast(1.18) brightness(0.62) saturate(1.18)",
+    transform: "scale(1.02)",
+  },
+  aboutHeroOverlay: {
+    position: "absolute",
+    inset: 0,
+    background:
+      `linear-gradient(180deg, rgba(11,16,38,0.20) 0%, rgba(11,16,38,0.90) 70%),` +
+      `radial-gradient(900px circle at 20% 0%, rgba(106,47,214,0.35), transparent 55%),` +
+      `radial-gradient(900px circle at 80% 10%, rgba(230,74,167,0.22), transparent 55%)`,
+  },
+  aboutHeroContent: {
+    position: "relative",
+    zIndex: 2,
+    textAlign: "center",
+    padding: "44px 18px",
+    maxWidth: 950,
+    margin: "0 auto",
+    display: "grid",
+    gap: 12,
+  },
+  aboutKicker: {
+    fontSize: "0.85rem",
+    fontWeight: 900,
+    letterSpacing: "0.22em",
+    textTransform: "uppercase",
+    color: COLORS.muted,
+    margin: 0,
+  },
+  aboutTitle: {
+    fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
+    fontWeight: 900,
+    margin: 0,
+  },
+  aboutText: {
+    fontSize: "1.05rem",
+    color: "rgba(238,241,255,0.95)",
+    lineHeight: 1.75,
+    margin: "2px auto 0",
+    maxWidth: 860,
+  },
+  aboutToggleBtn: {
+    display: "none", // ✅ affiché seulement sur mobile via CSS
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "10px 14px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.10)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    color: COLORS.text,
+    fontWeight: 900,
+    cursor: "pointer",
+    width: "fit-content",
+    justifySelf: "center",
+  },
+  aboutBtn: {
+    marginTop: 8,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 18px",
+    borderRadius: 999,
+    background: "white",
+    color: "#0b1026",
+    fontWeight: 900,
+    textDecoration: "none",
+    width: "fit-content",
+    justifySelf: "center",
   },
 
   reviewsGrid: {
@@ -718,12 +857,7 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
-  miniRow: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
+  miniRow: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" },
   miniChip: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -807,5 +941,20 @@ const responsiveCss = `
   @media (max-width: 820px) {
     .featuresGrid { grid-template-columns: 1fr !important; }
     .reviewsGrid { grid-template-columns: 1fr !important; }
+
+    /* ✅ About: éviter pavé sur mobile */
+    .aboutText {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      -webkit-line-clamp: 6;
+    }
+    .aboutText.expanded {
+      -webkit-line-clamp: unset;
+      display: block;
+    }
+    .aboutToggle {
+      display: inline-flex !important;
+    }
   }
 `;

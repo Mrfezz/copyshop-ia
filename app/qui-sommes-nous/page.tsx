@@ -77,7 +77,7 @@ export default function QuiSommesNousPage() {
           <article style={styles.card}>
             <h2 style={styles.cardTitle}>Qui est derrière Copyshop IA ?</h2>
             <p style={styles.cardText}>
-              Copyshop IA est porté par <strong>Mr Fez</strong>, passionné par
+              Copyshop IA est porté par <strong>Mr.Fez™</strong>, passionné par
               le e-commerce, le marketing digital et l&apos;automatisation.
               Après plusieurs projets lancés et accompagnés, l&apos;objectif est
               simple : te proposer un raccourci pour lancer ton business plus
