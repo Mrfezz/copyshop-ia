@@ -41,7 +41,8 @@ const HERO_SLIDES: Slide[] = [
   {
     kicker: "Automatique",
     title: "Branding + textes optimisés.",
-    subtitle: "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
+    subtitle:
+      "Nom, design, pages, produits, tunnels… tout est généré et cohérent.",
     ctaText: "Voir un exemple",
     ctaLink: "/faq",
   },
@@ -106,7 +107,7 @@ export default function HomePage() {
       {/* ✅ ON NE TOUCHE PAS À TA DÉMO */}
       <VideoSection />
 
-      {/* ✅ Bloc propre : image téléphone + texte long */}
+      {/* ✅ Bloc propre : texte long + image téléphone à côté (sans popup) */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -125,6 +126,7 @@ export default function HomePage() {
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
 
+  // Fix hauteur stable
   const measureRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [fixedHeight, setFixedHeight] = useState<number>(0);
 
@@ -138,6 +140,7 @@ function HeroSlideshow() {
 
   useLayoutEffect(() => {
     computeMaxHeight();
+
     const raf1 = requestAnimationFrame(() => computeMaxHeight());
     const raf2 = requestAnimationFrame(() => computeMaxHeight());
 
@@ -172,7 +175,9 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
+                  {s.ctaText && (
+                    <span style={styles.primaryBtn}>{s.ctaText}</span>
+                  )}
                   <span style={styles.ghostBtn}>Contact</span>
                 </div>
 
@@ -263,7 +268,8 @@ function VideoSection() {
           <p style={styles.kicker}>Démo rapide</p>
           <h2 style={styles.h2}>Voir comment ça marche</h2>
           <p style={styles.p}>
-            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien prêt à vendre.
+            Tu envoies ton produit → l’IA génère la boutique → tu reçois un lien
+            prêt à vendre.
           </p>
         </div>
 
@@ -282,56 +288,30 @@ function VideoSection() {
 }
 
 function FeaturedProduct() {
-  const [preview, setPreview] = useState(false);
-
-  useEffect(() => {
-    if (!preview) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPreview(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [preview]);
-
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.split} className="split">
-          {/* ✅ Visu téléphone (vertical) */}
-          <div style={styles.phoneColumn}>
-            <div
-              style={styles.phoneFrame}
-              role="button"
-              tabIndex={0}
-              onClick={() => setPreview(true)}
-              onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-                if (e.key === "Enter" || e.key === " ") setPreview(true);
-              }}
-              aria-label="Ouvrir l’aperçu en grand"
-            >
-              <div style={styles.phoneBezel} />
-
+          {/* ✅ Visu téléphone (SANS popup) */}
+          <div style={styles.phoneCol}>
+            <div style={styles.phoneFrame} className="phoneFrame">
               <div style={styles.phoneScreen}>
                 <img
                   src="/images/boutique-client.jpg"
                   alt="Boutique créée pour un client"
                   style={styles.phoneImg}
-                  draggable={false}
                 />
-
-                {/* ✅ masque permanent de la barre noire “Livraison OFFERTE…” */}
-                <div style={styles.topMask} aria-hidden />
-
-                <div style={styles.mockBadge}>Boutique générée</div>
-
-                <Link
-                  href="/services-digitaux#demo"
-                  style={styles.videoCtaBtn}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Voir la vidéo
-                </Link>
               </div>
+
+              <div style={styles.mockBadge}>Boutique générée</div>
+
+              <Link href="/services-digitaux#demo" style={styles.videoCtaBtn}>
+                Voir la vidéo
+              </Link>
+            </div>
+
+            <div style={styles.phoneHint}>
+              (Visu réel — optimisé pour mobile)
             </div>
           </div>
 
@@ -341,13 +321,14 @@ function FeaturedProduct() {
             <h2 style={styles.h2}>Une boutique complète, pas un template vide.</h2>
 
             <p style={{ ...styles.p, marginTop: 10 }}>
-              Ici, l’objectif c’est de te livrer une boutique <strong>prête à vendre</strong>, pas un
-              squelette vide. Structure conversion, sections claires, identité visuelle cohérente,
-              pages indispensables déjà en place, et une expérience mobile propre.
+              Ici, l’objectif c’est de te livrer une boutique{" "}
+              <strong>prête à vendre</strong>, pas un squelette vide. Structure
+              conversion, sections claires, identité visuelle cohérente, pages
+              indispensables déjà en place, et une expérience mobile propre.
               <br />
               <br />
-              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le marketing et les pubs.
-              Nous, on s’occupe du reste.
+              Tu gagnes un temps énorme : tu peux te concentrer sur le produit, le
+              marketing et les pubs. Nous, on s’occupe du reste.
             </p>
 
             <ul style={{ ...styles.checkList, marginTop: 12 }}>
@@ -372,46 +353,6 @@ function FeaturedProduct() {
             </div>
           </div>
         </div>
-
-        {/* ✅ Aperçu grand (même frame + masque barre noire) */}
-        {preview && (
-          <div
-            style={styles.lightbox}
-            onClick={() => setPreview(false)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <button
-              type="button"
-              style={styles.lightboxClose}
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreview(false);
-              }}
-              aria-label="Fermer"
-            >
-              ✕
-            </button>
-
-            <div
-              style={styles.lightboxCard}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ ...styles.phoneFrame, maxWidth: 520 }}>
-                <div style={styles.phoneBezel} />
-                <div style={styles.phoneScreen}>
-                  <img
-                    src="/images/boutique-client.jpg"
-                    alt="Aperçu de la boutique"
-                    style={styles.phoneImg}
-                    draggable={false}
-                  />
-                  <div style={styles.topMask} aria-hidden />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );
@@ -434,18 +375,25 @@ function AboutSection() {
           <div style={styles.aboutHeroContent}>
             <p style={styles.aboutKicker}>Qui sommes-nous ?</p>
 
-            <h2 style={styles.aboutTitle}>Copyshop IA, pensé pour aller droit au résultat.</h2>
+            <h2 style={styles.aboutTitle}>
+              Copyshop IA, pensé pour aller droit au résultat.
+            </h2>
 
-            <p className={`aboutText ${expanded ? "expanded" : ""}`} style={styles.aboutText}>
+            <p
+              className={`aboutText ${expanded ? "expanded" : ""}`}
+              style={styles.aboutText}
+            >
               <strong>Copyshop IA</strong> est porté par <strong>Mr Fez™</strong>{" "}
-              passionné par le e-commerce, le marketing digital et l&apos;automatisation. Après
-              plusieurs projets lancés et accompagnés, l&apos;objectif est simple : te proposer un
-              raccourci pour lancer ton business plus sereinement.
+              passionné par le e-commerce, le marketing digital et
+              l&apos;automatisation. Après plusieurs projets lancés et
+              accompagnés, l&apos;objectif est simple : te proposer un raccourci
+              pour lancer ton business plus sereinement.
               <br />
               <br />
-              Chaque pack, chaque service et chaque formation a été pensé pour être{" "}
-              <strong>actionnable</strong>, <strong>compréhensible</strong> et adapté à la réalité
-              du terrain : petits budgets, manque de temps, besoin de résultats rapides.
+              Chaque pack, chaque service et chaque formation a été pensé pour
+              être <strong>actionnable</strong>, <strong>compréhensible</strong>{" "}
+              et adapté à la réalité du terrain : petits budgets, manque de
+              temps, besoin de résultats rapides.
             </p>
 
             <button
@@ -790,75 +738,54 @@ const styles: Record<string, React.CSSProperties> = {
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  /* ✅ split: desktop côte à côte */
+  /* ✅ Desktop: image (col étroite) + texte (col large) */
   split: {
     display: "grid",
-    gridTemplateColumns: "0.95fr 1.05fr",
-    gap: 24,
+    gridTemplateColumns: "minmax(260px, 360px) 1fr",
+    gap: 18,
     alignItems: "start",
   },
 
-  /* ✅ colonne image centrée */
-  phoneColumn: {
-    display: "grid",
-    justifyItems: "center",
-    alignContent: "start",
-  },
+  phoneCol: { display: "grid", gap: 10, justifyItems: "center" },
 
-  /* ✅ frame téléphone (plus long, moins “carré”) */
+  /* ✅ Cadre téléphone (moins carré / plus haut) */
   phoneFrame: {
     width: "100%",
-    maxWidth: 430,
-    aspectRatio: "9 / 16",
+    maxWidth: 360,
+    height: 620,
     borderRadius: 34,
-    border: `1px solid ${COLORS.panelBorder}`,
     background: "rgba(255,255,255,0.06)",
-    boxShadow: "0 20px 55px rgba(0,0,0,0.35)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
+    position: "relative",
     padding: 12,
-    position: "relative",
-    cursor: "pointer",
-  },
-  phoneBezel: {
-    position: "absolute",
-    top: 10,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: 110,
-    height: 26,
-    borderRadius: 999,
-    background: "rgba(0,0,0,0.25)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    zIndex: 5,
-  },
-  phoneScreen: {
-    position: "relative",
-    width: "100%",
-    height: "100%",
-    borderRadius: 26,
     overflow: "hidden",
-    background: "rgba(10,12,30,0.65)",
-    border: "1px solid rgba(255,255,255,0.10)",
-  },
-  phoneImg: {
-    position: "absolute",
-    inset: 0,
-    width: "100%",
-    height: "100%",
-    objectFit: "contain",
-    objectPosition: "center",
   },
 
-  /* ✅ masque: la barre noire ne sera JAMAIS visible */
-  topMask: {
+  /* Écran */
+  phoneScreen: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 78, // <- ajuste ici si tu veux masquer + ou -
-    background:
-      `linear-gradient(180deg, ${COLORS.bgTop} 0%, rgba(11,16,38,0.65) 55%, rgba(11,16,38,0) 100%)`,
-    zIndex: 4,
-    pointerEvents: "none",
+    inset: 12,
+    borderRadius: 26,
+    overflow: "hidden",
+    background: "#000",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  /* ✅ IMPORTANT : on remonte l’image pour que la barre noire ne soit jamais visible */
+  phoneImg: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    objectPosition: "center top",
+    transform: "translateY(-52px) scale(1.08)", // <- ajuste si besoin (-40, -60)
+  },
+
+  phoneHint: {
+    fontSize: "0.9rem",
+    color: COLORS.muted,
+    fontWeight: 800,
+    textAlign: "center",
   },
 
   mockBadge: {
@@ -872,7 +799,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: "0.85rem",
-    zIndex: 6,
+    zIndex: 3,
   },
 
   videoCtaBtn: {
@@ -890,36 +817,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    zIndex: 6,
+    zIndex: 4,
     cursor: "pointer",
-  },
-
-  lightbox: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 9999,
-    background: "rgba(0,0,0,0.72)",
-    display: "grid",
-    placeItems: "center",
-    padding: 18,
-  },
-  lightboxCard: {
-    width: "min(94vw, 560px)",
-    display: "grid",
-    placeItems: "center",
-  },
-  lightboxClose: {
-    position: "fixed",
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(0,0,0,0.35)",
-    color: "white",
-    fontSize: "1.2rem",
-    cursor: "pointer",
+    whiteSpace: "nowrap",
   },
 
   checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
@@ -1092,9 +992,25 @@ const responsiveCss = `
     to { transform: rotate(360deg); }
   }
 
-  /* ✅ mobile/ tablette: colonne */
   @media (max-width: 980px) {
     .split { grid-template-columns: 1fr !important; }
+  }
+
+  /* ✅ Mobile: cadre téléphone plus petit (et toujours en haut) */
+  @media (max-width: 520px) {
+    .phoneFrame {
+      max-width: 320px !important;
+      height: 540px !important;
+      padding: 10px !important;
+      border-radius: 30px !important;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .phoneFrame {
+      max-width: 290px !important;
+      height: 500px !important;
+    }
   }
 
   @media (max-width: 900px) {
@@ -1107,13 +1023,6 @@ const responsiveCss = `
     .heroIllustration { width: 140px !important; height: 140px !important; }
     .heroIlluInner { width: 90px !important; height: 90px !important; }
     .heroIlluText { font-size: 1.6rem !important; }
-  }
-
-  /* ✅ mobile: visu moins haut (il “prend le haut” sans être géant) */
-  @media (max-width: 520px) {
-    .split > div:first-child {
-      justify-items: stretch !important;
-    }
   }
 
   @media (max-width: 820px) {
