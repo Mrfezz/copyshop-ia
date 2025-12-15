@@ -4,8 +4,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-/* ----------------------------- Types / Data ----------------------------- */
-
 type Item = {
   text: string;
   ok: boolean;
@@ -19,22 +17,6 @@ type ServicePack = {
   price: string;
   highlight?: boolean;
   productKey: "services-essentiel" | "services-pro" | "services-business";
-};
-
-const COLORS = {
-  bgTop: "#0b1026",
-  bgMid: "#0f1635",
-  bgBottom: "#171a52",
-
-  text: "#eef1ff",
-  muted: "#c9d2ff",
-  navy: "#0b0f2a",
-
-  cardBg: "#ffffff",
-  cardBorder: "rgba(11,15,42,0.10)",
-
-  purple: "#6a2fd6",
-  pink: "#e64aa7",
 };
 
 const PRICE_GRADIENT_HOME =
@@ -94,18 +76,26 @@ const PACKS: ServicePack[] = [
   },
 ];
 
-/* ------------------------------- Assets -------------------------------- */
+const COLORS = {
+  bgTop: "#0b1026",
+  bgMid: "#0f1635",
+  bgBottom: "#171a52",
+
+  text: "#eef1ff",
+  muted: "#c9d2ff",
+  navy: "#0b0f2a",
+
+  cardBg: "#ffffff",
+  cardBorder: "rgba(11,15,42,0.10)",
+
+  purple: "#6a2fd6",
+  pink: "#e64aa7",
+};
 
 // ✅ tes fichiers
 const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
-
-// Optionnel (recommandé) : mets une image poster ici
 const DEMO_POSTER_PRIMARY = "/images/demo-services-poster.jpg";
-
-// Fallback si tu n’as pas encore créé l’image
 const DEMO_POSTER_FALLBACK = "/images/boutique-client.jpg";
-
-/* ------------------------------- Page ---------------------------------- */
 
 export default function ServicesDigitauxPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,7 +105,7 @@ export default function ServicesDigitauxPage() {
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => setIsModalOpen(true);
 
-  // Lock scroll + autoplay + ESC to close
+  // lock scroll + play on open + ESC to close
   useEffect(() => {
     if (!isModalOpen) return;
 
@@ -209,7 +199,6 @@ export default function ServicesDigitauxPage() {
                     >
                       {it.ok ? "✓" : "x"}
                     </span>
-
                     <span
                       style={{
                         fontSize: it.small ? "0.9rem" : "1rem",
@@ -240,7 +229,7 @@ export default function ServicesDigitauxPage() {
           ))}
         </div>
 
-        {/* ✅ Bande “on s’occupe…” bien centrée */}
+        {/* ✅ Bande centrée */}
         <div style={styles.bottomBand}>
           <span aria-hidden style={{ fontSize: 22, lineHeight: 1 }}>
             🧩
@@ -253,26 +242,27 @@ export default function ServicesDigitauxPage() {
 
         {/* ✅ SECTION DEMO */}
         <section id="demo" style={styles.demoSection}>
-          <div style={styles.demoCard}>
+          <div style={styles.demoCard} className="demoCard">
             <div style={styles.demoEyebrow}>DÉMO</div>
 
-            <h2 style={styles.demoTitle}>
+            <h2 style={styles.demoTitle} className="demoTitle">
               Voir le rendu en vidéo
               <br />
               (format mobile)
             </h2>
 
-            <p style={styles.demoSubtitle}>
+            <p style={styles.demoSubtitle} className="demoSubtitle">
               Clique sur le téléphone pour ouvrir la vidéo en grand.
             </p>
 
             {/* Aperçu = IMAGE (poster) + overlay play -> ouvre modal */}
-            <div style={styles.phoneWrap}>
+            <div style={styles.phoneWrap} className="phoneWrap">
               <button
                 type="button"
                 onClick={openModal}
                 aria-label="Ouvrir la démo vidéo"
                 style={styles.phoneButton}
+                className="phoneButton"
               >
                 <div className="phoneFrame" style={styles.phoneFrame}>
                   <div style={styles.phoneInner}>
@@ -307,7 +297,7 @@ export default function ServicesDigitauxPage() {
         </section>
       </section>
 
-      {/* ✅ MODAL VIDEO (centrée parfaitement + X) */}
+      {/* ✅ MODAL VIDEO (avec X) */}
       {isModalOpen && (
         <div
           style={styles.modalOverlay}
@@ -325,22 +315,19 @@ export default function ServicesDigitauxPage() {
               ×
             </button>
 
-            {/* ✅ WRAP centré (fix le décalage à droite sur mobile) */}
-            <div style={styles.modalVideoWrap}>
-              <video
-                ref={videoRef}
-                src={DEMO_VIDEO_SRC}
-                controls
-                playsInline
-                preload="metadata"
-                style={styles.modalVideo}
-              />
-            </div>
+            <video
+              ref={videoRef}
+              src={DEMO_VIDEO_SRC}
+              controls
+              playsInline
+              preload="metadata"
+              style={styles.modalVideo}
+            />
           </div>
         </div>
       )}
 
-      {/* Responsive */}
+      {/* responsive */}
       <style>{`
         @media (max-width: 1024px){
           .gridServices {
@@ -355,28 +342,51 @@ export default function ServicesDigitauxPage() {
           }
         }
 
-        /* ✅ Mobile: cadre téléphone */
+        /* ✅ Mobile: rendre le bloc + carré et éviter l'effet "trop grand" */
         @media (max-width: 520px){
+          .demoCard{
+            padding: 18px 14px 14px !important;
+            border-radius: 16px !important;
+          }
+          .demoTitle{
+            margin: 8px 0 6px !important;
+            font-size: 32px !important;
+            line-height: 1.05 !important;
+          }
+          .demoSubtitle{
+            font-size: 0.98rem !important;
+            padding: 0 6px !important;
+          }
+
+          .phoneWrap{
+            margin-top: 12px !important;
+          }
+
+          /* centrer 100% propre (pas de vw qui déborde du bloc) */
+          .phoneButton{
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+          }
+
           .phoneFrame{
-            width: min(92vw, 360px) !important;
-            height: 610px !important;
+            width: min(100%, 340px) !important;
+            height: 540px !important;
             padding: 10px !important;
             border-radius: 30px !important;
           }
         }
 
-        @media (max-width: 380px){
+        @media (max-width: 390px){
           .phoneFrame{
-            width: min(92vw, 330px) !important;
-            height: 580px !important;
+            width: min(100%, 320px) !important;
+            height: 510px !important;
           }
         }
       `}</style>
     </main>
   );
 }
-
-/* -------------------------------- Styles -------------------------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -664,8 +674,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 16px 40px rgba(230,74,167,0.25)",
   },
 
-  /* ------------------------------- Modal ------------------------------- */
-
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -701,21 +709,10 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
     zIndex: 2,
   },
-
-  // ✅ Fix: centre parfaitement le contenu (évite le décalage à droite)
-  modalVideoWrap: {
-    width: "100%",
-    height: "min(90vh, 860px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "black",
-  },
   modalVideo: {
     width: "100%",
-    height: "100%",
-    objectFit: "contain",
-    objectPosition: "center",
+    height: "auto",
+    maxHeight: "90vh",
     display: "block",
     background: "black",
   },
