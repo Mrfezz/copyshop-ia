@@ -674,17 +674,21 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 16px 40px rgba(230,74,167,0.25)",
   },
 
+  // ✅ Modal (FIX CENTRAGE iPhone)
   modalOverlay: {
     position: "fixed",
     inset: 0,
     background: "rgba(0,0,0,0.62)",
-    display: "grid",
-    placeItems: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 9999,
     padding: 16,
+    boxSizing: "border-box",
   },
   modalCard: {
-    width: "min(96vw, 520px)",
+    width: "100%",
+    maxWidth: 520,
     maxHeight: "90vh",
     borderRadius: 18,
     overflow: "hidden",
@@ -692,6 +696,8 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.16)",
     boxShadow: "0 30px 90px rgba(0,0,0,0.55)",
     position: "relative",
+    margin: "0 auto",
+    boxSizing: "border-box",
   },
   modalClose: {
     position: "absolute",
@@ -711,9 +717,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   modalVideo: {
     width: "100%",
+    maxWidth: "100%",
     height: "auto",
     maxHeight: "90vh",
     display: "block",
+    margin: "0 auto",
     background: "black",
+    objectFit: "contain",
   },
 };
