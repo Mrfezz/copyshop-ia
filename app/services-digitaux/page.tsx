@@ -92,11 +92,10 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-// ✅ tes fichiers
+// ✅ fichiers
 const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
-// Optionnel (recommandé) : mets une image poster ici
+// Poster conseillé (si tu ne l’as pas, ça fallback)
 const DEMO_POSTER_PRIMARY = "/images/demo-services-poster.jpg";
-// Fallback si tu n’as pas encore créé l’image
 const DEMO_POSTER_FALLBACK = "/images/boutique-client.jpg";
 
 export default function ServicesDigitauxPage() {
@@ -107,7 +106,7 @@ export default function ServicesDigitauxPage() {
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => setIsModalOpen(true);
 
-  // lock scroll + play on open + ESC to close
+  // lock scroll + (try) play on open + ESC to close
   useEffect(() => {
     if (!isModalOpen) return;
 
@@ -120,6 +119,7 @@ export default function ServicesDigitauxPage() {
     window.addEventListener("keydown", onKey);
 
     const t = window.setTimeout(() => {
+      // Sur iPhone, ça peut refuser si Safari estime que ce n’est pas “user gesture”
       videoRef.current?.play().catch(() => {});
     }, 120);
 
@@ -213,7 +213,7 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA */}
+              {/* PRIX + Paiement unique + CTA */}
               <div style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}>
                 <div style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
@@ -231,7 +231,7 @@ export default function ServicesDigitauxPage() {
           ))}
         </div>
 
-        {/* ✅ Bande “on s’occupe…” bien centrée */}
+        {/* Bande “on s’occupe…” centrée */}
         <div style={styles.bottomBand}>
           <span aria-hidden style={{ fontSize: 22, lineHeight: 1 }}>
             🧩
@@ -242,7 +242,7 @@ export default function ServicesDigitauxPage() {
           </span>
         </div>
 
-        {/* ✅ SECTION DEMO */}
+        {/* SECTION DEMO */}
         <section id="demo" style={styles.demoSection}>
           <div style={styles.demoCard}>
             <div style={styles.demoEyebrow}>DÉMO</div>
@@ -257,7 +257,7 @@ export default function ServicesDigitauxPage() {
               Clique sur le téléphone pour ouvrir la vidéo en grand.
             </p>
 
-            {/* Aperçu = IMAGE (poster) + overlay play -> ouvre modal */}
+            {/* Aperçu = poster + blur-fill + play -> ouvre modal */}
             <div style={styles.phoneWrap}>
               <button
                 type="button"
@@ -267,6 +267,16 @@ export default function ServicesDigitauxPage() {
               >
                 <div className="phoneFrame" style={styles.phoneFrame}>
                   <div style={styles.phoneInner}>
+                    {/* ✅ Fond rempli (pas de bandes noires) */}
+                    <div
+                      aria-hidden
+                      style={{
+                        ...styles.posterBlur,
+                        backgroundImage: `url(${posterSrc})`,
+                      }}
+                    />
+
+                    {/* ✅ Image NON coupée (contain) */}
                     <img
                       src={posterSrc}
                       alt="Aperçu de la démo vidéo"
@@ -278,7 +288,7 @@ export default function ServicesDigitauxPage() {
                       }}
                     />
 
-                    {/* overlay play (un peu + bas que le centre) */}
+                    {/* overlay play (un peu sous le logo) */}
                     <div style={styles.playOverlay} aria-hidden>
                       <div style={styles.playIcon}>▶</div>
                     </div>
@@ -299,7 +309,7 @@ export default function ServicesDigitauxPage() {
         </section>
       </section>
 
-      {/* ✅ MODAL VIDEO (avec X) */}
+      {/* MODAL VIDEO (avec X) */}
       {isModalOpen && (
         <div
           style={styles.modalOverlay}
@@ -320,6 +330,7 @@ export default function ServicesDigitauxPage() {
             <video
               ref={videoRef}
               src={DEMO_VIDEO_SRC}
+              poster={posterSrc}
               controls
               playsInline
               preload="metadata"
@@ -344,15 +355,11 @@ export default function ServicesDigitauxPage() {
           }
         }
 
-        /* ✅ Mobile: téléphone un peu plus petit pour bien rentrer dans le bloc */
+        /* ✅ Mobile: on réduit un peu le smartphone pour qu'il rentre nickel */
         @media (max-width: 520px){
           .phoneFrame{
-            width: min(88vw, 340px) !important;
-
-            /* fallback vh + svh (meilleur sur iPhone Safari) */
-            height: min(62vh, 540px) !important;
-            height: min(62svh, 540px) !important;
-
+            width: min(86vw, 340px) !important;
+            height: 560px !important;
             padding: 10px !important;
             border-radius: 30px !important;
           }
@@ -360,10 +367,8 @@ export default function ServicesDigitauxPage() {
 
         @media (max-width: 380px){
           .phoneFrame{
-            width: min(88vw, 320px) !important;
-
-            height: min(60vh, 520px) !important;
-            height: min(60svh, 520px) !important;
+            width: min(86vw, 320px) !important;
+            height: 520px !important;
           }
         }
       `}</style>
@@ -524,7 +529,6 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
-  // ✅ centré propre (flex)
   bottomBand: {
     marginTop: 18,
     width: "100%",
@@ -542,7 +546,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  // ✅ DEMO
   demoSection: {
     marginTop: 18,
     display: "grid",
@@ -591,7 +594,6 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
   },
 
-  // “smartphone”
   phoneFrame: {
     width: "min(92vw, 420px)",
     height: "min(82vh, 780px)",
@@ -610,16 +612,27 @@ const styles: Record<string, React.CSSProperties> = {
     height: "100%",
     borderRadius: 26,
     overflow: "hidden",
-    background:
-      "radial-gradient(700px circle at 30% -10%, rgba(106,47,214,0.35), transparent 55%)," +
-      "radial-gradient(700px circle at 90% 20%, rgba(230,74,167,0.22), transparent 55%)," +
-      "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.40))",
+    background: "rgba(0,0,0,0.25)",
   },
-  // ✅ l’image remplit TOUT (cover)
+
+  // ✅ Fond rempli (blur) pour éviter bandes moches
+  posterBlur: {
+    position: "absolute",
+    inset: 0,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    filter: "blur(18px)",
+    transform: "scale(1.12)",
+    opacity: 0.55,
+  },
+
+  // ✅ Image non coupée
   phonePoster: {
+    position: "relative",
+    zIndex: 1,
     width: "100%",
     height: "100%",
-    objectFit: "cover",
+    objectFit: "contain",
     display: "block",
     transform: "translateZ(0)",
   },
@@ -627,23 +640,25 @@ const styles: Record<string, React.CSSProperties> = {
   playOverlay: {
     position: "absolute",
     inset: 0,
+    zIndex: 2,
     background:
-      "radial-gradient(240px circle at 50% 48%, rgba(0,0,0,0.10), rgba(0,0,0,0.45))",
+      "radial-gradient(240px circle at 50% 52%, rgba(0,0,0,0.08), rgba(0,0,0,0.40))",
     pointerEvents: "none",
   },
+  // ✅ un peu plus bas (sous le logo)
   playIcon: {
     position: "absolute",
-    top: "46%",
+    top: "57%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 84,
-    height: 84,
+    width: 80,
+    height: 80,
     borderRadius: 999,
     display: "grid",
     placeItems: "center",
-    fontSize: 26,
+    fontSize: 24,
     color: "white",
-    background: "rgba(0,0,0,0.35)",
+    background: "rgba(0,0,0,0.32)",
     border: "1px solid rgba(255,255,255,0.22)",
     boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
   },
@@ -661,7 +676,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 16px 40px rgba(230,74,167,0.25)",
   },
 
-  // ✅ Modal
   modalOverlay: {
     position: "fixed",
     inset: 0,
