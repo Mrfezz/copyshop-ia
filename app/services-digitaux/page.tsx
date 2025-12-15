@@ -85,9 +85,6 @@ const COLORS = {
   muted: "#c9d2ff",
   navy: "#0b0f2a",
 
-  panel: "rgba(13, 18, 50, 0.78)",
-  panelBorder: "rgba(150, 170, 255, 0.18)",
-
   cardBg: "#ffffff",
   cardBorder: "rgba(11,15,42,0.10)",
 
@@ -95,11 +92,51 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
+// ✅ tes fichiers
 const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
-// ✅ poster (image) pour éviter l’écran noir sur iPhone tant que la vidéo n’est pas ouverte
-const DEMO_POSTER_IMG = "/images/boutique-client.jpg";
+// Optionnel (recommandé) : mets une image poster ici
+const DEMO_POSTER_PRIMARY = "/images/demo-services-poster.jpg";
+// Fallback si tu n’as pas encore créé l’image
+const DEMO_POSTER_FALLBACK = "/images/boutique-client.jpg";
 
 export default function ServicesDigitauxPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [posterSrc, setPosterSrc] = useState(DEMO_POSTER_PRIMARY);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const closeModal = () => setIsModalOpen(false);
+  const openModal = () => setIsModalOpen(true);
+
+  // lock scroll + play on open + ESC to close
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeModal();
+    };
+    window.addEventListener("keydown", onKey);
+
+    const t = window.setTimeout(() => {
+      videoRef.current?.play().catch(() => {});
+    }, 120);
+
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        } catch {}
+      }
+    };
+  }, [isModalOpen]);
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -183,7 +220,10 @@ export default function ServicesDigitauxPage() {
                   <div style={styles.priceNote}>Paiement unique</div>
                 </div>
 
-                <Link href={`/paiement?product=${pack.productKey}`} style={styles.priceBtn}>
+                <Link
+                  href={`/paiement?product=${pack.productKey}`}
+                  style={styles.priceBtn}
+                >
                   Choisir ce pack
                 </Link>
               </div>
@@ -191,88 +231,89 @@ export default function ServicesDigitauxPage() {
           ))}
         </div>
 
-        {/* ✅ Bande phrase (centrée propre) */}
+        {/* ✅ Bande “on s’occupe…” bien centrée */}
         <div style={styles.bottomBand}>
-          🧩 On s’occupe de tout, du début jusqu’au lancement de votre commerce en ligne !
+          <span aria-hidden style={{ fontSize: 22, lineHeight: 1 }}>
+            🧩
+          </span>
+          <span>
+            On s’occupe de tout, du début jusqu’au lancement de votre commerce en
+            ligne !
+          </span>
         </div>
 
-        {/* ✅ Section DÉMO vidéo juste en dessous */}
-        <DemoVideoSection />
+        {/* ✅ SECTION DEMO */}
+        <section id="demo" style={styles.demoSection}>
+          <div style={styles.demoCard}>
+            <div style={styles.demoEyebrow}>DÉMO</div>
+
+            <h2 style={styles.demoTitle}>
+              Voir le rendu en vidéo
+              <br />
+              (format mobile)
+            </h2>
+
+            <p style={styles.demoSubtitle}>
+              Clique sur le téléphone pour ouvrir la vidéo en grand.
+            </p>
+
+            {/* Aperçu = IMAGE (poster) + overlay play -> ouvre modal */}
+            <div style={styles.phoneWrap}>
+              <button
+                type="button"
+                onClick={openModal}
+                aria-label="Ouvrir la démo vidéo"
+                style={styles.phoneButton}
+              >
+                <div className="phoneFrame" style={styles.phoneFrame}>
+                  <div style={styles.phoneInner}>
+                    <img
+                      src={posterSrc}
+                      alt="Aperçu de la démo vidéo"
+                      style={styles.phonePoster}
+                      onError={() => {
+                        if (posterSrc !== DEMO_POSTER_FALLBACK) {
+                          setPosterSrc(DEMO_POSTER_FALLBACK);
+                        }
+                      }}
+                    />
+
+                    {/* overlay play (un peu + bas que le centre) */}
+                    <div style={styles.playOverlay} aria-hidden>
+                      <div style={styles.playIcon}>▶</div>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <a
+              href="https://wa.me/33745214922"
+              target="_blank"
+              rel="noreferrer"
+              style={styles.demoCta}
+            >
+              Demander la démo sur WhatsApp
+            </a>
+          </div>
+        </section>
       </section>
 
-      <style>{responsiveCss}</style>
-    </main>
-  );
-}
-
-/* ---------------- DEMO SECTION ---------------- */
-
-function DemoVideoSection() {
-  const [open, setOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const close = () => setOpen(false);
-
-  useEffect(() => {
-    if (!open) return;
-
-    // lock scroll
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    // tente de lancer (sur iOS ça marche si ça suit un clic utilisateur)
-    const t = window.setTimeout(() => {
-      try {
-        videoRef.current?.play?.();
-      } catch {}
-    }, 50);
-
-    return () => {
-      window.clearTimeout(t);
-      document.body.style.overflow = prev;
-      try {
-        videoRef.current?.pause?.();
-        if (videoRef.current) videoRef.current.currentTime = 0;
-      } catch {}
-    };
-  }, [open]);
-
-  return (
-    <section id="demo" style={styles.demoSection}>
-      <div style={styles.demoCard} className="demoCard">
-        <p style={styles.demoKicker}>DÉMO</p>
-        <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
-        <p style={styles.demoSub}>Clique sur le téléphone pour ouvrir la vidéo en grand.</p>
-
-        {/* ✅ Preview (image) -> pas de vidéo ici (évite écran noir + charge) */}
-        <div style={styles.demoPhoneWrap}>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            style={styles.phoneFrame}
-            className="phoneFrame"
-            aria-label="Ouvrir la vidéo démo"
-          >
-            <div style={styles.phoneScreen}>
-              <img src={DEMO_POSTER_IMG} alt="Aperçu de la vidéo" style={styles.phonePoster} />
-              <div style={styles.phoneOverlay}>
-                <div style={styles.playCircle}>▶</div>
-                <div style={styles.openLabel}>OUVRIR</div>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        <a href="https://wa.me/33745214922" style={styles.demoCta}>
-          Demander la démo sur WhatsApp
-        </a>
-      </div>
-
-      {/* ✅ MODAL vidéo (avec X + clic dehors) */}
-      {open && (
-        <div style={styles.modalOverlay} onClick={close} role="dialog" aria-modal="true">
+      {/* ✅ MODAL VIDEO (avec X) */}
+      {isModalOpen && (
+        <div
+          style={styles.modalOverlay}
+          onClick={closeModal}
+          role="dialog"
+          aria-modal="true"
+        >
           <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-            <button type="button" onClick={close} style={styles.modalClose} aria-label="Fermer">
+            <button
+              type="button"
+              onClick={closeModal}
+              aria-label="Fermer"
+              style={styles.modalClose}
+            >
               ×
             </button>
 
@@ -287,11 +328,42 @@ function DemoVideoSection() {
           </div>
         </div>
       )}
-    </section>
+
+      {/* responsive */}
+      <style>{`
+        @media (max-width: 1024px){
+          .gridServices {
+            grid-template-columns: 1fr !important;
+          }
+          .heroServices {
+            grid-template-columns: 1fr !important;
+            gap: 18px;
+          }
+          .heroTitleServices {
+            font-size: clamp(48px, 10vw, 64px) !important;
+          }
+        }
+
+        /* ✅ Mobile: cadre téléphone + centré + plus large */
+        @media (max-width: 520px){
+          .phoneFrame{
+            width: min(92vw, 360px) !important;
+            height: 610px !important;
+            padding: 10px !important;
+            border-radius: 30px !important;
+          }
+        }
+
+        @media (max-width: 380px){
+          .phoneFrame{
+            width: min(92vw, 330px) !important;
+            height: 580px !important;
+          }
+        }
+      `}</style>
+    </main>
   );
 }
-
-/* ---------------- STYLES ---------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -299,8 +371,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "100vh",
     padding: "2.5rem 1.25rem 3rem",
     color: COLORS.text,
-    overflowX: "hidden",
-    boxSizing: "border-box",
+    overflow: "hidden",
   },
 
   bgGradient: {
@@ -332,7 +403,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "64px 20px 28px",
     position: "relative",
     zIndex: 1,
-    boxSizing: "border-box",
   },
 
   hero: {
@@ -448,12 +518,14 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
+  // ✅ centré propre (flex)
   bottomBand: {
     marginTop: 18,
     width: "100%",
-    maxWidth: 980,
-    marginLeft: "auto",
-    marginRight: "auto",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
     textAlign: "center",
     background: "linear-gradient(90deg, #1b2b9d, #6a2fd6, #e64aa7)",
     border: "1px solid rgba(120,140,255,0.25)",
@@ -464,196 +536,166 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  /* ---- DEMO ---- */
+  // ✅ DEMO
   demoSection: {
-    marginTop: 14,
-  },
-  demoCard: {
-    maxWidth: 980,
-    margin: "0 auto",
-    background: COLORS.panel,
-    border: `1px solid ${COLORS.panelBorder}`,
-    borderRadius: 22,
-    padding: "26px 18px 20px",
-    textAlign: "center",
-    overflow: "hidden",
-    boxSizing: "border-box",
-  },
-  demoKicker: {
-    margin: 0,
-    fontSize: "0.85rem",
-    fontWeight: 900,
-    letterSpacing: "0.22em",
-    textTransform: "uppercase",
-    color: COLORS.muted,
-  },
-  demoTitle: {
-    margin: "10px 0 0",
-    fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
-    fontWeight: 900,
-    lineHeight: 1.1,
-  },
-  demoSub: {
-    margin: "10px auto 0",
-    color: "rgba(201,210,255,0.95)",
-    fontSize: "1.05rem",
-    maxWidth: 720,
-    lineHeight: 1.6,
-  },
-
-  demoPhoneWrap: {
     marginTop: 18,
     display: "grid",
     placeItems: "center",
   },
-
-  phoneFrame: {
-    width: "min(92vw, 390px)",
-    height: 640,
-    borderRadius: 34,
-    background: "rgba(255,255,255,0.06)",
-    border: `1px solid ${COLORS.panelBorder}`,
-    boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
-    position: "relative",
-    padding: 10,
-    overflow: "hidden",
-    cursor: "pointer",
-    outline: "none",
+  demoCard: {
+    width: "100%",
+    maxWidth: 980,
+    borderRadius: 18,
+    border: "1px solid rgba(120,140,255,0.18)",
+    background: "rgba(10, 12, 40, 0.55)",
+    boxShadow: "0 18px 70px rgba(0,0,0,0.35)",
+    padding: "22px 18px 18px",
+    textAlign: "center",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+  },
+  demoEyebrow: {
+    letterSpacing: "0.28em",
+    fontWeight: 900,
+    opacity: 0.9,
+    fontSize: 12,
+  },
+  demoTitle: {
+    margin: "10px 0 6px",
+    fontSize: "clamp(28px, 4.6vw, 44px)",
+    fontWeight: 900,
+    lineHeight: 1.05,
+  },
+  demoSubtitle: {
+    margin: 0,
+    color: "rgba(201,210,255,0.9)",
+    fontSize: "1.05rem",
+    lineHeight: 1.45,
   },
 
-  phoneScreen: {
-    position: "absolute",
-    inset: 10,
+  phoneWrap: {
+    marginTop: 16,
+    display: "grid",
+    placeItems: "center",
+  },
+  phoneButton: {
+    all: "unset",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+  },
+
+  // “smartphone”
+  phoneFrame: {
+    width: "min(92vw, 420px)",
+    height: "min(82vh, 780px)",
+    padding: 12,
+    borderRadius: 34,
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))",
+    border: "1px solid rgba(255,255,255,0.16)",
+    boxShadow:
+      "0 30px 90px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(0,0,0,0.35)",
+    boxSizing: "border-box",
+  },
+  phoneInner: {
+    position: "relative",
+    width: "100%",
+    height: "100%",
     borderRadius: 26,
     overflow: "hidden",
-    background: "#000",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background:
+      "radial-gradient(700px circle at 30% -10%, rgba(106,47,214,0.35), transparent 55%)," +
+      "radial-gradient(700px circle at 90% 20%, rgba(230,74,167,0.22), transparent 55%)," +
+      "linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.40))",
   },
-
-  // ✅ Cover = l’image remplit tout le cadre (plus de “trous”)
+  // ✅ l’image remplit TOUT (cover)
   phonePoster: {
     width: "100%",
     height: "100%",
     objectFit: "cover",
-    objectPosition: "center",
     display: "block",
-    filter: "contrast(1.03) saturate(1.03)",
+    transform: "translateZ(0)",
   },
 
-  phoneOverlay: {
+  playOverlay: {
     position: "absolute",
     inset: 0,
-    display: "grid",
-    placeItems: "center",
-    gap: 10,
-    background: "linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45))",
+    background:
+      "radial-gradient(240px circle at 50% 48%, rgba(0,0,0,0.10), rgba(0,0,0,0.45))",
+    pointerEvents: "none",
   },
-  playCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: "50%",
+  playIcon: {
+    position: "absolute",
+    top: "46%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 84,
+    height: 84,
+    borderRadius: 999,
     display: "grid",
     placeItems: "center",
-    fontSize: "1.5rem",
-    background: "rgba(255,255,255,0.14)",
-    border: "1px solid rgba(255,255,255,0.25)",
+    fontSize: 26,
     color: "white",
-    boxShadow: "0 14px 40px rgba(106,47,214,0.35)",
-  },
-  openLabel: {
-    fontWeight: 900,
-    letterSpacing: "0.18em",
-    fontSize: "1.05rem",
+    background: "rgba(0,0,0,0.35)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.35)",
   },
 
   demoCta: {
     marginTop: 16,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "12px 18px",
+    display: "inline-block",
+    textDecoration: "none",
+    padding: "14px 18px",
     borderRadius: 999,
     fontWeight: 900,
     color: "white",
-    textDecoration: "none",
-    background: `linear-gradient(90deg, ${COLORS.purple}, #4338ca, ${COLORS.pink})`,
+    background: "linear-gradient(90deg, #3f47d8, #e64aa7)",
     border: "1px solid rgba(255,255,255,0.18)",
-    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    whiteSpace: "nowrap",
+    boxShadow: "0 16px 40px rgba(230,74,167,0.25)",
   },
 
-  /* ---- MODAL ---- */
+  // ✅ Modal
   modalOverlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.65)",
-    zIndex: 9999,
+    background: "rgba(0,0,0,0.62)",
     display: "grid",
     placeItems: "center",
+    zIndex: 9999,
     padding: 16,
   },
   modalCard: {
-    width: "min(92vw, 520px)",
-    height: "min(82vh, 860px)",
-    background: "rgba(10,12,22,0.92)",
-    border: `1px solid rgba(255,255,255,0.18)`,
+    width: "min(96vw, 520px)",
+    maxHeight: "90vh",
     borderRadius: 18,
     overflow: "hidden",
+    background: "rgba(10,12,30,0.92)",
+    border: "1px solid rgba(255,255,255,0.16)",
+    boxShadow: "0 30px 90px rgba(0,0,0,0.55)",
     position: "relative",
-    boxShadow: "0 22px 90px rgba(0,0,0,0.55)",
   },
   modalClose: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     width: 44,
     height: 44,
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
+    border: "1px solid rgba(255,255,255,0.22)",
     background: "rgba(0,0,0,0.35)",
     color: "white",
-    fontSize: "1.6rem",
+    fontSize: 26,
     cursor: "pointer",
-    zIndex: 5,
     display: "grid",
     placeItems: "center",
+    zIndex: 2,
   },
   modalVideo: {
     width: "100%",
-    height: "100%",
-    objectFit: "contain",
-    background: "black",
+    height: "auto",
+    maxHeight: "90vh",
     display: "block",
+    background: "black",
   },
 };
-
-const responsiveCss = `
-  @media (max-width: 1024px){
-    .gridServices {
-      grid-template-columns: 1fr !important;
-    }
-    .heroServices {
-      grid-template-columns: 1fr !important;
-      gap: 18px;
-    }
-    .heroTitleServices {
-      font-size: clamp(48px, 10vw, 64px) !important;
-    }
-  }
-
-  /* ✅ Ajustements phone frame sur mobile */
-  @media (max-width: 520px){
-    .phoneFrame {
-      width: min(92vw, 360px) !important;
-      height: 610px !important;
-      padding: 10px !important;
-      border-radius: 30px !important;
-    }
-  }
-  @media (max-width: 380px){
-    .phoneFrame {
-      width: min(92vw, 330px) !important;
-      height: 570px !important;
-    }
-  }
-`;
