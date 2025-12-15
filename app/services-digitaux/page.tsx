@@ -1,7 +1,7 @@
 // app/services-digitaux/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Item = {
@@ -18,8 +18,6 @@ type ServicePack = {
   highlight?: boolean;
   productKey: "services-essentiel" | "services-pro" | "services-business";
 };
-
-const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
 
 const PRICE_GRADIENT_HOME =
   "linear-gradient(90deg, #141a4a 0%, #3f47d8 55%, #e64aa7 100%)";
@@ -91,13 +89,13 @@ const COLORS = {
   cardBorder: "rgba(11,15,42,0.10)",
 
   purple: "#6a2fd6",
-  violetDeep: "#4338ca",
   pink: "#e64aa7",
 
-  panel: "rgba(13, 18, 50, 0.9)",
-  panelSoft: "rgba(13, 18, 50, 0.6)",
+  panelSoft: "rgba(13, 18, 50, 0.55)",
   panelBorder: "rgba(150, 170, 255, 0.18)",
 };
+
+const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
 
 export default function ServicesDigitauxPage() {
   return (
@@ -199,104 +197,124 @@ export default function ServicesDigitauxPage() {
           ligne !
         </div>
 
-        {/* ✅ SECTION VIDEO (smartphone + modal) */}
-        <DemoVideoPhone />
+        {/* ✅ DÉMO VIDÉO (juste en dessous) */}
+        <DemoVideoSection />
       </section>
 
       {/* responsive */}
-      <style>{responsiveCss}</style>
+      <style>{`
+        @media (max-width: 1024px){
+          .gridServices { grid-template-columns: 1fr !important; }
+          .heroServices { grid-template-columns: 1fr !important; gap: 18px; }
+          .heroTitleServices { font-size: clamp(48px, 10vw, 64px) !important; }
+        }
+
+        /* Smartphone frame + plus petit sur mobile */
+        @media (max-width: 520px){
+          .demoPhoneFrame {
+            max-width: 330px !important;
+            height: 560px !important;
+            border-radius: 30px !important;
+          }
+        }
+        @media (max-width: 380px){
+          .demoPhoneFrame {
+            max-width: 300px !important;
+            height: 520px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
 
-/* ------------------ VIDEO SECTION ------------------ */
+/* ---------------- DÉMO VIDÉO ---------------- */
 
-function DemoVideoPhone() {
+function DemoVideoSection() {
   const [open, setOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
+
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    // lock scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
+  const openModal = () => {
+    setOpen(true);
+    // petit delay pour iOS
+    setTimeout(() => {
+      modalVideoRef.current?.play().catch(() => {});
+    }, 60);
+  };
+
   return (
-    <section style={styles.demoWrap} id="demo">
-      <div style={styles.demoHeader}>
-        <p style={styles.demoKicker}>Démo</p>
-        <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
-        <p style={styles.demoText}>
-          Clique sur le téléphone pour ouvrir la vidéo en grand.
-        </p>
-      </div>
+    <>
+      <section style={styles.demoSection}>
+        <div style={styles.demoHeader}>
+          <div style={styles.demoKicker}>DÉMO</div>
+          <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
+          <p style={styles.demoSub}>
+            Clique sur le téléphone pour ouvrir la vidéo en grand.
+          </p>
+        </div>
 
-      <div style={styles.demoGrid} className="demoGrid">
-        <div style={styles.phoneCol}>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            style={styles.phoneBtn}
-            aria-label="Ouvrir la démo vidéo"
+        <div style={styles.demoCenter}>
+          <div
+            style={styles.demoPhoneFrame}
+            className="demoPhoneFrame"
+            role="button"
+            tabIndex={0}
+            onClick={openModal}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") openModal();
+            }}
+            aria-label="Ouvrir la vidéo"
           >
-            <div style={styles.phoneFrame} className="phoneFrame">
-              <div style={styles.phoneScreen}>
-                {/* On met juste une preview légère (metadata), et on ouvre en grand au clic */}
-                <video
-                  src={DEMO_VIDEO_SRC}
-                  style={styles.phoneVideo}
-                  preload="metadata"
-                  muted
-                  playsInline
-                />
-              </div>
+            <div style={styles.demoPhoneScreen}>
+              {/* fond stylé (évite le “noir moche” tant que la vidéo charge) */}
+              <div style={styles.demoPhoneBackdrop} aria-hidden />
 
-              <div style={styles.phoneBadge}>Démo vidéo</div>
-
-              <div style={styles.playOverlay}>
-                <div style={styles.playCircle}>▶</div>
-                <div style={styles.playLabel}>Ouvrir</div>
-              </div>
+              <video
+                ref={videoRef}
+                src={DEMO_VIDEO_SRC}
+                style={styles.demoVideoInPhone}
+                playsInline
+                preload="metadata"
+                muted
+                controls={false}
+                onLoadedData={() => setReady(true)}
+              />
             </div>
 
-            <div style={styles.phoneHint}>(Optimisé pour mobile)</div>
-          </button>
-        </div>
+            <div style={styles.demoBadge}>Démo vidéo</div>
 
-        <div style={styles.demoRight}>
-          <ul style={styles.checkList}>
-            <li style={styles.checkItem}>
-              <span style={styles.check}>✓</span> Même rendu que sur téléphone
-            </li>
-            <li style={styles.checkItem}>
-              <span style={styles.check}>✓</span> Structure clean + pro
-            </li>
-            <li style={styles.checkItem}>
-              <span style={styles.check}>✓</span> Sections + design cohérent
-            </li>
-            <li style={styles.checkItem}>
-              <span style={styles.check}>✓</span> Prêt à vendre rapidement
-            </li>
-          </ul>
+            <div style={styles.demoOverlay} aria-hidden>
+              <div style={styles.demoPlayCircle}>▶</div>
+              <div style={styles.demoOpenText}>{ready ? "OUVRIR" : "CHARGEMENT..."}</div>
+            </div>
 
-          <div style={{ marginTop: 14 }}>
-            <Link href="/contact" style={styles.primaryBtn}>
-              Demander la démo sur WhatsApp
-            </Link>
+            <div style={styles.demoPhoneHint}>(Optimisé pour mobile)</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* MODAL */}
       {open && (
-        <div
-          style={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(false)}
-        >
+        <div style={styles.modalOverlay} onClick={() => setOpen(false)} role="dialog" aria-modal="true">
           <button
             type="button"
             style={styles.modalClose}
@@ -309,17 +327,19 @@ function DemoVideoPhone() {
             ✕
           </button>
 
-          <video
-            src={DEMO_VIDEO_SRC}
-            style={styles.modalVideo}
-            controls
-            autoPlay
-            playsInline
-            onClick={(e) => e.stopPropagation()}
-          />
+          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+            <video
+              ref={modalVideoRef}
+              src={DEMO_VIDEO_SRC}
+              controls
+              playsInline
+              preload="metadata"
+              style={styles.modalVideo}
+            />
+          </div>
         </div>
       )}
-    </section>
+    </>
   );
 }
 
@@ -490,19 +510,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
-  /* ---------- DEMO VIDEO ---------- */
-  demoWrap: {
+  /* ---- demo ---- */
+  demoSection: {
     marginTop: 18,
-    background: COLORS.panelSoft,
-    border: `1px solid ${COLORS.panelBorder}`,
     borderRadius: 18,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: COLORS.panelSoft,
     padding: "18px 16px",
-    backdropFilter: "blur(6px)",
   },
-  demoHeader: { textAlign: "center", display: "grid", gap: 8, marginBottom: 12 },
+  demoHeader: {
+    textAlign: "center",
+    display: "grid",
+    gap: 8,
+    marginBottom: 14,
+  },
   demoKicker: {
-    margin: 0,
-    fontSize: "0.8rem",
+    fontSize: "0.85rem",
     fontWeight: 900,
     letterSpacing: "0.22em",
     textTransform: "uppercase",
@@ -510,33 +533,24 @@ const styles: Record<string, React.CSSProperties> = {
   },
   demoTitle: {
     margin: 0,
-    fontSize: "clamp(1.5rem, 3vw, 2rem)",
+    fontSize: "clamp(1.6rem, 3.2vw, 2.2rem)",
     fontWeight: 900,
+    lineHeight: 1.1,
   },
-  demoText: { margin: 0, color: COLORS.muted, fontSize: "1.02rem", lineHeight: 1.6 },
-
-  demoGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(300px, 390px) 1fr",
-    gap: 18,
-    alignItems: "start",
+  demoSub: {
+    margin: 0,
+    color: COLORS.muted,
+    fontWeight: 700,
   },
-
-  phoneCol: { display: "grid", gap: 10, justifyItems: "center" },
-  phoneBtn: {
-    background: "transparent",
-    border: "none",
-    padding: 0,
-    cursor: "pointer",
-    width: "100%",
+  demoCenter: {
     display: "grid",
     justifyItems: "center",
   },
 
-  phoneFrame: {
+  demoPhoneFrame: {
     width: "100%",
-    maxWidth: 390,
-    height: 640,
+    maxWidth: 360,
+    height: 600,
     borderRadius: 34,
     background: "rgba(255,255,255,0.06)",
     border: `1px solid ${COLORS.panelBorder}`,
@@ -544,9 +558,9 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     padding: 10,
     overflow: "hidden",
+    cursor: "pointer",
   },
-
-  phoneScreen: {
+  demoPhoneScreen: {
     position: "absolute",
     inset: 10,
     borderRadius: 26,
@@ -554,101 +568,73 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#000",
     border: "1px solid rgba(255,255,255,0.10)",
   },
-
-  phoneVideo: {
+  demoPhoneBackdrop: {
+    position: "absolute",
+    inset: 0,
+    background:
+      "radial-gradient(600px circle at 50% 15%, rgba(106,47,214,0.35), transparent 55%)," +
+      "radial-gradient(700px circle at 50% 70%, rgba(230,74,167,0.18), transparent 55%)," +
+      "linear-gradient(180deg, rgba(10,12,30,0.9), rgba(0,0,0,0.92))",
+  },
+  demoVideoInPhone: {
+    position: "absolute",
+    inset: 0,
     width: "100%",
     height: "100%",
     objectFit: "contain",
     objectPosition: "center",
-    background: "#000",
-    display: "block",
   },
-
-  phoneBadge: {
+  demoBadge: {
     position: "absolute",
     top: 14,
     left: 14,
-    background: COLORS.panel,
+    background: "rgba(9, 13, 32, 0.85)",
     border: `1px solid ${COLORS.panelBorder}`,
     color: COLORS.text,
     fontWeight: 900,
     padding: "6px 10px",
     borderRadius: 999,
-    fontSize: "0.85rem",
+    fontSize: "0.9rem",
     zIndex: 3,
   },
-
-  playOverlay: {
+  demoOverlay: {
     position: "absolute",
     inset: 0,
     zIndex: 4,
     display: "grid",
     placeItems: "center",
-    gap: 8,
-    background:
-      "radial-gradient(600px circle at 50% 70%, rgba(0,0,0,0.10), rgba(0,0,0,0.55))",
+    gap: 12,
     pointerEvents: "none",
+    paddingTop: 20,
   },
-  playCircle: {
-    width: 74,
-    height: 74,
+  demoPlayCircle: {
+    width: 86,
+    height: 86,
     borderRadius: 999,
     display: "grid",
     placeItems: "center",
-    fontSize: "1.9rem",
-    color: "white",
-    background: "rgba(255,255,255,0.12)",
-    border: `1px solid ${COLORS.panelBorder}`,
-    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    fontSize: "2rem",
+    background: "rgba(0,0,0,0.45)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    boxShadow: "0 20px 60px rgba(106,47,214,0.25)",
   },
-  playLabel: {
+  demoOpenText: {
     fontWeight: 900,
-    color: "rgba(255,255,255,0.92)",
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    fontSize: "0.9rem",
+    letterSpacing: "0.12em",
+    opacity: 0.95,
   },
-
-  phoneHint: {
-    fontSize: "0.9rem",
-    color: COLORS.muted,
-    fontWeight: 800,
+  demoPhoneHint: {
+    position: "absolute",
+    bottom: 10,
+    left: 0,
+    right: 0,
     textAlign: "center",
-  },
-
-  demoRight: { alignSelf: "center" },
-
-  checkList: { listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 },
-  checkItem: { display: "flex", gap: 10, alignItems: "center", fontWeight: 800, color: COLORS.text },
-  check: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    display: "grid",
-    placeItems: "center",
-    background: COLORS.navy,
-    color: "white",
-    fontSize: "0.95rem",
+    color: COLORS.muted,
     fontWeight: 900,
-    border: "1px solid rgba(255,255,255,0.10)",
+    opacity: 0.9,
   },
 
-  primaryBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "10px 14px",
-    borderRadius: 999,
-    fontWeight: 900,
-    color: "white",
-    textDecoration: "none",
-    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.purple}, ${COLORS.pink})`,
-    border: `1px solid rgba(255,255,255,0.18)`,
-    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-
+  /* modal */
   modalOverlay: {
     position: "fixed",
     inset: 0,
@@ -657,15 +643,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     padding: 18,
-  },
-  modalVideo: {
-    width: "min(920px, 92vw)",
-    maxHeight: "85vh",
-    height: "auto",
-    borderRadius: 16,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(10,12,30,0.8)",
-    display: "block",
   },
   modalClose: {
     position: "fixed",
@@ -680,41 +657,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.2rem",
     cursor: "pointer",
   },
+  modalCard: {
+    width: "min(92vw, 420px)",
+    height: "min(82vh, 780px)",
+    borderRadius: 18,
+    overflow: "hidden",
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(10,12,30,0.92)",
+    display: "grid",
+    placeItems: "center",
+  },
+  modalVideo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    background: "black",
+  },
 };
-
-const responsiveCss = `
-  @media (max-width: 1024px){
-    .gridServices {
-      grid-template-columns: 1fr !important;
-    }
-    .heroServices {
-      grid-template-columns: 1fr !important;
-      gap: 18px;
-    }
-    .heroTitleServices {
-      font-size: clamp(48px, 10vw, 64px) !important;
-    }
-  }
-
-  @media (max-width: 980px){
-    .demoGrid{
-      grid-template-columns: 1fr !important;
-    }
-  }
-
-  /* Mobile: rendre le “smartphone” plus petit pour prendre moins de place */
-  @media (max-width: 520px){
-    .phoneFrame {
-      max-width: 330px !important;
-      height: 560px !important;
-      padding: 10px !important;
-      border-radius: 30px !important;
-    }
-  }
-  @media (max-width: 380px){
-    .phoneFrame {
-      max-width: 300px !important;
-      height: 520px !important;
-    }
-  }
-`;
