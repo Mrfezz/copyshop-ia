@@ -344,11 +344,15 @@ export default function ServicesDigitauxPage() {
           }
         }
 
-        /* ✅ Mobile: cadre téléphone + centré + plus large */
+        /* ✅ Mobile: téléphone un peu plus petit pour bien rentrer dans le bloc */
         @media (max-width: 520px){
           .phoneFrame{
-            width: min(92vw, 360px) !important;
-            height: 610px !important;
+            width: min(88vw, 340px) !important;
+
+            /* fallback vh + svh (meilleur sur iPhone Safari) */
+            height: min(62vh, 540px) !important;
+            height: min(62svh, 540px) !important;
+
             padding: 10px !important;
             border-radius: 30px !important;
           }
@@ -356,8 +360,10 @@ export default function ServicesDigitauxPage() {
 
         @media (max-width: 380px){
           .phoneFrame{
-            width: min(92vw, 330px) !important;
-            height: 580px !important;
+            width: min(88vw, 320px) !important;
+
+            height: min(60vh, 520px) !important;
+            height: min(60svh, 520px) !important;
           }
         }
       `}</style>
