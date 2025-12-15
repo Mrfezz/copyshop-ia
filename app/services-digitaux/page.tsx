@@ -91,11 +91,12 @@ const COLORS = {
   purple: "#6a2fd6",
   pink: "#e64aa7",
 
-  panelSoft: "rgba(13, 18, 50, 0.55)",
+  panel: "rgba(13, 18, 50, 0.86)",
   panelBorder: "rgba(150, 170, 255, 0.18)",
 };
 
 const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
+const DEMO_POSTER_IMG = "/images/boutique-client.jpg"; // fallback joli si iPhone charge lentement
 
 export default function ServicesDigitauxPage() {
   return (
@@ -174,7 +175,7 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA */}
+              {/* PRIX + Paiement unique + CTA */}
               <div style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}>
                 <div style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
@@ -192,158 +193,135 @@ export default function ServicesDigitauxPage() {
           ))}
         </div>
 
+        {/* Bande "on s'occupe de tout" (centrée propre) */}
         <div style={styles.bottomBand}>
           🧩 On s’occupe de tout, du début jusqu’au lancement de votre commerce en
           ligne !
         </div>
 
-        {/* ✅ DÉMO VIDÉO (juste en dessous) */}
-        <DemoVideoSection />
+        {/* ✅ Section vidéo (smartphone + modal) */}
+        <VideoDemoSection />
       </section>
 
-      {/* responsive */}
-      <style>{`
-        @media (max-width: 1024px){
-          .gridServices { grid-template-columns: 1fr !important; }
-          .heroServices { grid-template-columns: 1fr !important; gap: 18px; }
-          .heroTitleServices { font-size: clamp(48px, 10vw, 64px) !important; }
-        }
-
-        /* Smartphone frame + plus petit sur mobile */
-        @media (max-width: 520px){
-          .demoPhoneFrame {
-            max-width: 330px !important;
-            height: 560px !important;
-            border-radius: 30px !important;
-          }
-        }
-        @media (max-width: 380px){
-          .demoPhoneFrame {
-            max-width: 300px !important;
-            height: 520px !important;
-          }
-        }
-      `}</style>
+      <style>{responsiveCss}</style>
     </main>
   );
 }
 
-/* ---------------- DÉMO VIDÉO ---------------- */
+/* ---------------- VIDEO SECTION ---------------- */
 
-function DemoVideoSection() {
+function VideoDemoSection() {
   const [open, setOpen] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const modalVideoRef = useRef<HTMLVideoElement | null>(null);
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-
-    // lock scroll
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  const openModal = () => {
-    setOpen(true);
-    // petit delay pour iOS
-    setTimeout(() => {
-      modalVideoRef.current?.play().catch(() => {});
-    }, 60);
+  const close = () => {
+    setOpen(false);
+    const v = modalVideoRef.current;
+    if (v) {
+      v.pause();
+      v.currentTime = 0;
+    }
   };
 
+  // Essaye de lancer la vidéo à l’ouverture (si iPhone bloque, l’utilisateur clique Play)
+  useEffect(() => {
+    if (!open) return;
+    const v = modalVideoRef.current;
+    if (!v) return;
+
+    const t = window.setTimeout(() => {
+      v.play().catch(() => {});
+    }, 120);
+
+    return () => window.clearTimeout(t);
+  }, [open]);
+
   return (
-    <>
-      <section style={styles.demoSection}>
-        <div style={styles.demoHeader}>
-          <div style={styles.demoKicker}>DÉMO</div>
-          <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
-          <p style={styles.demoSub}>
-            Clique sur le téléphone pour ouvrir la vidéo en grand.
-          </p>
-        </div>
+    <section id="demo" style={styles.demoSection}>
+      <div style={styles.demoCard}>
+        <p style={styles.demoKicker}>DÉMO</p>
+        <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
+        <p style={styles.demoSub}>
+          Clique sur le téléphone pour ouvrir la vidéo en grand.
+        </p>
 
-        <div style={styles.demoCenter}>
-          <div
-            style={styles.demoPhoneFrame}
-            className="demoPhoneFrame"
-            role="button"
-            tabIndex={0}
-            onClick={openModal}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") openModal();
-            }}
-            aria-label="Ouvrir la vidéo"
-          >
-            <div style={styles.demoPhoneScreen}>
-              {/* fond stylé (évite le “noir moche” tant que la vidéo charge) */}
-              <div style={styles.demoPhoneBackdrop} aria-hidden />
-
-              <video
-                ref={videoRef}
-                src={DEMO_VIDEO_SRC}
-                style={styles.demoVideoInPhone}
-                playsInline
-                preload="metadata"
-                muted
-                controls={false}
-                onLoadedData={() => setReady(true)}
-              />
-            </div>
-
-            <div style={styles.demoBadge}>Démo vidéo</div>
-
-            <div style={styles.demoOverlay} aria-hidden>
-              <div style={styles.demoPlayCircle}>▶</div>
-              <div style={styles.demoOpenText}>{ready ? "OUVRIR" : "CHARGEMENT..."}</div>
-            </div>
-
-            <div style={styles.demoPhoneHint}>(Optimisé pour mobile)</div>
-          </div>
-        </div>
-      </section>
-
-      {open && (
-        <div style={styles.modalOverlay} onClick={() => setOpen(false)} role="dialog" aria-modal="true">
+        <div style={styles.demoPhoneWrap}>
           <button
             type="button"
-            style={styles.modalClose}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-            }}
-            aria-label="Fermer"
+            onClick={() => setOpen(true)}
+            style={styles.phoneFrameBtn}
+            aria-label="Ouvrir la vidéo en grand"
           >
-            ✕
-          </button>
+            <div style={styles.phoneFrame} className="phoneFrame">
+              <div style={styles.phoneScreen}>
+                {/* fallback joli si iPhone charge lentement */}
+                <div
+                  style={{
+                    ...styles.phonePosterLayer,
+                    backgroundImage: `url(${DEMO_POSTER_IMG})`,
+                  }}
+                />
 
-          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+                <video
+                  src={DEMO_VIDEO_SRC}
+                  preload="metadata"
+                  playsInline
+                  muted
+                  poster={DEMO_POSTER_IMG}
+                  style={styles.phoneVideo}
+                />
+                <div style={styles.phoneOverlay}>
+                  <div style={styles.playCircle}>
+                    <span style={{ transform: "translateX(1px)" }}>▶</span>
+                  </div>
+                  <div style={styles.openLabel}>OUVRIR</div>
+                </div>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <a
+          href="https://wa.me/33745214922"
+          style={styles.demoCta}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Demander la démo sur WhatsApp
+        </a>
+      </div>
+
+      {/* MODAL */}
+      {open && (
+        <div
+          style={styles.modalBackdrop}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) close();
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div style={styles.modalCard}>
+            <button type="button" onClick={close} style={styles.modalClose} aria-label="Fermer">
+              ×
+            </button>
+
             <video
               ref={modalVideoRef}
               src={DEMO_VIDEO_SRC}
               controls
               playsInline
-              preload="metadata"
+              poster={DEMO_POSTER_IMG}
               style={styles.modalVideo}
             />
           </div>
         </div>
       )}
-    </>
+    </section>
   );
 }
 
-/* -------------- STYLES -------------- */
+/* ---------------- STYLES ---------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -351,7 +329,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "100vh",
     padding: "2.5rem 1.25rem 3rem",
     color: COLORS.text,
-    overflow: "hidden",
+    overflowX: "hidden",
   },
 
   bgGradient: {
@@ -501,6 +479,9 @@ const styles: Record<string, React.CSSProperties> = {
   bottomBand: {
     marginTop: 18,
     width: "100%",
+    maxWidth: 980,
+    marginLeft: "auto",
+    marginRight: "auto",
     textAlign: "center",
     background: "linear-gradient(90deg, #1b2b9d, #6a2fd6, #e64aa7)",
     border: "1px solid rgba(120,140,255,0.25)",
@@ -508,23 +489,27 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 14,
     fontSize: "1.05rem",
     fontWeight: 800,
+    boxSizing: "border-box",
   },
 
-  /* ---- demo ---- */
+  /* DEMO */
   demoSection: {
     marginTop: 18,
-    borderRadius: 18,
-    border: `1px solid ${COLORS.panelBorder}`,
-    background: COLORS.panelSoft,
-    padding: "18px 16px",
-  },
-  demoHeader: {
-    textAlign: "center",
     display: "grid",
-    gap: 8,
-    marginBottom: 14,
+    placeItems: "center",
+  },
+  demoCard: {
+    width: "100%",
+    maxWidth: 980,
+    borderRadius: 22,
+    background: "rgba(13, 18, 50, 0.35)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    padding: "26px 18px",
+    textAlign: "center",
+    boxSizing: "border-box",
   },
   demoKicker: {
+    margin: 0,
     fontSize: "0.85rem",
     fontWeight: 900,
     letterSpacing: "0.22em",
@@ -532,25 +517,34 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
   },
   demoTitle: {
-    margin: 0,
-    fontSize: "clamp(1.6rem, 3.2vw, 2.2rem)",
+    margin: "10px 0 0",
+    fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
     fontWeight: 900,
-    lineHeight: 1.1,
   },
   demoSub: {
-    margin: 0,
+    margin: "10px auto 0",
+    maxWidth: 720,
     color: COLORS.muted,
-    fontWeight: 700,
-  },
-  demoCenter: {
-    display: "grid",
-    justifyItems: "center",
+    fontSize: "1.05rem",
+    lineHeight: 1.6,
   },
 
-  demoPhoneFrame: {
-    width: "100%",
-    maxWidth: 360,
-    height: 600,
+  demoPhoneWrap: {
+    marginTop: 18,
+    display: "grid",
+    placeItems: "center",
+  },
+
+  phoneFrameBtn: {
+    border: "none",
+    background: "transparent",
+    padding: 0,
+    cursor: "pointer",
+  },
+
+  phoneFrame: {
+    width: "min(92vw, 390px)",
+    height: 640,
     borderRadius: 34,
     background: "rgba(255,255,255,0.06)",
     border: `1px solid ${COLORS.panelBorder}`,
@@ -558,106 +552,91 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     padding: 10,
     overflow: "hidden",
-    cursor: "pointer",
+    boxSizing: "border-box",
   },
-  demoPhoneScreen: {
+  phoneScreen: {
     position: "absolute",
     inset: 10,
     borderRadius: 26,
     overflow: "hidden",
-    background: "#000",
     border: "1px solid rgba(255,255,255,0.10)",
+    background: "#000",
   },
-  demoPhoneBackdrop: {
+
+  // couche fond (photo) => évite écran noir
+  phonePosterLayer: {
     position: "absolute",
     inset: 0,
-    background:
-      "radial-gradient(600px circle at 50% 15%, rgba(106,47,214,0.35), transparent 55%)," +
-      "radial-gradient(700px circle at 50% 70%, rgba(230,74,167,0.18), transparent 55%)," +
-      "linear-gradient(180deg, rgba(10,12,30,0.9), rgba(0,0,0,0.92))",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    filter: "contrast(1.05) brightness(0.9)",
+    transform: "scale(1.02)",
+    opacity: 0.9,
   },
-  demoVideoInPhone: {
+
+  phoneVideo: {
     position: "absolute",
     inset: 0,
     width: "100%",
     height: "100%",
     objectFit: "contain",
-    objectPosition: "center",
+    background: "transparent",
   },
-  demoBadge: {
-    position: "absolute",
-    top: 14,
-    left: 14,
-    background: "rgba(9, 13, 32, 0.85)",
-    border: `1px solid ${COLORS.panelBorder}`,
-    color: COLORS.text,
-    fontWeight: 900,
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontSize: "0.9rem",
-    zIndex: 3,
-  },
-  demoOverlay: {
+
+  phoneOverlay: {
     position: "absolute",
     inset: 0,
-    zIndex: 4,
     display: "grid",
     placeItems: "center",
-    gap: 12,
-    pointerEvents: "none",
-    paddingTop: 20,
+    gap: 10,
+    background:
+      "radial-gradient(240px circle at 50% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.55))",
   },
-  demoPlayCircle: {
+  playCircle: {
     width: 86,
     height: 86,
     borderRadius: 999,
     display: "grid",
     placeItems: "center",
-    fontSize: "2rem",
-    background: "rgba(0,0,0,0.45)",
-    border: "1px solid rgba(255,255,255,0.22)",
-    boxShadow: "0 20px 60px rgba(106,47,214,0.25)",
-  },
-  demoOpenText: {
+    background: "rgba(0,0,0,0.35)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    color: "white",
+    fontSize: "1.6rem",
     fontWeight: 900,
-    letterSpacing: "0.12em",
-    opacity: 0.95,
   },
-  demoPhoneHint: {
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    color: COLORS.muted,
+  openLabel: {
     fontWeight: 900,
-    opacity: 0.9,
+    letterSpacing: "0.2em",
+    color: "rgba(255,255,255,0.92)",
   },
 
-  /* modal */
-  modalOverlay: {
+  demoCta: {
+    marginTop: 16,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 18px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "white",
+    textDecoration: "none",
+    background: "linear-gradient(90deg, #4338ca, #6a2fd6, #e64aa7)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+  },
+
+  /* MODAL */
+  modalBackdrop: {
     position: "fixed",
     inset: 0,
-    zIndex: 9999,
-    background: "rgba(0,0,0,0.72)",
+    background: "rgba(0,0,0,0.68)",
     display: "grid",
     placeItems: "center",
+    zIndex: 9999,
     padding: 18,
   },
-  modalClose: {
-    position: "fixed",
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(0,0,0,0.35)",
-    color: "white",
-    fontSize: "1.2rem",
-    cursor: "pointer",
-  },
   modalCard: {
+    position: "relative",
     width: "min(92vw, 420px)",
     height: "min(82vh, 780px)",
     borderRadius: 18,
@@ -667,6 +646,21 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
   },
+  modalClose: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(0,0,0,0.35)",
+    color: "white",
+    fontSize: "1.5rem",
+    cursor: "pointer",
+    zIndex: 2,
+    lineHeight: 1,
+  },
   modalVideo: {
     width: "100%",
     height: "100%",
@@ -674,3 +668,36 @@ const styles: Record<string, React.CSSProperties> = {
     background: "black",
   },
 };
+
+const responsiveCss = `
+  * { box-sizing: border-box; }
+
+  @media (max-width: 1024px){
+    .gridServices {
+      grid-template-columns: 1fr !important;
+    }
+    .heroServices {
+      grid-template-columns: 1fr !important;
+      gap: 18px;
+    }
+    .heroTitleServices {
+      font-size: clamp(48px, 10vw, 64px) !important;
+    }
+  }
+
+  /* Phone plus petit sur mobile */
+  @media (max-width: 520px){
+    .phoneFrame{
+      width: min(92vw, 330px) !important;
+      height: 560px !important;
+      padding: 10px !important;
+      border-radius: 30px !important;
+    }
+  }
+  @media (max-width: 380px){
+    .phoneFrame{
+      width: min(92vw, 300px) !important;
+      height: 520px !important;
+    }
+  }
+`;
