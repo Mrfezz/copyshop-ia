@@ -85,18 +85,19 @@ const COLORS = {
   muted: "#c9d2ff",
   navy: "#0b0f2a",
 
+  panel: "rgba(13, 18, 50, 0.78)",
+  panelBorder: "rgba(150, 170, 255, 0.18)",
+
   cardBg: "#ffffff",
   cardBorder: "rgba(11,15,42,0.10)",
 
   purple: "#6a2fd6",
   pink: "#e64aa7",
-
-  panel: "rgba(13, 18, 50, 0.86)",
-  panelBorder: "rgba(150, 170, 255, 0.18)",
 };
 
 const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
-const DEMO_POSTER_IMG = "/images/boutique-client.jpg"; // fallback joli si iPhone charge lentement
+// ✅ poster (image) pour éviter l’écran noir sur iPhone tant que la vidéo n’est pas ouverte
+const DEMO_POSTER_IMG = "/images/boutique-client.jpg";
 
 export default function ServicesDigitauxPage() {
   return (
@@ -175,17 +176,14 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* PRIX + Paiement unique + CTA */}
+              {/* ✅ PRIX + Paiement unique + CTA */}
               <div style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}>
                 <div style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
                   <div style={styles.priceNote}>Paiement unique</div>
                 </div>
 
-                <Link
-                  href={`/paiement?product=${pack.productKey}`}
-                  style={styles.priceBtn}
-                >
+                <Link href={`/paiement?product=${pack.productKey}`} style={styles.priceBtn}>
                   Choisir ce pack
                 </Link>
               </div>
@@ -193,14 +191,13 @@ export default function ServicesDigitauxPage() {
           ))}
         </div>
 
-        {/* Bande "on s'occupe de tout" (centrée propre) */}
+        {/* ✅ Bande phrase (centrée propre) */}
         <div style={styles.bottomBand}>
-          🧩 On s’occupe de tout, du début jusqu’au lancement de votre commerce en
-          ligne !
+          🧩 On s’occupe de tout, du début jusqu’au lancement de votre commerce en ligne !
         </div>
 
-        {/* ✅ Section vidéo (smartphone + modal) */}
-        <VideoDemoSection />
+        {/* ✅ Section DÉMO vidéo juste en dessous */}
+        <DemoVideoSection />
       </section>
 
       <style>{responsiveCss}</style>
@@ -208,110 +205,83 @@ export default function ServicesDigitauxPage() {
   );
 }
 
-/* ---------------- VIDEO SECTION ---------------- */
+/* ---------------- DEMO SECTION ---------------- */
 
-function VideoDemoSection() {
+function DemoVideoSection() {
   const [open, setOpen] = useState(false);
-  const modalVideoRef = useRef<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const close = () => {
-    setOpen(false);
-    const v = modalVideoRef.current;
-    if (v) {
-      v.pause();
-      v.currentTime = 0;
-    }
-  };
+  const close = () => setOpen(false);
 
-  // Essaye de lancer la vidéo à l’ouverture (si iPhone bloque, l’utilisateur clique Play)
   useEffect(() => {
     if (!open) return;
-    const v = modalVideoRef.current;
-    if (!v) return;
 
+    // lock scroll
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // tente de lancer (sur iOS ça marche si ça suit un clic utilisateur)
     const t = window.setTimeout(() => {
-      v.play().catch(() => {});
-    }, 120);
+      try {
+        videoRef.current?.play?.();
+      } catch {}
+    }, 50);
 
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      document.body.style.overflow = prev;
+      try {
+        videoRef.current?.pause?.();
+        if (videoRef.current) videoRef.current.currentTime = 0;
+      } catch {}
+    };
   }, [open]);
 
   return (
     <section id="demo" style={styles.demoSection}>
-      <div style={styles.demoCard}>
+      <div style={styles.demoCard} className="demoCard">
         <p style={styles.demoKicker}>DÉMO</p>
         <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
-        <p style={styles.demoSub}>
-          Clique sur le téléphone pour ouvrir la vidéo en grand.
-        </p>
+        <p style={styles.demoSub}>Clique sur le téléphone pour ouvrir la vidéo en grand.</p>
 
+        {/* ✅ Preview (image) -> pas de vidéo ici (évite écran noir + charge) */}
         <div style={styles.demoPhoneWrap}>
           <button
             type="button"
             onClick={() => setOpen(true)}
-            style={styles.phoneFrameBtn}
-            aria-label="Ouvrir la vidéo en grand"
+            style={styles.phoneFrame}
+            className="phoneFrame"
+            aria-label="Ouvrir la vidéo démo"
           >
-            <div style={styles.phoneFrame} className="phoneFrame">
-              <div style={styles.phoneScreen}>
-                {/* fallback joli si iPhone charge lentement */}
-                <div
-                  style={{
-                    ...styles.phonePosterLayer,
-                    backgroundImage: `url(${DEMO_POSTER_IMG})`,
-                  }}
-                />
-
-                <video
-                  src={DEMO_VIDEO_SRC}
-                  preload="metadata"
-                  playsInline
-                  muted
-                  poster={DEMO_POSTER_IMG}
-                  style={styles.phoneVideo}
-                />
-                <div style={styles.phoneOverlay}>
-                  <div style={styles.playCircle}>
-                    <span style={{ transform: "translateX(1px)" }}>▶</span>
-                  </div>
-                  <div style={styles.openLabel}>OUVRIR</div>
-                </div>
+            <div style={styles.phoneScreen}>
+              <img src={DEMO_POSTER_IMG} alt="Aperçu de la vidéo" style={styles.phonePoster} />
+              <div style={styles.phoneOverlay}>
+                <div style={styles.playCircle}>▶</div>
+                <div style={styles.openLabel}>OUVRIR</div>
               </div>
             </div>
           </button>
         </div>
 
-        <a
-          href="https://wa.me/33745214922"
-          style={styles.demoCta}
-          target="_blank"
-          rel="noreferrer"
-        >
+        <a href="https://wa.me/33745214922" style={styles.demoCta}>
           Demander la démo sur WhatsApp
         </a>
       </div>
 
-      {/* MODAL */}
+      {/* ✅ MODAL vidéo (avec X + clic dehors) */}
       {open && (
-        <div
-          style={styles.modalBackdrop}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) close();
-          }}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div style={styles.modalCard}>
+        <div style={styles.modalOverlay} onClick={close} role="dialog" aria-modal="true">
+          <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={close} style={styles.modalClose} aria-label="Fermer">
               ×
             </button>
 
             <video
-              ref={modalVideoRef}
+              ref={videoRef}
               src={DEMO_VIDEO_SRC}
               controls
               playsInline
-              poster={DEMO_POSTER_IMG}
+              preload="metadata"
               style={styles.modalVideo}
             />
           </div>
@@ -330,6 +300,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "2.5rem 1.25rem 3rem",
     color: COLORS.text,
     overflowX: "hidden",
+    boxSizing: "border-box",
   },
 
   bgGradient: {
@@ -361,6 +332,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "64px 20px 28px",
     position: "relative",
     zIndex: 1,
+    boxSizing: "border-box",
   },
 
   hero: {
@@ -492,20 +464,19 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  /* DEMO */
+  /* ---- DEMO ---- */
   demoSection: {
-    marginTop: 18,
-    display: "grid",
-    placeItems: "center",
+    marginTop: 14,
   },
   demoCard: {
-    width: "100%",
     maxWidth: 980,
-    borderRadius: 22,
-    background: "rgba(13, 18, 50, 0.35)",
+    margin: "0 auto",
+    background: COLORS.panel,
     border: `1px solid ${COLORS.panelBorder}`,
-    padding: "26px 18px",
+    borderRadius: 22,
+    padding: "26px 18px 20px",
     textAlign: "center",
+    overflow: "hidden",
     boxSizing: "border-box",
   },
   demoKicker: {
@@ -520,12 +491,13 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "10px 0 0",
     fontSize: "clamp(1.6rem, 3vw, 2.4rem)",
     fontWeight: 900,
+    lineHeight: 1.1,
   },
   demoSub: {
     margin: "10px auto 0",
-    maxWidth: 720,
-    color: COLORS.muted,
+    color: "rgba(201,210,255,0.95)",
     fontSize: "1.05rem",
+    maxWidth: 720,
     lineHeight: 1.6,
   },
 
@@ -533,13 +505,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 18,
     display: "grid",
     placeItems: "center",
-  },
-
-  phoneFrameBtn: {
-    border: "none",
-    background: "transparent",
-    padding: 0,
-    cursor: "pointer",
   },
 
   phoneFrame: {
@@ -552,35 +517,27 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     padding: 10,
     overflow: "hidden",
-    boxSizing: "border-box",
+    cursor: "pointer",
+    outline: "none",
   },
+
   phoneScreen: {
     position: "absolute",
     inset: 10,
     borderRadius: 26,
     overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.10)",
     background: "#000",
+    border: "1px solid rgba(255,255,255,0.10)",
   },
 
-  // couche fond (photo) => évite écran noir
-  phonePosterLayer: {
-    position: "absolute",
-    inset: 0,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    filter: "contrast(1.05) brightness(0.9)",
-    transform: "scale(1.02)",
-    opacity: 0.9,
-  },
-
-  phoneVideo: {
-    position: "absolute",
-    inset: 0,
+  // ✅ Cover = l’image remplit tout le cadre (plus de “trous”)
+  phonePoster: {
     width: "100%",
     height: "100%",
-    objectFit: "contain",
-    background: "transparent",
+    objectFit: "cover",
+    objectPosition: "center",
+    display: "block",
+    filter: "contrast(1.03) saturate(1.03)",
   },
 
   phoneOverlay: {
@@ -589,25 +546,24 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     gap: 10,
-    background:
-      "radial-gradient(240px circle at 50% 35%, rgba(0,0,0,0.25), rgba(0,0,0,0.55))",
+    background: "linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45))",
   },
   playCircle: {
-    width: 86,
-    height: 86,
-    borderRadius: 999,
+    width: 76,
+    height: 76,
+    borderRadius: "50%",
     display: "grid",
     placeItems: "center",
-    background: "rgba(0,0,0,0.35)",
-    border: "1px solid rgba(255,255,255,0.18)",
+    fontSize: "1.5rem",
+    background: "rgba(255,255,255,0.14)",
+    border: "1px solid rgba(255,255,255,0.25)",
     color: "white",
-    fontSize: "1.6rem",
-    fontWeight: 900,
+    boxShadow: "0 14px 40px rgba(106,47,214,0.35)",
   },
   openLabel: {
     fontWeight: 900,
-    letterSpacing: "0.2em",
-    color: "rgba(255,255,255,0.92)",
+    letterSpacing: "0.18em",
+    fontSize: "1.05rem",
   },
 
   demoCta: {
@@ -620,31 +576,31 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: "white",
     textDecoration: "none",
-    background: "linear-gradient(90deg, #4338ca, #6a2fd6, #e64aa7)",
+    background: `linear-gradient(90deg, ${COLORS.purple}, #4338ca, ${COLORS.pink})`,
     border: "1px solid rgba(255,255,255,0.18)",
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    whiteSpace: "nowrap",
   },
 
-  /* MODAL */
-  modalBackdrop: {
+  /* ---- MODAL ---- */
+  modalOverlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.68)",
+    background: "rgba(0,0,0,0.65)",
+    zIndex: 9999,
     display: "grid",
     placeItems: "center",
-    zIndex: 9999,
-    padding: 18,
+    padding: 16,
   },
   modalCard: {
-    position: "relative",
-    width: "min(92vw, 420px)",
-    height: "min(82vh, 780px)",
+    width: "min(92vw, 520px)",
+    height: "min(82vh, 860px)",
+    background: "rgba(10,12,22,0.92)",
+    border: `1px solid rgba(255,255,255,0.18)`,
     borderRadius: 18,
     overflow: "hidden",
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(10,12,30,0.92)",
-    display: "grid",
-    placeItems: "center",
+    position: "relative",
+    boxShadow: "0 22px 90px rgba(0,0,0,0.55)",
   },
   modalClose: {
     position: "absolute",
@@ -656,22 +612,22 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.18)",
     background: "rgba(0,0,0,0.35)",
     color: "white",
-    fontSize: "1.5rem",
+    fontSize: "1.6rem",
     cursor: "pointer",
-    zIndex: 2,
-    lineHeight: 1,
+    zIndex: 5,
+    display: "grid",
+    placeItems: "center",
   },
   modalVideo: {
     width: "100%",
     height: "100%",
     objectFit: "contain",
     background: "black",
+    display: "block",
   },
 };
 
 const responsiveCss = `
-  * { box-sizing: border-box; }
-
   @media (max-width: 1024px){
     .gridServices {
       grid-template-columns: 1fr !important;
@@ -685,19 +641,19 @@ const responsiveCss = `
     }
   }
 
-  /* Phone plus petit sur mobile */
+  /* ✅ Ajustements phone frame sur mobile */
   @media (max-width: 520px){
-    .phoneFrame{
-      width: min(92vw, 330px) !important;
-      height: 560px !important;
+    .phoneFrame {
+      width: min(92vw, 360px) !important;
+      height: 610px !important;
       padding: 10px !important;
       border-radius: 30px !important;
     }
   }
   @media (max-width: 380px){
-    .phoneFrame{
-      width: min(92vw, 300px) !important;
-      height: 520px !important;
+    .phoneFrame {
+      width: min(92vw, 330px) !important;
+      height: 570px !important;
     }
   }
 `;
