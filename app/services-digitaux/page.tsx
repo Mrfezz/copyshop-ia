@@ -1,7 +1,7 @@
 // app/services-digitaux/page.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Item = {
@@ -18,6 +18,8 @@ type ServicePack = {
   highlight?: boolean;
   productKey: "services-essentiel" | "services-pro" | "services-business";
 };
+
+const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
 
 const PRICE_GRADIENT_HOME =
   "linear-gradient(90deg, #141a4a 0%, #3f47d8 55%, #e64aa7 100%)";
@@ -89,7 +91,12 @@ const COLORS = {
   cardBorder: "rgba(11,15,42,0.10)",
 
   purple: "#6a2fd6",
+  violetDeep: "#4338ca",
   pink: "#e64aa7",
+
+  panel: "rgba(13, 18, 50, 0.9)",
+  panelSoft: "rgba(13, 18, 50, 0.6)",
+  panelBorder: "rgba(150, 170, 255, 0.18)",
 };
 
 export default function ServicesDigitauxPage() {
@@ -192,33 +199,131 @@ export default function ServicesDigitauxPage() {
           ligne !
         </div>
 
-        <div style={styles.contactStrip}>
-          <span style={styles.contactStrong}>Contact Fr</span>
-          <span>WhatsApp : +33 7 45 21 49 22</span>
-          <span>Snap : mr.fezz</span>
-          <span>Instagram : mr.fez__</span>
-          <span>TikTok : mr.fezzz</span>
-        </div>
+        {/* ✅ SECTION VIDEO (smartphone + modal) */}
+        <DemoVideoPhone />
       </section>
 
       {/* responsive */}
-      <style>{`
-        @media (max-width: 1024px){
-          .gridServices {
-            grid-template-columns: 1fr !important;
-          }
-          .heroServices {
-            grid-template-columns: 1fr !important;
-            gap: 18px;
-          }
-          .heroTitleServices {
-            font-size: clamp(48px, 10vw, 64px) !important;
-          }
-        }
-      `}</style>
+      <style>{responsiveCss}</style>
     </main>
   );
 }
+
+/* ------------------ VIDEO SECTION ------------------ */
+
+function DemoVideoPhone() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <section style={styles.demoWrap} id="demo">
+      <div style={styles.demoHeader}>
+        <p style={styles.demoKicker}>Démo</p>
+        <h2 style={styles.demoTitle}>Voir le rendu en vidéo (format mobile)</h2>
+        <p style={styles.demoText}>
+          Clique sur le téléphone pour ouvrir la vidéo en grand.
+        </p>
+      </div>
+
+      <div style={styles.demoGrid} className="demoGrid">
+        <div style={styles.phoneCol}>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            style={styles.phoneBtn}
+            aria-label="Ouvrir la démo vidéo"
+          >
+            <div style={styles.phoneFrame} className="phoneFrame">
+              <div style={styles.phoneScreen}>
+                {/* On met juste une preview légère (metadata), et on ouvre en grand au clic */}
+                <video
+                  src={DEMO_VIDEO_SRC}
+                  style={styles.phoneVideo}
+                  preload="metadata"
+                  muted
+                  playsInline
+                />
+              </div>
+
+              <div style={styles.phoneBadge}>Démo vidéo</div>
+
+              <div style={styles.playOverlay}>
+                <div style={styles.playCircle}>▶</div>
+                <div style={styles.playLabel}>Ouvrir</div>
+              </div>
+            </div>
+
+            <div style={styles.phoneHint}>(Optimisé pour mobile)</div>
+          </button>
+        </div>
+
+        <div style={styles.demoRight}>
+          <ul style={styles.checkList}>
+            <li style={styles.checkItem}>
+              <span style={styles.check}>✓</span> Même rendu que sur téléphone
+            </li>
+            <li style={styles.checkItem}>
+              <span style={styles.check}>✓</span> Structure clean + pro
+            </li>
+            <li style={styles.checkItem}>
+              <span style={styles.check}>✓</span> Sections + design cohérent
+            </li>
+            <li style={styles.checkItem}>
+              <span style={styles.check}>✓</span> Prêt à vendre rapidement
+            </li>
+          </ul>
+
+          <div style={{ marginTop: 14 }}>
+            <Link href="/contact" style={styles.primaryBtn}>
+              Demander la démo sur WhatsApp
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* MODAL */}
+      {open && (
+        <div
+          style={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpen(false)}
+        >
+          <button
+            type="button"
+            style={styles.modalClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(false);
+            }}
+            aria-label="Fermer"
+          >
+            ✕
+          </button>
+
+          <video
+            src={DEMO_VIDEO_SRC}
+            style={styles.modalVideo}
+            controls
+            autoPlay
+            playsInline
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* -------------- STYLES -------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -385,18 +490,231 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
-  contactStrip: {
-    marginTop: 12,
-    background: "rgba(9, 13, 32, 0.95)",
-    border: "1px solid rgba(120,140,255,0.18)",
-    borderRadius: 12,
-    padding: "12px 14px",
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px 18px",
-    justifyContent: "center",
-    fontSize: "0.95rem",
-    color: "white",
+  /* ---------- DEMO VIDEO ---------- */
+  demoWrap: {
+    marginTop: 18,
+    background: COLORS.panelSoft,
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 18,
+    padding: "18px 16px",
+    backdropFilter: "blur(6px)",
   },
-  contactStrong: { fontWeight: 900, marginRight: 6 },
+  demoHeader: { textAlign: "center", display: "grid", gap: 8, marginBottom: 12 },
+  demoKicker: {
+    margin: 0,
+    fontSize: "0.8rem",
+    fontWeight: 900,
+    letterSpacing: "0.22em",
+    textTransform: "uppercase",
+    color: COLORS.muted,
+  },
+  demoTitle: {
+    margin: 0,
+    fontSize: "clamp(1.5rem, 3vw, 2rem)",
+    fontWeight: 900,
+  },
+  demoText: { margin: 0, color: COLORS.muted, fontSize: "1.02rem", lineHeight: 1.6 },
+
+  demoGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(300px, 390px) 1fr",
+    gap: 18,
+    alignItems: "start",
+  },
+
+  phoneCol: { display: "grid", gap: 10, justifyItems: "center" },
+  phoneBtn: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    cursor: "pointer",
+    width: "100%",
+    display: "grid",
+    justifyItems: "center",
+  },
+
+  phoneFrame: {
+    width: "100%",
+    maxWidth: 390,
+    height: 640,
+    borderRadius: 34,
+    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    boxShadow: "0 18px 60px rgba(0,0,0,0.35)",
+    position: "relative",
+    padding: 10,
+    overflow: "hidden",
+  },
+
+  phoneScreen: {
+    position: "absolute",
+    inset: 10,
+    borderRadius: 26,
+    overflow: "hidden",
+    background: "#000",
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  phoneVideo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    objectPosition: "center",
+    background: "#000",
+    display: "block",
+  },
+
+  phoneBadge: {
+    position: "absolute",
+    top: 14,
+    left: 14,
+    background: COLORS.panel,
+    border: `1px solid ${COLORS.panelBorder}`,
+    color: COLORS.text,
+    fontWeight: 900,
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontSize: "0.85rem",
+    zIndex: 3,
+  },
+
+  playOverlay: {
+    position: "absolute",
+    inset: 0,
+    zIndex: 4,
+    display: "grid",
+    placeItems: "center",
+    gap: 8,
+    background:
+      "radial-gradient(600px circle at 50% 70%, rgba(0,0,0,0.10), rgba(0,0,0,0.55))",
+    pointerEvents: "none",
+  },
+  playCircle: {
+    width: 74,
+    height: 74,
+    borderRadius: 999,
+    display: "grid",
+    placeItems: "center",
+    fontSize: "1.9rem",
+    color: "white",
+    background: "rgba(255,255,255,0.12)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+  },
+  playLabel: {
+    fontWeight: 900,
+    color: "rgba(255,255,255,0.92)",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    fontSize: "0.9rem",
+  },
+
+  phoneHint: {
+    fontSize: "0.9rem",
+    color: COLORS.muted,
+    fontWeight: 800,
+    textAlign: "center",
+  },
+
+  demoRight: { alignSelf: "center" },
+
+  checkList: { listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 10 },
+  checkItem: { display: "flex", gap: 10, alignItems: "center", fontWeight: 800, color: COLORS.text },
+  check: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    display: "grid",
+    placeItems: "center",
+    background: COLORS.navy,
+    color: "white",
+    fontSize: "0.95rem",
+    fontWeight: 900,
+    border: "1px solid rgba(255,255,255,0.10)",
+  },
+
+  primaryBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 14px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "white",
+    textDecoration: "none",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.purple}, ${COLORS.pink})`,
+    border: `1px solid rgba(255,255,255,0.18)`,
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(0,0,0,0.72)",
+    display: "grid",
+    placeItems: "center",
+    padding: 18,
+  },
+  modalVideo: {
+    width: "min(920px, 92vw)",
+    maxHeight: "85vh",
+    height: "auto",
+    borderRadius: 16,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(10,12,30,0.8)",
+    display: "block",
+  },
+  modalClose: {
+    position: "fixed",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(0,0,0,0.35)",
+    color: "white",
+    fontSize: "1.2rem",
+    cursor: "pointer",
+  },
 };
+
+const responsiveCss = `
+  @media (max-width: 1024px){
+    .gridServices {
+      grid-template-columns: 1fr !important;
+    }
+    .heroServices {
+      grid-template-columns: 1fr !important;
+      gap: 18px;
+    }
+    .heroTitleServices {
+      font-size: clamp(48px, 10vw, 64px) !important;
+    }
+  }
+
+  @media (max-width: 980px){
+    .demoGrid{
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* Mobile: rendre le “smartphone” plus petit pour prendre moins de place */
+  @media (max-width: 520px){
+    .phoneFrame {
+      max-width: 330px !important;
+      height: 560px !important;
+      padding: 10px !important;
+      border-radius: 30px !important;
+    }
+  }
+  @media (max-width: 380px){
+    .phoneFrame {
+      max-width: 300px !important;
+      height: 520px !important;
+    }
+  }
+`;
