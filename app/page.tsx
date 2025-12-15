@@ -583,7 +583,12 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "-0.02em",
     margin: 0,
   },
-  heroSub: { fontSize: "1.05rem", color: COLORS.muted, margin: 0, maxWidth: 640 },
+  heroSub: {
+    fontSize: "1.05rem",
+    color: COLORS.muted,
+    margin: 0,
+    maxWidth: 640,
+  },
   heroBtns: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 },
 
   primaryBtn: {
@@ -625,7 +630,12 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all .25s ease",
   },
 
-  heroRight: { position: "relative", display: "grid", placeItems: "center", minHeight: 220 },
+  heroRight: {
+    position: "relative",
+    display: "grid",
+    placeItems: "center",
+    minHeight: 220,
+  },
   heroGlow: {
     position: "absolute",
     width: 260,
@@ -661,7 +671,12 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
     boxShadow: "0 14px 40px rgba(106,47,214,0.5)",
   },
-  heroIlluText: { fontSize: "3rem", fontWeight: 900, color: "white", letterSpacing: "0.07em" },
+  heroIlluText: {
+    fontSize: "3rem",
+    fontWeight: 900,
+    color: "white",
+    letterSpacing: "0.07em",
+  },
 
   scrollBar: {
     marginTop: 16,
@@ -705,7 +720,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     borderRadius: 18,
     minHeight: 280,
-    background: "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
+    background:
+      "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))",
     border: `1px solid ${COLORS.panelBorder}`,
     overflow: "hidden",
   },
@@ -725,7 +741,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     fontSize: "1.8rem",
-    background: "rgba(255,255,255,0.12)",
+    background: 'rgba(255,255,255,0.12)',
     border: `1px solid ${COLORS.panelBorder}`,
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
@@ -762,13 +778,13 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.10)",
   },
 
-  /* ✅ IMPORTANT : on remet la barre noire visible + on évite le crop */
+  /* ✅ IMPORTANT : pas de crop */
   phoneImg: {
     width: "100%",
     height: "100%",
-    objectFit: "contain",     // <- tout rentre, pas de coupe sur côtés
-    objectPosition: "center", // <- centre
-    transform: "none",        // <- plus de remontage/crop (barre noire visible)
+    objectFit: "contain",
+    objectPosition: "center",
+    transform: "none",
   },
 
   phoneHint: {
@@ -812,7 +828,13 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
-  checkList: { listStyle: "none", padding: 0, margin: "12px 0 0", display: "grid", gap: 8 },
+  checkList: {
+    listStyle: "none",
+    padding: 0,
+    margin: "12px 0 0",
+    display: "grid",
+    gap: 8,
+  },
   checkItem: { display: "flex", gap: 8, alignItems: "center", fontWeight: 700 },
   check: {
     width: 20,
@@ -869,7 +891,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
     margin: 0,
   },
-  aboutTitle: { fontSize: "clamp(1.8rem, 3vw, 2.6rem)", fontWeight: 900, margin: 0 },
+  aboutTitle: {
+    fontSize: "clamp(1.8rem, 3vw, 2.6rem)",
+    fontWeight: 900,
+    margin: 0,
+  },
   aboutText: {
     fontSize: "1.05rem",
     color: "rgba(238,241,255,0.95)",
@@ -907,7 +933,11 @@ const styles: Record<string, React.CSSProperties> = {
     justifySelf: "center",
   },
 
-  reviewsGrid: { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 },
+  reviewsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3,minmax(0,1fr))",
+    gap: 14,
+  },
   reviewCard: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -919,7 +949,12 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
-  miniRow: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" },
+  miniRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
   miniChip: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
@@ -957,7 +992,11 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     cursor: "pointer",
   },
-  faqPlus: { fontSize: "1.4rem", fontWeight: 900, transition: "transform .25s ease, opacity .25s ease" },
+  faqPlus: {
+    fontSize: "1.4rem",
+    fontWeight: 900,
+    transition: "transform .25s ease, opacity .25s ease",
+  },
   answerOuter: {
     overflow: "hidden",
     transition: "max-height .35s ease, opacity .35s ease, transform .35s ease",
@@ -970,7 +1009,13 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.7,
     borderTop: "1px dashed rgba(255,255,255,0.08)",
   },
-  bottomNote: { marginTop: 18, textAlign: "center", fontWeight: 800, color: COLORS.muted, fontSize: "1rem" },
+  bottomNote: {
+    marginTop: 18,
+    textAlign: "center",
+    fontWeight: 800,
+    color: COLORS.muted,
+    fontSize: "1rem",
+  },
 };
 
 const responsiveCss = `
@@ -986,19 +1031,22 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
-  /* ✅ Mobile: un poil plus large pour éviter coupe + bien centré */
+  /* ✅ MOBILE: téléphone plus petit (prend moins de place) */
   @media (max-width: 520px) {
     .phoneFrame {
-      max-width: 360px !important;
-      height: 610px !important;
-      padding: 10px !important;
-      border-radius: 30px !important;
+      max-width: 320px !important;
+      height: 540px !important;
+      padding: 9px !important;
+      border-radius: 28px !important;
     }
   }
+
+  /* ✅ Très petits écrans */
   @media (max-width: 380px) {
     .phoneFrame {
-      max-width: 330px !important;
-      height: 570px !important;
+      max-width: 295px !important;
+      height: 500px !important;
+      padding: 8px !important;
     }
   }
 
