@@ -84,8 +84,8 @@ export default function PacksIAPage() {
             <p style={styles.kicker}>Packs IA Shopify</p>
             <h1 style={styles.title}>Génère tes boutiques avec l’IA.</h1>
             <p style={styles.sub}>
-              Tu choisis un pack, tu envoies ton produit (image ou lien),
-              et l’IA te génère ta boutique complète en quelques minutes.
+              Tu choisis un pack, tu envoies ton produit (image ou lien), et l’IA
+              te génère ta boutique complète en quelques minutes.
             </p>
           </div>
 
@@ -112,14 +112,17 @@ export default function PacksIAPage() {
                 transform: pack.popular ? "translateY(-6px)" : "none",
               }}
             >
-              {pack.popular && (
-                <div style={styles.popBadge}>
-                  {pack.note ?? "Populaire"}
+              {/* ✅ HEADER CARD : titre + badge (plus jamais en overlay) */}
+              <div style={styles.cardTop}>
+                <div style={styles.cardTopText}>
+                  <h2 style={styles.cardTitle}>{pack.title}</h2>
+                  <div style={styles.cardSubtitle}>{pack.subtitle}</div>
                 </div>
-              )}
 
-              <h2 style={styles.cardTitle}>{pack.title}</h2>
-              <div style={styles.cardSubtitle}>{pack.subtitle}</div>
+                {pack.popular && (
+                  <div style={styles.popBadge}>{pack.note ?? "Populaire"}</div>
+                )}
+              </div>
 
               <ul style={styles.list}>
                 {pack.bullets.map((b, i) => (
@@ -143,7 +146,6 @@ export default function PacksIAPage() {
                   <div style={styles.priceNote}>Paiement unique</div>
                 </div>
 
-                {/* ✅ REDIRECTION VERS /paiement (Stripe) */}
                 <Link
                   href={`/paiement?product=${pack.productKey}`}
                   className="pack-cta"
@@ -184,6 +186,13 @@ export default function PacksIAPage() {
           }
           header[data-header="packs"] {
             grid-template-columns: 1fr !important;
+          }
+        }
+
+        /* ✅ mobile : badge reste propre et ne pousse pas bizarrement */
+        @media (max-width: 520px) {
+          .pack-card h2 {
+            font-size: 1.65rem !important;
           }
         }
       `}</style>
@@ -281,7 +290,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   card: {
-    position: "relative",
     background: COLORS.cardBg,
     color: COLORS.navy,
     borderRadius: 18,
@@ -291,10 +299,21 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 420,
   },
 
+  // ✅ top zone : titre + badge
+  cardTop: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 10,
+  },
+  cardTopText: {
+    minWidth: 0,
+    flex: "1 1 220px",
+  },
+
   popBadge: {
-    position: "absolute",
-    top: 12,
-    right: 12,
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     color: "white",
     fontWeight: 900,
@@ -302,22 +321,26 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 12px",
     borderRadius: 999,
     boxShadow: "0 8px 18px rgba(0,0,0,0.25)",
-    zIndex: 2,
+    whiteSpace: "nowrap",
+    flex: "0 0 auto",
+    marginTop: 2,
   },
 
   cardTitle: {
     fontSize: "1.9rem",
     fontWeight: 900,
-    margin: "6px 0 2px",
+    margin: 0,
+    lineHeight: 1.15,
   },
   cardSubtitle: {
+    marginTop: 6,
     fontSize: "1.05rem",
     fontWeight: 700,
     opacity: 0.9,
   },
 
   list: {
-    marginTop: 16,
+    marginTop: 10,
     display: "grid",
     gap: 10,
     fontSize: "1rem",
