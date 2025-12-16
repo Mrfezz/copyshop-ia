@@ -19,8 +19,11 @@ type ServicePack = {
   productKey: "services-essentiel" | "services-pro" | "services-business";
 };
 
+/**
+ * ✅ Même dégradé que packs-ia (priceBar)
+ */
 const PRICE_GRADIENT_HOME =
-  "linear-gradient(90deg, #141a4a 0%, #3f47d8 55%, #e64aa7 100%)";
+  "linear-gradient(90deg, #0b0f2a 0%, #6a2fd6 70%, #e64aa7 100%)";
 
 const PACKS: ServicePack[] = [
   {
@@ -211,7 +214,7 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA */}
+              {/* ✅ PRIX + Paiement unique + CTA (même dégradé + bouton que packs-ia) */}
               <div style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}>
                 <div style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
@@ -220,6 +223,7 @@ export default function ServicesDigitauxPage() {
 
                 <Link
                   href={`/paiement?product=${pack.productKey}`}
+                  className="services-cta"
                   style={styles.priceBtn}
                 >
                   Choisir ce pack
@@ -329,6 +333,15 @@ export default function ServicesDigitauxPage() {
 
       {/* responsive */}
       <style>{`
+        /* hover CTA comme packs-ia */
+        .services-cta {
+          transition: transform .2s ease, background .2s ease;
+        }
+        .services-cta:hover {
+          transform: translateY(-1px);
+          background: rgba(255,255,255,0.2) !important;
+        }
+
         @media (max-width: 1024px){
           .gridServices {
             grid-template-columns: 1fr !important;
@@ -529,16 +542,22 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.02em",
   },
   priceNote: { fontSize: "0.95rem", fontWeight: 700, opacity: 0.9 },
+
+  /**
+   * ✅ Même bouton que packs-ia
+   */
   priceBtn: {
+    flex: "0 0 auto",
     padding: "10px 14px",
     borderRadius: 999,
     fontWeight: 900,
     color: "white",
     textDecoration: "none",
-    background: "rgba(255,255,255,0.16)",
+    background: "rgba(255,255,255,0.14)",
     border: "1px solid rgba(255,255,255,0.28)",
     boxShadow: "0 6px 14px rgba(230,74,167,0.25)",
     whiteSpace: "nowrap",
+    textAlign: "center",
   },
 
   bottomBand: {
