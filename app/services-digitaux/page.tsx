@@ -214,8 +214,11 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA (même dégradé + bouton que packs-ia) */}
-              <div style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}>
+              {/* ✅ PRIX + Paiement unique + CTA (comme packs-ia => bloc rentré + arrondi complet) */}
+              <div
+                className="services-pricebar"
+                style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}
+              >
                 <div style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
                   <div style={styles.priceNote}>Paiement unique</div>
@@ -340,6 +343,17 @@ export default function ServicesDigitauxPage() {
         .services-cta:hover {
           transform: translateY(-1px);
           background: rgba(255,255,255,0.2) !important;
+        }
+
+        /* ✅ Très petit mobile: éviter que ça déborde => CTA full width */
+        @media (max-width: 420px){
+          .services-pricebar{
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .services-cta{
+            width: 100% !important;
+          }
         }
 
         @media (max-width: 1024px){
@@ -468,15 +482,16 @@ const styles: Record<string, React.CSSProperties> = {
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0,1fr))",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 18,
   },
 
+  // ✅ IMPORTANT: padding bas remis (comme packs-ia) pour que le priceBar soit "dans" la carte
   card: {
     background: COLORS.cardBg,
     color: COLORS.navy,
     borderRadius: 18,
-    padding: "22px 22px 0",
+    padding: "22px 22px 18px",
     display: "flex",
     flexDirection: "column",
     minHeight: 560,
@@ -523,16 +538,16 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 1,
   },
 
+  // ✅ Comme packs-ia : bloc arrondi complet + "inset"
   priceBar: {
-    marginTop: 14,
-    padding: "14px 16px",
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    marginTop: 16,
+    padding: "12px 14px",
+    borderRadius: 12,
     color: "white",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 10,
     flexWrap: "wrap",
   },
   priceLeft: { display: "grid", gap: 2 },
@@ -543,9 +558,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   priceNote: { fontSize: "0.95rem", fontWeight: 700, opacity: 0.9 },
 
-  /**
-   * ✅ Même bouton que packs-ia
-   */
+  // ✅ Même bouton que packs-ia
   priceBtn: {
     flex: "0 0 auto",
     padding: "10px 14px",
