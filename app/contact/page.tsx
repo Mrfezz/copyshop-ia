@@ -38,59 +38,49 @@ export default function ContactPage() {
           <p style={styles.sub}>Écris-moi et on lance ton projet rapidement.</p>
         </header>
 
-        <div className="contact-grid" style={styles.grid}>
+        <div style={styles.grid} className="contact-grid">
           {/* LEFT CARD */}
-          <aside className="contact-leftCard" style={styles.leftCard}>
+          <aside style={styles.leftCard}>
             <h2 style={styles.leftTitle}>On répond vite ⚡</h2>
             <p style={styles.leftSub}>
               Support Lun-Sam 9h-18h — réponse moyenne 8h.
             </p>
 
             <div style={styles.channelList}>
-              <div className="contact-channelItem" style={styles.channelItem}>
-                <div className="contact-channelMain">
+              <div style={styles.channelItem}>
+                <div>
                   <div style={styles.channelLabel}>WhatsApp</div>
-                  <div className="contact-channelValue" style={styles.channelValue}>
-                    +33 7 45 21 49 22
-                  </div>
+                  <div style={styles.channelValue}>+33 7 45 21 49 22</div>
                 </div>
-                <div className="contact-channelMeta" style={styles.channelMeta}>
-                  Réponse moyenne&nbsp;: 8h
-                </div>
+                <div style={styles.channelMeta}>Réponse moyenne&nbsp;: 8h</div>
               </div>
 
-              <div className="contact-channelItem" style={styles.channelItem}>
-                <div className="contact-channelMain">
+              <div style={styles.channelItem}>
+                <div>
                   <div style={styles.channelLabel}>Snapchat</div>
-                  <div className="contact-channelValue" style={styles.channelValue}>
-                    mr.fezz
-                  </div>
+                  <div style={styles.channelValue}>mr.fezz</div>
                 </div>
               </div>
 
-              <div className="contact-channelItem" style={styles.channelItem}>
-                <div className="contact-channelMain">
+              <div style={styles.channelItem}>
+                <div>
                   <div style={styles.channelLabel}>Instagram</div>
-                  <div className="contact-channelValue" style={styles.channelValue}>
-                    mr.fez__
-                  </div>
+                  <div style={styles.channelValue}>mr.fez__</div>
                 </div>
               </div>
 
-              <div className="contact-channelItem" style={styles.channelItem}>
-                <div className="contact-channelMain">
+              <div style={styles.channelItem}>
+                <div>
                   <div style={styles.channelLabel}>TikTok</div>
-                  <div className="contact-channelValue" style={styles.channelValue}>
-                    mr.fezzz
-                  </div>
+                  <div style={styles.channelValue}>mr.fezzz</div>
                 </div>
               </div>
             </div>
 
             <a
-              className="contact-whatsBtn"
               href="https://wa.me/33745214922"
               style={styles.whatsBtn}
+              className="whatsBtn"
               target="_blank"
               rel="noreferrer"
             >
@@ -104,12 +94,10 @@ export default function ContactPage() {
 
           {/* RIGHT CARD */}
           <form
-            className="contact-formCard"
             style={styles.formCard}
             onSubmit={(e) => {
               e.preventDefault();
               setOpen(true);
-              // ici tu brancheras ton backend plus tard si tu veux
             }}
           >
             <label style={styles.label}>
@@ -119,7 +107,12 @@ export default function ContactPage() {
 
             <label style={styles.label}>
               Email
-              <input style={styles.input} type="email" placeholder="toi@gmail.com" required />
+              <input
+                style={styles.input}
+                type="email"
+                placeholder="toi@gmail.com"
+                required
+              />
             </label>
 
             <label style={styles.label}>
@@ -135,47 +128,36 @@ export default function ContactPage() {
               Envoyer
             </button>
 
-            {open && <div style={styles.success}>✅ Message prêt ! (on branchera l’envoi après)</div>}
+            {open && (
+              <div style={styles.success}>
+                ✅ Message prêt ! (on branchera l’envoi après)
+              </div>
+            )}
           </form>
         </div>
 
-        <div style={styles.bottomNote}>Ou écris directement sur WhatsApp si c’est urgent.</div>
+        <div style={styles.bottomNote}>
+          Ou écris directement sur WhatsApp si c’est urgent.
+        </div>
       </section>
 
+      {/* ✅ responsive FIX (mobile seulement) */}
       <style>{`
-        /* ✅ MOBILE/TABLET: passer en 1 colonne (évite que les blocs se mangent) */
         @media (max-width: 980px) {
           .contact-grid {
             grid-template-columns: 1fr !important;
           }
         }
 
-        /* ✅ MOBILE: éviter les débordements dans les "channelItem" */
-        @media (max-width: 560px) {
-          .contact-channelItem {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            justify-content: flex-start !important;
-            gap: 6px !important;
-          }
-
-          .contact-channelMeta {
-            white-space: normal !important;
-            opacity: 0.9 !important;
-          }
-
-          .contact-channelValue {
-            word-break: break-word !important;
-          }
-
-          .contact-whatsBtn {
+        /* ✅ Mobile: le bouton WhatsApp reste dans le bloc */
+        @media (max-width: 520px) {
+          .whatsBtn {
             width: 100% !important;
-            text-align: center !important;
-          }
-
-          .contact-leftCard,
-          .contact-formCard {
-            padding: 16px !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            display: inline-flex !important;
+            justify-content: center !important;
+            align-items: center !important;
           }
         }
       `}</style>
@@ -287,7 +269,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    minWidth: 0,
+    flexWrap: "wrap", // ✅ petit plus anti-débordement sur mobile
     boxSizing: "border-box",
   },
   channelLabel: {
@@ -308,7 +290,9 @@ const styles: Record<string, React.CSSProperties> = {
 
   whatsBtn: {
     marginTop: 6,
-    width: "fit-content",
+    width: "fit-content", // ✅ desktop ok
+    maxWidth: "100%",
+    boxSizing: "border-box",
     padding: "12px 16px",
     borderRadius: 999,
     fontWeight: 900,
@@ -316,6 +300,9 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     boxShadow: "0 10px 26px rgba(106,47,214,0.45)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   leftFoot: {
     marginTop: 2,
