@@ -214,12 +214,12 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA (comme packs-ia => bloc rentré + arrondi complet) */}
+              {/* ✅ PRIX + Paiement unique + CTA */}
               <div
-                className="services-pricebar"
+                className="services-priceBar"
                 style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}
               >
-                <div style={styles.priceLeft}>
+                <div className="services-priceLeft" style={styles.priceLeft}>
                   <div style={styles.price}>{pack.price}</div>
                   <div style={styles.priceNote}>Paiement unique</div>
                 </div>
@@ -262,7 +262,6 @@ export default function ServicesDigitauxPage() {
               Clique sur le téléphone pour ouvrir la vidéo en grand.
             </p>
 
-            {/* Aperçu = IMAGE (poster) + overlay play -> ouvre modal */}
             <div style={styles.phoneWrap} className="phoneWrap">
               <button
                 type="button"
@@ -304,7 +303,7 @@ export default function ServicesDigitauxPage() {
         </section>
       </section>
 
-      {/* ✅ MODAL VIDEO (avec X) */}
+      {/* ✅ MODAL VIDEO */}
       {isModalOpen && (
         <div
           style={styles.modalOverlay}
@@ -334,7 +333,6 @@ export default function ServicesDigitauxPage() {
         </div>
       )}
 
-      {/* responsive */}
       <style>{`
         /* hover CTA comme packs-ia */
         .services-cta {
@@ -343,17 +341,6 @@ export default function ServicesDigitauxPage() {
         .services-cta:hover {
           transform: translateY(-1px);
           background: rgba(255,255,255,0.2) !important;
-        }
-
-        /* ✅ Très petit mobile: éviter que ça déborde => CTA full width */
-        @media (max-width: 420px){
-          .services-pricebar{
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .services-cta{
-            width: 100% !important;
-          }
         }
 
         @media (max-width: 1024px){
@@ -369,7 +356,25 @@ export default function ServicesDigitauxPage() {
           }
         }
 
-        /* ✅ Mobile: rendre le bloc + carré et éviter l'effet "trop grand" */
+        /* ✅ FIX MOBILE: le bouton ne doit JAMAIS dépasser du priceBar */
+        @media (max-width: 520px){
+          .services-priceBar{
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .services-priceLeft{
+            width: 100% !important;
+          }
+          .services-cta{
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            white-space: normal !important; /* overwrite nowrap */
+            text-align: center !important;
+          }
+        }
+
+        /* ✅ Mobile demo */
         @media (max-width: 520px){
           .demoCard{
             padding: 18px 14px 14px !important;
@@ -389,7 +394,6 @@ export default function ServicesDigitauxPage() {
             margin-top: 12px !important;
           }
 
-          /* centrer 100% propre (pas de vw qui déborde du bloc) */
           .phoneButton{
             width: 100% !important;
             display: flex !important;
@@ -482,16 +486,15 @@ const styles: Record<string, React.CSSProperties> = {
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(3, minmax(0,1fr))",
     gap: 18,
   },
 
-  // ✅ IMPORTANT: padding bas remis (comme packs-ia) pour que le priceBar soit "dans" la carte
   card: {
     background: COLORS.cardBg,
     color: COLORS.navy,
     borderRadius: 18,
-    padding: "22px 22px 18px",
+    padding: "22px 22px 18px", // ✅ important: laisse de l’air en bas comme packs-ia
     display: "flex",
     flexDirection: "column",
     minHeight: 560,
@@ -538,11 +541,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 1,
   },
 
-  // ✅ Comme packs-ia : bloc arrondi complet + "inset"
   priceBar: {
-    marginTop: 16,
+    marginTop: 14,
     padding: "12px 14px",
-    borderRadius: 12,
+    borderRadius: 12, // ✅ comme packs-ia (pas “coupé”)
     color: "white",
     display: "flex",
     alignItems: "center",
@@ -550,7 +552,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     flexWrap: "wrap",
   },
-  priceLeft: { display: "grid", gap: 2 },
+  priceLeft: { display: "grid", gap: 2, minWidth: 0 },
   price: {
     fontSize: "2.1rem",
     fontWeight: 900,
@@ -558,7 +560,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   priceNote: { fontSize: "0.95rem", fontWeight: 700, opacity: 0.9 },
 
-  // ✅ Même bouton que packs-ia
   priceBtn: {
     flex: "0 0 auto",
     padding: "10px 14px",
@@ -706,7 +707,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 16px 40px rgba(230,74,167,0.25)",
   },
 
-  // ✅ Modal (FIX CENTRAGE iPhone)
   modalOverlay: {
     position: "fixed",
     inset: 0,
