@@ -35,51 +35,60 @@ export default function ContactPage() {
         <header style={styles.header}>
           <div style={styles.kicker}>CONTACT</div>
           <h1 style={styles.title}>Avez-vous une question&nbsp;?</h1>
-          <p style={styles.sub}>
-            Écris-moi et on lance ton projet rapidement.
-          </p>
+          <p style={styles.sub}>Écris-moi et on lance ton projet rapidement.</p>
         </header>
 
-        <div style={styles.grid}>
+        <div className="contact-grid" style={styles.grid}>
           {/* LEFT CARD */}
-          <aside style={styles.leftCard}>
+          <aside className="contact-leftCard" style={styles.leftCard}>
             <h2 style={styles.leftTitle}>On répond vite ⚡</h2>
             <p style={styles.leftSub}>
               Support Lun-Sam 9h-18h — réponse moyenne 8h.
             </p>
 
             <div style={styles.channelList}>
-              <div style={styles.channelItem}>
-                <div>
+              <div className="contact-channelItem" style={styles.channelItem}>
+                <div className="contact-channelMain">
                   <div style={styles.channelLabel}>WhatsApp</div>
-                  <div style={styles.channelValue}>+33 7 45 21 49 22</div>
+                  <div className="contact-channelValue" style={styles.channelValue}>
+                    +33 7 45 21 49 22
+                  </div>
                 </div>
-                <div style={styles.channelMeta}>Réponse moyenne&nbsp;: 8h</div>
+                <div className="contact-channelMeta" style={styles.channelMeta}>
+                  Réponse moyenne&nbsp;: 8h
+                </div>
               </div>
 
-              <div style={styles.channelItem}>
-                <div>
+              <div className="contact-channelItem" style={styles.channelItem}>
+                <div className="contact-channelMain">
                   <div style={styles.channelLabel}>Snapchat</div>
-                  <div style={styles.channelValue}>mr.fezz</div>
+                  <div className="contact-channelValue" style={styles.channelValue}>
+                    mr.fezz
+                  </div>
                 </div>
               </div>
 
-              <div style={styles.channelItem}>
-                <div>
+              <div className="contact-channelItem" style={styles.channelItem}>
+                <div className="contact-channelMain">
                   <div style={styles.channelLabel}>Instagram</div>
-                  <div style={styles.channelValue}>mr.fez__</div>
+                  <div className="contact-channelValue" style={styles.channelValue}>
+                    mr.fez__
+                  </div>
                 </div>
               </div>
 
-              <div style={styles.channelItem}>
-                <div>
+              <div className="contact-channelItem" style={styles.channelItem}>
+                <div className="contact-channelMain">
                   <div style={styles.channelLabel}>TikTok</div>
-                  <div style={styles.channelValue}>mr.fezzz</div>
+                  <div className="contact-channelValue" style={styles.channelValue}>
+                    mr.fezzz
+                  </div>
                 </div>
               </div>
             </div>
 
             <a
+              className="contact-whatsBtn"
               href="https://wa.me/33745214922"
               style={styles.whatsBtn}
               target="_blank"
@@ -95,6 +104,7 @@ export default function ContactPage() {
 
           {/* RIGHT CARD */}
           <form
+            className="contact-formCard"
             style={styles.formCard}
             onSubmit={(e) => {
               e.preventDefault();
@@ -104,22 +114,12 @@ export default function ContactPage() {
           >
             <label style={styles.label}>
               Nom
-              <input
-                style={styles.input}
-                type="text"
-                placeholder="Ton nom"
-                required
-              />
+              <input style={styles.input} type="text" placeholder="Ton nom" required />
             </label>
 
             <label style={styles.label}>
               Email
-              <input
-                style={styles.input}
-                type="email"
-                placeholder="toi@gmail.com"
-                required
-              />
+              <input style={styles.input} type="email" placeholder="toi@gmail.com" required />
             </label>
 
             <label style={styles.label}>
@@ -135,23 +135,47 @@ export default function ContactPage() {
               Envoyer
             </button>
 
-            {open && (
-              <div style={styles.success}>
-                ✅ Message prêt ! (on branchera l’envoi après)
-              </div>
-            )}
+            {open && <div style={styles.success}>✅ Message prêt ! (on branchera l’envoi après)</div>}
           </form>
         </div>
 
-        <div style={styles.bottomNote}>
-          Ou écris directement sur WhatsApp si c’est urgent.
-        </div>
+        <div style={styles.bottomNote}>Ou écris directement sur WhatsApp si c’est urgent.</div>
       </section>
 
       <style>{`
+        /* ✅ MOBILE/TABLET: passer en 1 colonne (évite que les blocs se mangent) */
         @media (max-width: 980px) {
           .contact-grid {
             grid-template-columns: 1fr !important;
+          }
+        }
+
+        /* ✅ MOBILE: éviter les débordements dans les "channelItem" */
+        @media (max-width: 560px) {
+          .contact-channelItem {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            justify-content: flex-start !important;
+            gap: 6px !important;
+          }
+
+          .contact-channelMeta {
+            white-space: normal !important;
+            opacity: 0.9 !important;
+          }
+
+          .contact-channelValue {
+            word-break: break-word !important;
+          }
+
+          .contact-whatsBtn {
+            width: 100% !important;
+            text-align: center !important;
+          }
+
+          .contact-leftCard,
+          .contact-formCard {
+            padding: 16px !important;
           }
         }
       `}</style>
@@ -263,6 +287,8 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
+    minWidth: 0,
+    boxSizing: "border-box",
   },
   channelLabel: {
     fontSize: "0.9rem",
@@ -307,7 +333,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 12,
     boxSizing: "border-box",
-    overflow: "hidden", // ✅ empêche tout débordement visuel
+    overflow: "hidden",
   },
 
   label: {
@@ -320,8 +346,8 @@ const styles: Record<string, React.CSSProperties> = {
 
   input: {
     width: "100%",
-    maxWidth: "100%", // ✅ important
-    boxSizing: "border-box", // ✅ important
+    maxWidth: "100%",
+    boxSizing: "border-box",
     display: "block",
     padding: "12px 14px",
     borderRadius: 10,
@@ -334,8 +360,8 @@ const styles: Record<string, React.CSSProperties> = {
 
   textarea: {
     width: "100%",
-    maxWidth: "100%", // ✅ important
-    boxSizing: "border-box", // ✅ important
+    maxWidth: "100%",
+    boxSizing: "border-box",
     display: "block",
     padding: "12px 14px",
     borderRadius: 10,
