@@ -1,5 +1,6 @@
 // app/formation/page.tsx
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 type Formula = {
   title: string;
@@ -15,8 +16,7 @@ type Formula = {
   };
 };
 
-const PRIMARY_GRADIENT =
-  "linear-gradient(90deg,#4338ca,#6a2fd6,#e64aa7)";
+const PRIMARY_GRADIENT = "linear-gradient(90deg,#4338ca,#6a2fd6,#e64aa7)";
 const PRICE_GRADIENT_SOFT =
   "linear-gradient(90deg,#0b0f2a 0%, #4f46e5 65%, #e64aa7 100%)";
 const PRICE_GRADIENT_STRONG =
@@ -77,7 +77,7 @@ function FormulaCard({ f }: { f: Formula }) {
         {f.bullets.map((b) => (
           <li key={b} style={styles.listItem}>
             <span style={styles.check}>✓</span>
-            <span>{b}</span>
+            <span style={styles.listText}>{b}</span>
           </li>
         ))}
       </ul>
@@ -107,30 +107,41 @@ export default function FormationPage() {
         <p style={styles.kicker}>FORMATIONS E-COMMERCE</p>
         <h1 style={styles.heroTitle}>Se former sérieusement au e-commerce.</h1>
         <p style={styles.heroDesc}>
-          Deux formules pour t'accompagner : que tu partes de zéro ou que tu veuilles structurer
-          et scaler ton activité.
+          Deux formules pour t&apos;accompagner : que tu partes de zéro ou que tu
+          veuilles structurer et scaler ton activité.
         </p>
       </section>
 
-      <section style={styles.grid}>
+      {/* ✅ IMPORTANT : classe pour le responsive mobile */}
+      <section className="formationGrid" style={styles.grid}>
         {FORMULAS.map((f) => (
           <FormulaCard key={f.title} f={f} />
         ))}
       </section>
 
       <section style={styles.note}>
-        💡 Pense à la partie administrative (CPF, financement, etc.) avant de communiquer.
-        La mention "CPF éligible" ne doit être utilisée que si ta formation est réellement enregistrée et validée.
+        💡 Pense à la partie administrative (CPF, financement, etc.) avant de
+        communiquer. La mention &quot;CPF éligible&quot; ne doit être utilisée
+        que si ta formation est réellement enregistrée et validée.
       </section>
 
       <div style={{ textAlign: "center", marginTop: 18 }}>
-        <Link href="/" style={styles.linkBack}>← Retour accueil</Link>
+        <Link href="/" style={styles.linkBack}>
+          ← Retour accueil
+        </Link>
       </div>
 
+      {/* ✅ Responsive : 1 bloc sous l’autre sur mobile + petits ajustements */}
       <style>{`
         @media (max-width: 980px){
-          section[data-grid-formation]{
+          .formationGrid{
             grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 520px){
+          .formationGrid{
+            gap: 14px !important;
           }
         }
       `}</style>
@@ -138,7 +149,7 @@ export default function FormationPage() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     position: "relative",
     minHeight: "100vh",
@@ -205,6 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     minHeight: 420,
     boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+    minWidth: 0, // ✅ évite le débordement dans une grid
   },
   tag: {
     position: "absolute",
@@ -217,7 +229,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
   },
 
-  cardTitle: { fontSize: "1.6rem", fontWeight: 900, margin: "1.2rem 0 0.2rem" },
+  cardTitle: {
+    fontSize: "1.6rem",
+    fontWeight: 900,
+    margin: "1.2rem 0 0.2rem",
+    overflowWrap: "anywhere", // ✅ pour ne jamais sortir du bloc
+  },
   cardSubtitle: { margin: 0, color: "#b9c2ff", fontWeight: 700 },
 
   list: {
@@ -227,12 +244,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: "0.55rem",
     flex: 1,
+    minWidth: 0,
   },
   listItem: {
     display: "flex",
     gap: "0.55rem",
     alignItems: "flex-start",
     fontSize: "1rem",
+    minWidth: 0,
+  },
+  listText: {
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    lineHeight: 1.35,
   },
   check: {
     width: 22,
@@ -246,6 +270,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     fontSize: "0.85rem",
     marginTop: 1,
+    flex: "0 0 auto",
   },
 
   priceBar: {
