@@ -24,9 +24,10 @@ const COLORS = {
 };
 
 export default function ContactPage() {
-  const [open, setOpen] = useState(false);
-
-  const GMAIL_ADDRESS = "copyshopp.ia@gmail.com";
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
+    "idle"
+  );
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   return (
     <main style={styles.page}>
@@ -78,11 +79,11 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* ✅ NOUVEAU : Gmail (en bas) */}
+              {/* ✅ Gmail ajouté */}
               <div style={styles.channelItem}>
                 <div>
                   <div style={styles.channelLabel}>Gmail</div>
-                  <div style={styles.channelValue}>{GMAIL_ADDRESS}</div>
+                  <div style={styles.channelValue}>copyshopp.ia@gmail.com</div>
                 </div>
               </div>
             </div>
@@ -105,14 +106,43 @@ export default function ContactPage() {
           {/* RIGHT CARD */}
           <form
             style={styles.formCard}
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setOpen(true);
+              setStatus("loading");
+              setErrorMsg("");
+
+              const form = e.currentTarget;
+              const fd = new FormData(form);
+
+              const name = String(fd.get("name") || "").trim();
+              const email = String(fd.get("email") || "").trim();
+              const message = String(fd.get("message") || "").trim();
+
+              try {
+                const res = await fetch("/api/contact", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name, email, message }),
+                });
+
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok || !data?.ok) {
+                  throw new Error(data?.error || "Erreur lors de l’envoi");
+                }
+
+                setStatus("success");
+                form.reset();
+              } catch (err: any) {
+                setStatus("error");
+                setErrorMsg(err?.message || "Erreur lors de l’envoi");
+              }
             }}
           >
             <label style={styles.label}>
               Nom
               <input
+                name="name"
                 style={styles.input}
                 type="text"
                 placeholder="Ton nom"
@@ -123,6 +153,7 @@ export default function ContactPage() {
             <label style={styles.label}>
               Email
               <input
+                name="email"
                 style={styles.input}
                 type="email"
                 placeholder="toi@gmail.com"
@@ -133,20 +164,23 @@ export default function ContactPage() {
             <label style={styles.label}>
               Message
               <textarea
+                name="message"
                 style={styles.textarea}
                 placeholder="Explique-moi ce dont tu as besoin..."
                 required
               />
             </label>
 
-            <button type="submit" style={styles.submitBtn}>
-              Envoyer
+            <button type="submit" style={styles.submitBtn} disabled={status === "loading"}>
+              {status === "loading" ? "Envoi..." : "Envoyer"}
             </button>
 
-            {open && (
-              <div style={styles.success}>
-                ✅ Message prêt ! (on branchera l’envoi après)
-              </div>
+            {status === "success" && (
+              <div style={styles.success}>✅ Message envoyé !</div>
+            )}
+
+            {status === "error" && (
+              <div style={styles.error}>❌ {errorMsg}</div>
             )}
           </form>
         </div>
@@ -286,7 +320,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     flexWrap: "wrap",
     boxSizing: "border-box",
-    minWidth: 0,
   },
   channelLabel: {
     fontSize: "0.9rem",
@@ -296,8 +329,6 @@ const styles: Record<string, React.CSSProperties> = {
   channelValue: {
     fontSize: "1.05rem",
     fontWeight: 900,
-    overflowWrap: "anywhere", // ✅ important pour l’email sur mobile
-    wordBreak: "break-word",
   },
   channelMeta: {
     fontSize: "0.9rem",
@@ -392,6 +423,7 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     background: `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`,
     boxShadow: "0 12px 30px rgba(106,47,214,0.35)",
+    opacity: 1,
   },
 
   success: {
@@ -400,6 +432,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     background: "rgba(40,180,120,0.12)",
     border: "1px solid rgba(40,180,120,0.35)",
+    fontWeight: 800,
+    textAlign: "center",
+  },
+
+  error: {
+    marginTop: 6,
+    padding: "10px 12px",
+    borderRadius: 10,
+    background: "rgba(239,68,68,0.12)",
+    border: "1px solid rgba(239,68,68,0.35)",
     fontWeight: 800,
     textAlign: "center",
   },
