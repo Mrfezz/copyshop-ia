@@ -26,6 +26,8 @@ const COLORS = {
 export default function ContactPage() {
   const [open, setOpen] = useState(false);
 
+  const GMAIL_ADDRESS = "copyshopp.ia@gmail.com";
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -75,6 +77,14 @@ export default function ContactPage() {
                   <div style={styles.channelValue}>mr.fezzz</div>
                 </div>
               </div>
+
+              {/* ✅ NOUVEAU : Gmail (en bas) */}
+              <div style={styles.channelItem}>
+                <div>
+                  <div style={styles.channelLabel}>Gmail</div>
+                  <div style={styles.channelValue}>{GMAIL_ADDRESS}</div>
+                </div>
+              </div>
             </div>
 
             <a
@@ -102,7 +112,12 @@ export default function ContactPage() {
           >
             <label style={styles.label}>
               Nom
-              <input style={styles.input} type="text" placeholder="Ton nom" required />
+              <input
+                style={styles.input}
+                type="text"
+                placeholder="Ton nom"
+                required
+              />
             </label>
 
             <label style={styles.label}>
@@ -269,8 +284,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     gap: 10,
-    flexWrap: "wrap", // ✅ petit plus anti-débordement sur mobile
+    flexWrap: "wrap",
     boxSizing: "border-box",
+    minWidth: 0,
   },
   channelLabel: {
     fontSize: "0.9rem",
@@ -280,6 +296,8 @@ const styles: Record<string, React.CSSProperties> = {
   channelValue: {
     fontSize: "1.05rem",
     fontWeight: 900,
+    overflowWrap: "anywhere", // ✅ important pour l’email sur mobile
+    wordBreak: "break-word",
   },
   channelMeta: {
     fontSize: "0.9rem",
@@ -290,7 +308,7 @@ const styles: Record<string, React.CSSProperties> = {
 
   whatsBtn: {
     marginTop: 6,
-    width: "fit-content", // ✅ desktop ok
+    width: "fit-content",
     maxWidth: "100%",
     boxSizing: "border-box",
     padding: "12px 16px",
