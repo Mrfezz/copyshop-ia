@@ -1,12 +1,7 @@
 // app/paiement/page.tsx
 "use client";
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties,
-} from "react";
+import React, { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { PRODUCTS, type ProductKey } from "@/lib/products";
 
@@ -37,7 +32,7 @@ const COLORS = {
 };
 
 // ✅ Texte de secours si un produit n’a pas de description
-const DEFAULT_DESCS: Record<string ,string> = {
+const DEFAULT_DESCS: Record<string, string> = {
   // Services digitaux
   "services-essentiel":
     "Le pack parfait pour lancer ta boutique vite et proprement. Base solide, pro et prête à vendre.",
@@ -78,7 +73,6 @@ const DEFAULT_DESCS: Record<string ,string> = {
 export default function PaiementPage() {
   const router = useRouter();
 
-  // ✅ on lit ?product= côté client uniquement
   const [keyParam, setKeyParam] = useState<ProductKey | null>(null);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,11 +84,8 @@ export default function PaiementPage() {
     const sp = new URLSearchParams(window.location.search);
     const rawKey = sp.get("product") as ProductKey | null;
 
-    if (rawKey && rawKey in PRODUCTS) {
-      setKeyParam(rawKey);
-    } else {
-      setKeyParam(null);
-    }
+    if (rawKey && rawKey in PRODUCTS) setKeyParam(rawKey);
+    else setKeyParam(null);
 
     setReady(true);
   }, []);
@@ -124,16 +115,13 @@ export default function PaiementPage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ le backend attend productKey
         body: JSON.stringify({ productKey: keyParam }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data?.url) {
-        throw new Error(
-          data?.error || "Impossible de créer la session de paiement."
-        );
+        throw new Error(data?.error || "Impossible de créer la session de paiement.");
       }
 
       window.location.href = data.url;
@@ -143,39 +131,30 @@ export default function PaiementPage() {
     }
   };
 
-  // ✅ 1) Pendant le premier rendu (SSR + avant useEffect)
   if (!ready) {
     return (
       <main style={styles.page}>
         <div style={styles.bgGradient} />
         <div style={styles.bgDots} />
-
         <section style={styles.container}>
           <div style={styles.card}>
             <h1 style={styles.title}>Préparation du paiement…</h1>
-            <p style={styles.sub}>
-              Merci de patienter, on charge ton produit Copyshop IA.
-            </p>
+            <p style={styles.sub}>Merci de patienter, on charge ton produit Copyshop IA.</p>
           </div>
         </section>
       </main>
     );
   }
 
-  // ✅ 2) Après lecture des params : produit introuvable
   if (!product) {
     return (
       <main style={styles.page}>
         <div style={styles.bgGradient} />
         <div style={styles.bgDots} />
-
         <section style={styles.container}>
           <div style={styles.card}>
             <h1 style={styles.title}>Produit introuvable</h1>
-            <p style={styles.sub}>
-              Le lien de paiement est invalide ou incomplet.
-            </p>
-
+            <p style={styles.sub}>Le lien de paiement est invalide ou incomplet.</p>
             <button onClick={() => router.push("/")} style={styles.btnAlt}>
               Retour à l’accueil
             </button>
@@ -185,7 +164,6 @@ export default function PaiementPage() {
     );
   }
 
-  // ✅ 3) Produit OK
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -195,15 +173,18 @@ export default function PaiementPage() {
         <header style={styles.header}>
           <p style={styles.kicker}>PAIEMENT SÉCURISÉ</p>
           <h1 style={styles.title}>Finaliser ta commande</h1>
-          <p style={styles.sub}>
-            Tu es à un clic de débloquer ton accès Copyshop IA.
-          </p>
+          <p style={styles.sub}>Tu es à un clic de débloquer ton accès Copyshop IA.</p>
         </header>
 
         <article style={styles.card}>
-          <div style={styles.badge}>Paiement unique</div>
+          {/* ✅ Header produit : badge + titre (fix mobile via CSS) */}
+          <div className="payCardHeader" style={styles.cardHeader}>
+            <div className="payBadge" style={styles.badge}>
+              Paiement unique
+            </div>
 
-          <h2 style={styles.cardTitle}>{product.name}</h2>
+            <h2 style={styles.cardTitle}>{product.name}</h2>
+          </div>
 
           <p style={styles.desc}>{description}</p>
 
@@ -240,6 +221,25 @@ export default function PaiementPage() {
           {error && <div style={styles.errorBox}>⚠️ {error}</div>}
         </article>
       </section>
+
+      {/* ✅ FIX MOBILE : le badge ne chevauche plus le titre */}
+      <style>{`
+        @media (max-width: 520px) {
+          .payCardHeader{
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+            align-items: flex-start !important;
+          }
+          .payBadge{
+            position: static !important;
+            top: auto !important;
+            right: auto !important;
+            align-self: flex-end !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
@@ -323,6 +323,11 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
   },
 
+  cardHeader: {
+    position: "relative",
+    minWidth: 0,
+  },
+
   badge: {
     position: "absolute",
     top: 14,
@@ -333,6 +338,7 @@ const styles: Record<string, CSSProperties> = {
     padding: "6px 10px",
     borderRadius: 999,
     fontSize: "0.8rem",
+    whiteSpace: "nowrap",
   },
 
   cardTitle: {
