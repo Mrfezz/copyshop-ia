@@ -180,7 +180,7 @@ export default function Footer() {
         </section>
 
         {/* Bas footer */}
-        <div style={styles.bottomBar}>© {new Date().getFullYear()} Copyshop IA — by Mr Fez</div>
+        <div style={styles.bottomBar}>© {new Date().getFullYear()} Copyshop IA</div>
       </div>
 
       {/* Responsive */}
