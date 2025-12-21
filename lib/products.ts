@@ -5,7 +5,7 @@ export const PRODUCTS = {
   "services-essentiel": {
     name: "Pack Essentiel (Services Digitaux)",
     priceLabel: "400€",
-    priceId: "price_SERVICES_ESSENTIEL", // <-- remplace par ton vrai price_ Stripe
+    stripePriceId: "price_SERVICES_ESSENTIEL", // <-- remplace par ton vrai price_ Stripe
     description:
       "On lance ta boutique Shopify sur des bases solides : design propre, branding cohérent et pages prêtes à convertir. Idéal pour démarrer vite avec une boutique crédible.",
     points: [
@@ -19,7 +19,7 @@ export const PRODUCTS = {
   "services-pro": {
     name: "Pack Pro (Services Digitaux)",
     priceLabel: "600€",
-    priceId: "price_SERVICES_PRO", // <-- remplace
+    stripePriceId: "price_SERVICES_PRO", // <-- remplace
     description:
       "Tu veux passer en mode sérieux ? On t’accompagne sur l’administratif et le sourcing produit pour que ton projet soit carré et prêt à vendre dès le lancement.",
     points: [
@@ -33,7 +33,7 @@ export const PRODUCTS = {
   "services-business": {
     name: "Pack Business+ (Services Digitaux)",
     priceLabel: "800€",
-    priceId: "price_SERVICES_BUSINESS", // <-- remplace
+    stripePriceId: "price_SERVICES_BUSINESS", // <-- remplace
     description:
       "L’option “clé en main” : on prend tout en charge pour un lancement complet. Boutique optimisée, fournisseur fiable, visibilité SEO et réseaux sociaux prêts à scaler.",
     points: [
@@ -50,7 +50,7 @@ export const PRODUCTS = {
   "ia-basic": {
     name: "Pack Basic IA",
     priceLabel: "49,99€",
-    priceId: "price_IA_BASIC", // <-- remplace
+    stripePriceId: "price_1SgugdIGNjC6wKJRJQY7rkHN", // <-- remplace
     description:
       "Parfait pour débuter : accès à vie à Copyshop IA et génération de 5 boutiques prêtes à vendre. Tu testes ta première niche rapidement sans te prendre la tête.",
     points: [
@@ -64,7 +64,7 @@ export const PRODUCTS = {
   "ia-premium": {
     name: "Pack Premium IA",
     priceLabel: "99,90€",
-    priceId: "price_IA_PREMIUM", // <-- remplace
+    stripePriceId: "price_IA_PREMIUM", // <-- remplace
     description:
       "Pour ceux qui veulent tester plusieurs niches : 15 boutiques générées avec analyse marketing incluse. Tu gagnes un temps énorme et tu vas droit au rentable.",
     points: [
@@ -78,7 +78,7 @@ export const PRODUCTS = {
   "ia-ultime": {
     name: "Pack Ultime IA",
     priceLabel: "149,99€",
-    priceId: "price_IA_ULTIME", // <-- remplace
+    stripePriceId: "price_IA_ULTIME", // <-- remplace
     description:
       "Le pack scaling : génération illimitée de boutiques, branding complet et support VIP. Tu peux enchaîner les tests et passer à l’échelle sans limite.",
     points: [
@@ -93,7 +93,7 @@ export const PRODUCTS = {
   "kbis-24h": {
     name: "Création Kbis en 24h",
     priceLabel: "100€",
-    priceId: "price_KBIS_24H", // <-- remplace
+    stripePriceId: "price_KBIS_24H", // <-- remplace
     description:
       "On crée ta micro-entreprise / société de A à Z et tu reçois ton Kbis rapidement. Tu gagnes du temps et tu démarres légalement sans stress.",
   },
@@ -101,7 +101,7 @@ export const PRODUCTS = {
   "logo-shopify": {
     name: "Logo boutique Shopify",
     priceLabel: "119,99€",
-    priceId: "price_LOGO_SHOPIFY", // <-- remplace
+    stripePriceId: "price_LOGO_SHOPIFY", // <-- remplace
     description:
       "Un logo pro + mini charte graphique pour une boutique crédible et mémorable. Parfait pour renforcer la confiance et booster tes ventes.",
   },
@@ -110,7 +110,7 @@ export const PRODUCTS = {
   "nom-domaine": {
     name: "Nom de domaine (mise en ligne + configuration)",
     priceLabel: "49,99€",
-    priceId: "price_NOM_DOMAINE", // <-- remplace par le vrai price_ Stripe
+    stripePriceId: "price_NOM_DOMAINE", // <-- remplace
     description:
       "Recherche d’un nom de domaine disponible (.fr ou .com), achat + configuration complète sur ta boutique Shopify, mise en ligne sur Google. Validité 1 an (renouvellement non pris en charge).",
   },
@@ -118,7 +118,7 @@ export const PRODUCTS = {
   "contact-fournisseur": {
     name: "Contact fournisseur (Chine/Émirats)",
     priceLabel: "120€",
-    priceId: "price_CONTACT_FOURNISSEUR", // <-- remplace
+    stripePriceId: "price_CONTACT_FOURNISSEUR", // <-- remplace
     description:
       "On te trouve un fournisseur fiable adapté à ta niche, on vérifie le minimum et on te met en relation. Tu sécurises ton stock et tu évites les galères.",
   },
@@ -126,7 +126,7 @@ export const PRODUCTS = {
   "shopify-paiement": {
     name: "Activation Shopify Paiement",
     priceLabel: "39,99€",
-    priceId: "price_SHOPIFY_PAIEMENT", // <-- remplace
+    stripePriceId: "price_SHOPIFY_PAIEMENT", // <-- remplace
     description:
       "Configuration complète de Shopify Payments (docs, réglages, tests) pour que tu encaisses sans blocage. Tu vends direct et sereinement.",
   },
@@ -134,7 +134,7 @@ export const PRODUCTS = {
   "reseaux-sociaux": {
     name: "Création réseaux sociaux",
     priceLabel: "49,99€",
-    priceId: "price_RESEAUX_SOCIAUX", // <-- remplace
+    stripePriceId: "price_RESEAUX_SOCIAUX", // <-- remplace
     description:
       "Création/optimisation de tes pages Instagram, Facebook et TikTok avec un branding propre. Tu pars avec une présence cohérente prête à attirer des clients.",
   },
@@ -142,7 +142,7 @@ export const PRODUCTS = {
   "flyer-image-video": {
     name: "Création flyer image & vidéo",
     priceLabel: "100€",
-    priceId: "price_FLYER_IMAGE_VIDEO", // <-- remplace
+    stripePriceId: "price_FLYER_IMAGE_VIDEO", // <-- remplace
     description:
       "Un visuel pub pro + une version vidéo/story prête pour Meta, TikTok et Snap. Tu reçois un contenu 100% exploitable pour tes campagnes.",
   },
@@ -150,7 +150,7 @@ export const PRODUCTS = {
   "recharge-ia": {
     name: "Recharge boutiques IA",
     priceLabel: "29,99€",
-    priceId: "price_RECHARGE_IA", // <-- remplace
+    stripePriceId: "price_RECHARGE_IA", // <-- remplace
     description:
       "Ajoute 5 boutiques IA supplémentaires à ton pack Basic/Premium. Idéal pour tester encore plus de niches et augmenter tes chances de trouver un gagnant.",
   },
@@ -158,10 +158,13 @@ export const PRODUCTS = {
   "optimisation-boutique": {
     name: "Optimisation boutique",
     priceLabel: "179,99€",
-    priceId: "price_OPTIMISATION_BOUTIQUE", // <-- remplace
+    stripePriceId: "price_OPTIMISATION_BOUTIQUE", // <-- remplace
     description:
       "Audit complet + optimisation homepage, pages produits et upsells. On améliore la confiance et la conversion pour que ta boutique vende plus.",
   },
 } as const;
 
 export type ProductKey = keyof typeof PRODUCTS;
+
+// Optionnel mais pratique : type pour un produit
+export type Product = (typeof PRODUCTS)[ProductKey];
