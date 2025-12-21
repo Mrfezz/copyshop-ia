@@ -9,17 +9,14 @@ import FloatingCartButton from "./_components/FloatingCartButton";
 import FloatingAccountButton from "./_components/FloatingAccountButton";
 
 export const metadata: Metadata = {
-  title: "Copyshop IA",
-  description: "Génère ta boutique Shopify en quelques minutes.",
   icons: {
     icon: [
-      { url: "/favicon.ico" }, // fallback universel
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      // petit hack anti-cache (tu peux changer v=2 si besoin)
+      { url: "/favicon.ico?v=2" },
+      { url: "/favicon-32x32.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png?v=2", sizes: "16x16", type: "image/png" },
     ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    apple: [{ url: "/apple-touch-icon.png?v=2", sizes: "180x180", type: "image/png" }],
   },
 };
 
