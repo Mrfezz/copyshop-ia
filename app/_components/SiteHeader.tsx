@@ -138,7 +138,7 @@ export default function SiteHeader() {
           {/* Brand */}
           <Link href="/" style={styles.brand} aria-label="Copyshop IA - Accueil">
             <Image
-              src="/logo-mark-c3.png"
+              src="/logo-mark-c.png"
               alt="Logo Copyshop IA"
               width={30}
               height={30}
