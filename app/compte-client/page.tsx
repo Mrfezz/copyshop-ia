@@ -1,7 +1,7 @@
 "use client";
 
 // app/compte-client/page.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabaseClient";
@@ -22,9 +22,36 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-export default function CompteClientPage() {
+/**
+ * ✅ IMPORTANT (fix Vercel)
+ * useSearchParams() DOIT être dans un composant rendu sous <Suspense>.
+ */
+function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   const searchParams = useSearchParams();
 
+  if (hidden) return null;
+
+  const success = searchParams?.get("success");
+  const paymentSuccess = success === "1" || success === "true";
+
+  if (!paymentSuccess) return null;
+
+  const purchasedProduct = searchParams?.get("product") ?? "";
+
+  return (
+    <div style={styles.paymentBanner}>
+      <div style={styles.paymentTitle}>✅ Paiement validé.</div>
+      <div style={styles.paymentText}>
+        Connecte-toi pour activer ton pack.
+        {purchasedProduct ? (
+          <span style={styles.paymentHint}> (pack: {purchasedProduct})</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
@@ -36,17 +63,6 @@ export default function CompteClientPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
-
-  // ✅ message "paiement validé" si on arrive avec ?success=1
-  const paymentSuccess = useMemo(() => {
-    const v = searchParams?.get("success");
-    return v === "1" || v === "true";
-  }, [searchParams]);
-
-  // (optionnel) si tu veux afficher le pack concerné plus tard
-  const purchasedProduct = useMemo(() => {
-    return searchParams?.get("product") ?? "";
-  }, [searchParams]);
 
   useEffect(() => {
     let ignore = false;
@@ -118,17 +134,9 @@ export default function CompteClientPage() {
           </p>
 
           {/* ✅ Banner paiement validé (quand on arrive de Stripe) */}
-          {!checking && !session && paymentSuccess && (
-            <div style={styles.paymentBanner}>
-              <div style={styles.paymentTitle}>✅ Paiement validé.</div>
-              <div style={styles.paymentText}>
-                Connecte-toi pour activer ton pack.
-                {purchasedProduct ? (
-                  <span style={styles.paymentHint}> (pack: {purchasedProduct})</span>
-                ) : null}
-              </div>
-            </div>
-          )}
+          <Suspense fallback={null}>
+            <PaymentSuccessBanner hidden={checking || !!session} />
+          </Suspense>
 
           {/* petite ligne "connecté en tant que" */}
           {!checking && session && (
