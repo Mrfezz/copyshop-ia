@@ -21,24 +21,32 @@ function normalizeBaseUrl(raw?: string | null) {
 }
 
 function getBaseUrl(req: Request) {
-  // 1) priorité à l'env
+  // 1) priorité à l'env (recommandé)
   const fromEnv = normalizeBaseUrl(
     process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL
   );
   if (fromEnv) return fromEnv;
 
-  // 2) fallback via headers (utile sur Vercel si env absente)
+  // 2) Vercel URL (sans protocole) -> on force https
+  const fromVercel = process.env.VERCEL_URL
+    ? normalizeBaseUrl(`https://${process.env.VERCEL_URL}`)
+    : null;
+  if (fromVercel) return fromVercel;
+
+  // 3) fallback via headers (utile sur Vercel/Proxy)
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const host =
     req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
+  if (host) return normalizeBaseUrl(`${proto}://${host}`);
 
-  if (!host) return null;
-  return normalizeBaseUrl(`${proto}://${host}`);
+  // 4) fallback origin
+  const origin = req.headers.get("origin");
+  return normalizeBaseUrl(origin);
 }
 
 export async function POST(req: Request) {
   try {
-    // Lire le body JSON proprement
+    // Lire le body JSON
     let body: any = null;
     try {
       body = await req.json();
@@ -47,6 +55,7 @@ export async function POST(req: Request) {
     }
 
     const productKey = body?.productKey as ProductKey | undefined;
+    const email = (body?.email as string | undefined)?.trim() || undefined;
 
     // ✅ Vérif produit
     if (!productKey || !(productKey in PRODUCTS)) {
@@ -55,7 +64,7 @@ export async function POST(req: Request) {
 
     const product = PRODUCTS[productKey];
 
-    // ✅ Vérif Stripe Price ID (obligatoire et doit commencer par price_)
+    // ✅ Vérif Stripe Price ID
     const stripePriceId = (product as any).stripePriceId as string | undefined;
     if (!stripePriceId || !stripePriceId.startsWith("price_")) {
       return NextResponse.json(
@@ -68,7 +77,10 @@ export async function POST(req: Request) {
     const baseUrl = getBaseUrl(req);
     if (!baseUrl) {
       return NextResponse.json(
-        { error: "Impossible de déterminer l'URL du site (NEXT_PUBLIC_SITE_URL manquante)." },
+        {
+          error:
+            "Impossible de déterminer l'URL du site. Renseigne NEXT_PUBLIC_SITE_URL dans Vercel.",
+        },
         { status: 500 }
       );
     }
@@ -79,10 +91,13 @@ export async function POST(req: Request) {
       line_items: [{ price: stripePriceId, quantity: 1 }],
       allow_promotion_codes: true,
 
-      // (Optionnel) utile pour retrouver côté Stripe
+      // (optionnel) si tu envoies email depuis le front
+      ...(email ? { customer_email: email } : {}),
+
+      // pratique pour retrouver côté Stripe
       client_reference_id: productKey,
 
-      // ✅ Redirections (tes URLs)
+      // ✅ Redirections
       success_url: `${baseUrl}/compte-client?success=1&product=${encodeURIComponent(
         productKey
       )}&session_id={CHECKOUT_SESSION_ID}`,
@@ -90,14 +105,14 @@ export async function POST(req: Request) {
         productKey
       )}`,
 
-      // ✅ metadata (session)
+      // ✅ metadata session
       metadata: {
         productKey,
         productName: product.name,
         priceLabel: product.priceLabel,
       },
 
-      // ✅ metadata aussi sur PaymentIntent (pratique en webhook)
+      // ✅ metadata sur PaymentIntent (top pour webhook)
       payment_intent_data: {
         metadata: {
           productKey,
@@ -124,7 +139,7 @@ export async function POST(req: Request) {
   }
 }
 
-// (Optionnel) si jamais quelqu’un appelle GET par erreur
+// (Optionnel) si quelqu’un appelle GET
 export async function GET() {
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
