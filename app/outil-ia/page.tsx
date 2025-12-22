@@ -1,7 +1,9 @@
 // app/outil-ia/page.tsx
 "use client";
 
-import React, { FormEvent, useState, ChangeEvent } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 
 type GeneratedBoutique = {
   storeName: string;
@@ -10,6 +12,8 @@ type GeneratedBoutique = {
   productPageBlocks: string[];
   brandTone: string;
 };
+
+type ApiError = { error?: string };
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -36,12 +40,53 @@ const cardStyle: React.CSSProperties = {
   padding: "1.6rem 1.5rem",
 };
 
+const pillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "10px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  color: "#e5e7eb",
+  fontSize: "0.9rem",
+  fontWeight: 650,
+};
+
 export default function OutilIAPage() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const [productUrl, setProductUrl] = useState("");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
+
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!ignore) {
+        setSession(data.session ?? null);
+        setCheckingAuth(false);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => {
+      ignore = true;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -62,9 +107,21 @@ export default function OutilIAPage() {
 
   async function handleGenerate(e: FormEvent) {
     e.preventDefault();
+    setErrorMsg(null);
+    setStatusMsg(null);
+    setResult(null);
 
-    if (!imageBase64 && !productUrl) {
-      alert("Ajoute au moins une image ou un lien produit.");
+    // ✅ Ton API exige productUrl
+    const url = productUrl.trim();
+    if (!url) {
+      setErrorMsg("Pour l’instant, le lien produit est obligatoire (l’image sera ajoutée après).");
+      return;
+    }
+
+    // ✅ Doit être connecté
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      setErrorMsg("Tu dois être connecté pour utiliser l’outil IA.");
       return;
     }
 
@@ -75,30 +132,64 @@ export default function OutilIAPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          productUrl,
-          imageBase64,
+          productUrl: url,
+          imageBase64, // accepté (pas utilisé pour l’instant)
+          // productKey: "ia-basic", // optionnel si tu veux forcer un pack précis
         }),
       });
 
+      // 🔥 Gestion erreurs API
       if (!res.ok) {
-        console.error("Erreur API /api/outil-ia :", await res.text());
-        alert(
-          "Erreur lors de la génération avec l'IA. Réessaie dans un instant."
-        );
+        let payload: ApiError | null = null;
+        try {
+          payload = (await res.json()) as ApiError;
+        } catch {
+          // ignore
+        }
+
+        const msg = payload?.error || (await res.text()) || "Erreur inconnue";
+
+        if (res.status === 401) {
+          setErrorMsg("Session invalide. Reconnecte-toi pour continuer.");
+          return;
+        }
+
+        if (res.status === 403) {
+          setErrorMsg(
+            "Accès refusé : aucun pack actif détecté. Achète un pack IA puis reconnecte-toi."
+          );
+          return;
+        }
+
+        if (res.status === 400) {
+          setErrorMsg(msg);
+          return;
+        }
+
+        setErrorMsg(`Erreur serveur (${res.status}) : ${msg}`);
         return;
       }
 
       const data = (await res.json()) as GeneratedBoutique;
+
       setResult(data);
-    } catch (error) {
-      console.error("Erreur réseau :", error);
-      alert("Erreur réseau pendant l'appel à l'IA.");
+      setStatusMsg("✅ Boutique générée avec succès.");
+    } catch (err) {
+      console.error("Erreur réseau :", err);
+      setErrorMsg("Erreur réseau pendant l'appel à l'IA.");
     } finally {
       setLoading(false);
     }
   }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
+
+  const userEmail = session?.user?.email ?? "";
 
   return (
     <main
@@ -110,18 +201,9 @@ export default function OutilIAPage() {
         color: "#f9fafb",
       }}
     >
-      <div
-        style={{
-          maxWidth: "1120px",
-          margin: "0 auto",
-        }}
-      >
+      <div style={{ maxWidth: "1120px", margin: "0 auto" }}>
         {/* HEADER */}
-        <header
-          style={{
-            marginBottom: "2.3rem",
-          }}
-        >
+        <header style={{ marginBottom: "1.4rem" }}>
           <p
             style={{
               fontSize: "0.75rem",
@@ -133,30 +215,117 @@ export default function OutilIAPage() {
           >
             Outil IA • Boutiques Shopify
           </p>
-          <h1
-            style={{
-              fontSize: "2.2rem",
-              fontWeight: 800,
-              marginBottom: "0.3rem",
-            }}
-          >
-            Génère une boutique à partir d&apos;une seule image.
+
+          <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: "0.3rem" }}>
+            Génère une boutique Shopify (pack requis).
           </h1>
-          <p
-            style={{
-              fontSize: "0.95rem",
-              color: "#e5e7eb",
-              maxWidth: "620px",
-            }}
-          >
-            Ton client téléverse l&apos;image du produit (ou colle un lien
-            AliExpress), l&apos;IA s&apos;occupe du reste : nom, slogan,
-            sections, page produit.
+
+          <p style={{ fontSize: "0.95rem", color: "#e5e7eb", maxWidth: "720px" }}>
+            Colle un lien produit (AliExpress / fournisseur). L’IA génère : nom, slogan,
+            sections, page produit. <br />
+            <span style={{ color: "rgba(255,255,255,0.70)" }}>
+              (L’analyse d’image viendra après — ton API actuelle utilise surtout le lien.)
+            </span>
           </p>
+
+          {/* Auth line */}
+          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {checkingAuth ? (
+              <span style={pillStyle}>⏳ Vérification de la session…</span>
+            ) : session ? (
+              <>
+                <span style={pillStyle}>✅ Connecté : <strong>{userEmail}</strong></span>
+                <button
+                  onClick={signOut}
+                  style={{
+                    ...pillStyle,
+                    cursor: "pointer",
+                    background: "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  Se déconnecter
+                </button>
+              </>
+            ) : (
+              <>
+                <span style={pillStyle}>🔒 Connecte-toi pour utiliser l’outil IA</span>
+                <a
+                  href="/compte-client"
+                  style={{
+                    ...pillStyle,
+                    textDecoration: "none",
+                    background: "linear-gradient(to right, #22c55e, #a3e635, #facc15)",
+                    color: "#022c22",
+                    border: "none",
+                  }}
+                >
+                  Aller à l’espace client
+                </a>
+              </>
+            )}
+          </div>
+
+          {/* Messages */}
+          {errorMsg && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(255, 77, 77, 0.35)",
+                background: "rgba(255, 77, 77, 0.12)",
+                color: "#ffb3b3",
+                fontWeight: 700,
+              }}
+            >
+              ❌ {errorMsg}
+              {errorMsg.includes("pack actif") && (
+                <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <a
+                    href="/packs-ia"
+                    style={{
+                      ...pillStyle,
+                      textDecoration: "none",
+                      background: "rgba(255,255,255,0.10)",
+                    }}
+                  >
+                    Voir les packs IA
+                  </a>
+                  <a
+                    href="/compte-client"
+                    style={{
+                      ...pillStyle,
+                      textDecoration: "none",
+                      background: "rgba(255,255,255,0.10)",
+                    }}
+                  >
+                    Me reconnecter
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {statusMsg && !errorMsg && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(64, 255, 141, 0.35)",
+                background: "rgba(64, 255, 141, 0.10)",
+                color: "#b7ffd9",
+                fontWeight: 800,
+              }}
+            >
+              {statusMsg}
+            </div>
+          )}
         </header>
 
         {/* GRID : EXPLICATION + FORMULAIRE */}
         <section
+          className="outil-grid"
           style={{
             display: "grid",
             gap: "1.6rem",
@@ -166,15 +335,10 @@ export default function OutilIAPage() {
         >
           {/* COLONNE GAUCHE : EXPLICATION */}
           <div style={cardStyle}>
-            <h2
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                marginBottom: "0.7rem",
-              }}
-            >
-              Pensé pour les débutants.
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.7rem" }}>
+              Comment ça marche
             </h2>
+
             <ul
               style={{
                 listStyle: "none",
@@ -197,11 +361,23 @@ export default function OutilIAPage() {
                     flexShrink: 0,
                   }}
                 />
-                <span>
-                  1 seule action : le client envoie une image de son produit
-                  (capture écran, photo, visuel fournisseur...).
-                </span>
+                <span>Colle un lien produit (AliExpress / fournisseur).</span>
               </li>
+
+              <li style={{ display: "flex", gap: "0.45rem" }}>
+                <span
+                  style={{
+                    marginTop: "0.4rem",
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "999px",
+                    backgroundColor: "#22c55e",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>L’IA te renvoie un JSON complet pour construire la boutique.</span>
+              </li>
+
               <li style={{ display: "flex", gap: "0.45rem" }}>
                 <span
                   style={{
@@ -214,82 +390,41 @@ export default function OutilIAPage() {
                   }}
                 />
                 <span>
-                  Optionnel : il peut coller un lien produit (AliExpress, 1688,
-                  fournisseur privé).
-                </span>
-              </li>
-              <li style={{ display: "flex", gap: "0.45rem" }}>
-                <span
-                  style={{
-                    marginTop: "0.4rem",
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "999px",
-                    backgroundColor: "#22c55e",
-                    flexShrink: 0,
-                  }}
-                />
-                <span>
-                  L&apos;IA analyse l&apos;image et propose une boutique clé en
-                  main : structure, sections, arguments de vente.
+                  Accès réservé aux clients avec un pack actif (entitlements).
                 </span>
               </li>
             </ul>
 
-            <p
-              style={{
-                marginTop: "1rem",
-                fontSize: "0.8rem",
-                color: "#9ca3af",
-              }}
-            >
-              ⚠️ Outil réservé aux clients de tes packs IA. Ne pas mettre ce
-              lien public sur le site vitrine.
+            <p style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#9ca3af" }}>
+              ⚠️ Si tu as payé mais que ça bloque : reconnecte-toi, ou vérifie que
+              ton email apparaît dans <strong>entitlements</strong> avec <strong>active = true</strong>.
             </p>
           </div>
 
-          {/* COLONNE DROITE : FORMULAIRE SUPER SIMPLE */}
+          {/* COLONNE DROITE : FORMULAIRE */}
           <form onSubmit={handleGenerate} style={cardStyle}>
-            <h2
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: 700,
-                marginBottom: "0.9rem",
-              }}
-            >
-              Envoie ton produit à l&apos;IA
+            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.9rem" }}>
+              Envoyer à l’IA
             </h2>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
               <div>
-                <label style={labelStyle}>Image du produit</label>
+                <label style={labelStyle}>Image du produit (optionnel)</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  style={{
-                    ...inputStyle,
-                    padding: "0.4rem 0.7rem",
-                    cursor: "pointer",
-                  }}
+                  style={{ ...inputStyle, padding: "0.4rem 0.7rem", cursor: "pointer" }}
                 />
                 {imageName && (
-                  <p
-                    style={{
-                      marginTop: "0.35rem",
-                      fontSize: "0.78rem",
-                      color: "#9ca3af",
-                    }}
-                  >
+                  <p style={{ marginTop: "0.35rem", fontSize: "0.78rem", color: "#9ca3af" }}>
                     Image sélectionnée : {imageName}
                   </p>
                 )}
               </div>
 
               <div>
-                <label style={labelStyle}>
-                  (Optionnel) Lien produit AliExpress / fournisseur
-                </label>
+                <label style={labelStyle}>Lien produit (obligatoire pour le moment)</label>
                 <input
                   type="url"
                   placeholder="https://..."
@@ -301,59 +436,55 @@ export default function OutilIAPage() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || checkingAuth || !session}
                 style={{
                   marginTop: "0.6rem",
                   width: "100%",
                   padding: "0.75rem 1rem",
                   borderRadius: "999px",
                   border: "none",
-                  background:
-                    "linear-gradient(to right, #22c55e, #a3e635, #facc15)",
+                  background: "linear-gradient(to right, #22c55e, #a3e635, #facc15)",
                   color: "#022c22",
                   fontSize: "0.9rem",
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: loading ? "wait" : "pointer",
-                  opacity: loading ? 0.8 : 1,
+                  opacity: loading || checkingAuth || !session ? 0.7 : 1,
                 }}
               >
-                {loading
-                  ? "Génération de la boutique..."
-                  : "Générer ma boutique"}
+                {loading ? "Génération..." : "Générer ma boutique"}
               </button>
+
+              {!session && !checkingAuth && (
+                <a
+                  href="/compte-client"
+                  style={{
+                    marginTop: 8,
+                    textAlign: "center",
+                    textDecoration: "none",
+                    color: "#a5b4fc",
+                    fontWeight: 800,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Se connecter pour activer l’outil
+                </a>
+              )}
             </div>
           </form>
         </section>
 
         {/* RÉSULTAT */}
         {result && (
-          <section
-            style={{
-              marginTop: "2rem",
-              ...cardStyle,
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "1.2rem",
-                fontWeight: 700,
-                marginBottom: "0.4rem",
-              }}
-            >
-              Boutique générée à partir de ton produit
+          <section style={{ marginTop: "2rem", ...cardStyle }}>
+            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+              Boutique générée
             </h2>
-            <p
-              style={{
-                fontSize: "0.9rem",
-                color: "#a5b4fc",
-                marginBottom: "1rem",
-              }}
-            >
-              À adapter ensuite directement dans Shopify (ou à me déléguer pour
-              la mise en place).
+            <p style={{ fontSize: "0.9rem", color: "#a5b4fc", marginBottom: "1rem" }}>
+              À adapter ensuite dans Shopify.
             </p>
 
             <div
+              className="result-grid"
               style={{
                 display: "grid",
                 gap: "1.2rem",
@@ -361,72 +492,29 @@ export default function OutilIAPage() {
               }}
             >
               <div>
-                <h3
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 700,
-                    marginBottom: "0.3rem",
-                  }}
-                >
+                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.3rem" }}>
                   Nom de la boutique
                 </h3>
-                <p
-                  style={{
-                    fontSize: "1rem",
-                    fontWeight: 600,
-                    marginBottom: "0.6rem",
-                  }}
-                >
+                <p style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.6rem" }}>
                   {result.storeName}
                 </p>
 
-                <h3
-                  style={{
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    marginBottom: "0.3rem",
-                  }}
-                >
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.3rem" }}>
                   Slogan
                 </h3>
-                <p
-                  style={{
-                    fontSize: "0.9rem",
-                    color: "#e5e7eb",
-                    marginBottom: "0.8rem",
-                  }}
-                >
+                <p style={{ fontSize: "0.9rem", color: "#e5e7eb", marginBottom: "0.8rem" }}>
                   {result.tagline}
                 </p>
 
-                <h3
-                  style={{
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    marginBottom: "0.3rem",
-                  }}
-                >
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.3rem" }}>
                   Ton de la marque
                 </h3>
-                <p
-                  style={{
-                    fontSize: "0.86rem",
-                    color: "#cbd5f5",
-                  }}
-                >
-                  {result.brandTone}
-                </p>
+                <p style={{ fontSize: "0.86rem", color: "#cbd5f5" }}>{result.brandTone}</p>
               </div>
 
               <div>
-                <h3
-                  style={{
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  Sections de la page d&apos;accueil
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                  Sections page d’accueil
                 </h3>
                 <ul
                   style={{
@@ -457,14 +545,8 @@ export default function OutilIAPage() {
                   ))}
                 </ul>
 
-                <h3
-                  style={{
-                    fontSize: "0.95rem",
-                    fontWeight: 700,
-                    marginBottom: "0.4rem",
-                  }}
-                >
-                  Blocs clés pour la page produit
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.4rem" }}>
+                  Blocs page produit
                 </h3>
                 <ul
                   style={{
@@ -498,6 +580,14 @@ export default function OutilIAPage() {
           </section>
         )}
       </div>
+
+      {/* Responsive */}
+      <style>{`
+        @media (max-width: 980px) {
+          .outil-grid { grid-template-columns: 1fr !important; }
+          .result-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </main>
   );
 }
