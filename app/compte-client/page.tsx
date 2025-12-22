@@ -1,7 +1,8 @@
 "use client";
 
 // app/compte-client/page.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabaseClient";
 
@@ -22,6 +23,8 @@ const COLORS = {
 };
 
 export default function CompteClientPage() {
+  const searchParams = useSearchParams();
+
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
@@ -33,6 +36,17 @@ export default function CompteClientPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
+
+  // ✅ message "paiement validé" si on arrive avec ?success=1
+  const paymentSuccess = useMemo(() => {
+    const v = searchParams?.get("success");
+    return v === "1" || v === "true";
+  }, [searchParams]);
+
+  // (optionnel) si tu veux afficher le pack concerné plus tard
+  const purchasedProduct = useMemo(() => {
+    return searchParams?.get("product") ?? "";
+  }, [searchParams]);
 
   useEffect(() => {
     let ignore = false;
@@ -103,6 +117,19 @@ export default function CompteClientPage() {
             Ici tu retrouveras tes achats, recharges et accès à l’outil IA.
           </p>
 
+          {/* ✅ Banner paiement validé (quand on arrive de Stripe) */}
+          {!checking && !session && paymentSuccess && (
+            <div style={styles.paymentBanner}>
+              <div style={styles.paymentTitle}>✅ Paiement validé.</div>
+              <div style={styles.paymentText}>
+                Connecte-toi pour activer ton pack.
+                {purchasedProduct ? (
+                  <span style={styles.paymentHint}> (pack: {purchasedProduct})</span>
+                ) : null}
+              </div>
+            </div>
+          )}
+
           {/* petite ligne "connecté en tant que" */}
           {!checking && session && (
             <div style={styles.loggedLine}>
@@ -116,9 +143,7 @@ export default function CompteClientPage() {
 
         {/* LOADING session */}
         {checking && (
-          <div style={styles.loadingBox}>
-            Chargement de ton espace client...
-          </div>
+          <div style={styles.loadingBox}>Chargement de ton espace client...</div>
         )}
 
         {/* PAS CONNECTÉ → AUTH CARD */}
@@ -170,11 +195,7 @@ export default function CompteClientPage() {
                 {authError && <div style={styles.authError}>{authError}</div>}
                 {authMsg && <div style={styles.authMsg}>{authMsg}</div>}
 
-                <button
-                  disabled={authLoading}
-                  style={styles.authBtn}
-                  type="submit"
-                >
+                <button disabled={authLoading} style={styles.authBtn} type="submit">
                   {authLoading
                     ? "Patiente..."
                     : mode === "login"
@@ -196,11 +217,8 @@ export default function CompteClientPage() {
             {/* Achats */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Mes achats</h2>
-              <p style={styles.cardText}>
-                Historique de tes packs + factures.
-              </p>
+              <p style={styles.cardText}>Historique de tes packs + factures.</p>
 
-              {/* Placeholder pour plus tard (Stripe / Supabase orders) */}
               <div style={styles.infoBox}>
                 <div style={styles.infoLine}>
                   <span style={styles.infoLabel}>Dernier pack :</span>
@@ -231,23 +249,17 @@ export default function CompteClientPage() {
             {/* Messagerie */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Messagerie</h2>
-              <p style={styles.cardText}>
-                Accède à tes messages avec le support.
-              </p>
+              <p style={styles.cardText}>Accède à tes messages avec le support.</p>
               <a href="/messages" style={styles.buttonAlt}>
                 Ouvrir la messagerie
               </a>
-              <div style={styles.smallNote}>
-                (on branchera Supabase messages après)
-              </div>
+              <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
             </article>
 
             {/* Accès outil IA */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Accès outil IA</h2>
-              <p style={styles.cardText}>
-                Disponible après achat d’un pack IA.
-              </p>
+              <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
 
               <a href="/outil-ia" style={styles.button}>
                 Ouvrir l’outil
@@ -368,6 +380,33 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.05rem",
     color: COLORS.muted,
     margin: 0,
+  },
+
+  paymentBanner: {
+    marginTop: 14,
+    display: "inline-flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "10px 14px",
+    borderRadius: 14,
+    background: "rgba(64, 255, 141, 0.10)",
+    border: "1px solid rgba(64, 255, 141, 0.35)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+    maxWidth: 680,
+  },
+  paymentTitle: {
+    fontWeight: 900,
+    color: "#b7ffd9",
+    fontSize: "0.98rem",
+  },
+  paymentText: {
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: 700,
+    fontSize: "0.95rem",
+  },
+  paymentHint: {
+    color: "rgba(255,255,255,0.70)",
+    fontWeight: 700,
   },
 
   loggedLine: {
