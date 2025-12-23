@@ -41,10 +41,20 @@ const COLORS = {
   amber: "#facc15",
 };
 
+const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`;
+
 function badgeForPack(packKey: MePackResponse["packKey"]) {
-  if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
-  if (packKey === "ia-premium") return { label: "PREMIUM", color: "linear-gradient(90deg, #4338ca, #6a2fd6, #e64aa7)" };
-  if (packKey === "ia-basic") return { label: "BASIC", color: "linear-gradient(90deg, #2563eb, #6a2fd6)" };
+  if (packKey === "ia-ultime") {
+    return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
+  }
+  if (packKey === "ia-premium") {
+    // tu peux garder le même dégradé brand pour cohérence
+    return { label: "PREMIUM", color: BRAND_GRADIENT };
+  }
+  if (packKey === "ia-basic") {
+    // ✅ demandé : même dégradé que panier / bouton / pack IA
+    return { label: "BASIC", color: BRAND_GRADIENT };
+  }
   return { label: "PACK REQUIS", color: "linear-gradient(90deg, #64748b, #94a3b8)" };
 }
 
@@ -168,7 +178,6 @@ export default function OutilIAPage() {
       return;
     }
 
-    // Pour l’instant ton API exige productUrl
     const url = productUrl.trim();
     if (!url) {
       setErrorMsg("Colle un lien produit (obligatoire pour le moment).");
@@ -192,7 +201,6 @@ export default function OutilIAPage() {
         body: JSON.stringify({
           productUrl: url,
           imageBase64,
-          // optionnel : si tu veux forcer le pack précis côté API
           productKey: pack.packKey,
         }),
       });
@@ -201,7 +209,6 @@ export default function OutilIAPage() {
         const t = await res.text();
         console.error("❌ /api/outil-ia error:", t);
 
-        // Essaye de remonter un message sympa
         try {
           const j = JSON.parse(t);
           setErrorMsg(j?.error ?? "Erreur lors de la génération.");
@@ -214,7 +221,6 @@ export default function OutilIAPage() {
       const data = (await res.json()) as GeneratedBoutique;
       setResult(data);
 
-      // Optionnel : refresh pack (utile si tu incrémentes credits_used côté API)
       await fetchMePack(authToken);
     } catch (err) {
       console.error(err);
@@ -287,7 +293,7 @@ export default function OutilIAPage() {
         </header>
 
         {/* GRID */}
-        <section style={styles.grid}>
+        <section style={styles.grid} data-grid="outil">
           {/* LEFT INFO */}
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Comment ça marche</h2>
@@ -308,9 +314,7 @@ export default function OutilIAPage() {
             </ul>
 
             <div style={styles.noteBox}>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>
-                ⚠️ Accès réservé aux clients avec pack actif
-              </div>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>⚠️ Accès réservé aux clients avec pack actif</div>
               <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
                 Si tu as payé mais que ça bloque : vérifie que ton email est bien dans{" "}
                 <b>entitlements</b> avec <b>active = true</b>.
@@ -333,12 +337,7 @@ export default function OutilIAPage() {
             <div style={{ display: "grid", gap: 12 }}>
               <div>
                 <label style={styles.label}>Image du produit (optionnel)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={styles.inputFile}
-                />
+                <input type="file" accept="image/*" onChange={handleImageChange} style={styles.inputFile} />
                 {imageName && <div style={styles.helper}>Image sélectionnée : {imageName}</div>}
               </div>
 
@@ -359,11 +358,7 @@ export default function OutilIAPage() {
                 {loading ? "Génération en cours…" : "Générer ma boutique"}
               </button>
 
-              {!authToken && (
-                <div style={styles.helper}>
-                  Connecte-toi pour utiliser l’outil.
-                </div>
-              )}
+              {!authToken && <div style={styles.helper}>Connecte-toi pour utiliser l’outil.</div>}
             </div>
           </form>
         </section>
@@ -652,17 +647,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
+  // ✅ demandé : bouton "Générer ma boutique" = même dégradé brand
   primaryBtn: {
     width: "100%",
     padding: "12px 14px",
     borderRadius: 999,
-    border: "none",
-    background: `linear-gradient(90deg, ${COLORS.green}, ${COLORS.amber})`,
-    color: "#06281f",
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: BRAND_GRADIENT,
+    color: "#ffffff",
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "0 14px 30px rgba(34,197,94,0.20)",
+    boxShadow: "0 14px 30px rgba(230,74,167,0.22)",
     opacity: 1,
   },
 
