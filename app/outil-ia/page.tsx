@@ -35,7 +35,6 @@ const COLORS = {
   panelBorder: "rgba(150, 170, 255, 0.18)",
   navy: "#0b0f2a",
   violet: "#6a2fd6",
-  violetDeep: "#4338ca",
   pink: "#e64aa7",
   green: "#22c55e",
 };
@@ -46,11 +45,11 @@ function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
   if (packKey === "ia-premium") return { label: "PREMIUM", color: BRAND_GRADIENT };
   if (packKey === "ia-basic") return { label: "BASIC", color: BRAND_GRADIENT };
-  return null; // ✅ pas de badge quand pack requis
+  return null; // ✅ pas de badge “pack requis”
 }
 
 function formatCredits(pack: MePackResponse | null) {
-  if (!pack || !pack.packKey) return "—";
+  if (!pack?.packKey) return "—";
   if (pack.unlimited) return "Illimité";
   const total = pack.quota ?? 0;
   const remaining = pack.creditsRemaining ?? 0;
@@ -74,6 +73,17 @@ export default function OutilIAPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const badge = useMemo(() => badgeForPack(pack?.packKey ?? null), [pack?.packKey]);
+
+  // ✅ Titre/Subtitle propres même pendant le chargement
+  const headerTitle = useMemo(() => {
+    if (pack?.packKey) return pack.title;
+    return "Génère tes boutiques Shopify grâce à l’IA";
+  }, [pack?.packKey, pack?.title]);
+
+  const headerSubtitle = useMemo(() => {
+    if (pack?.packKey) return pack.subtitle;
+    return "Colle un lien produit et lance la génération.";
+  }, [pack?.packKey, pack?.subtitle]);
 
   async function fetchMePack(token: string) {
     setPackLoading(true);
@@ -117,6 +127,7 @@ export default function OutilIAPage() {
 
         setAuthToken(session.access_token);
         setUserEmail(session.user.email ?? null);
+
         await fetchMePack(session.access_token);
       } catch (e) {
         console.error(e);
@@ -175,7 +186,7 @@ export default function OutilIAPage() {
     }
 
     if (!pack?.packKey) {
-      setErrorMsg("Pack requis : tu dois avoir un pack IA actif pour utiliser l’outil.");
+      setErrorMsg("Accès indisponible : aucun pack actif sur ce compte.");
       return;
     }
 
@@ -224,6 +235,8 @@ export default function OutilIAPage() {
     await supabase.auth.signOut();
   }
 
+  const showCredits = !!pack?.packKey && !packLoading;
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -235,8 +248,8 @@ export default function OutilIAPage() {
           <div style={{ display: "grid", gap: 10 }}>
             <p style={styles.kicker}>OUTIL IA • BOUTIQUES SHOPIFY</p>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <h1 style={styles.title}>{pack?.title ?? "Génère une boutique Shopify (pack requis)."}</h1>
+            <div style={styles.titleRow}>
+              <h1 style={styles.title}>{headerTitle}</h1>
 
               {/* ✅ badge seulement si pack actif */}
               {badge && (
@@ -246,13 +259,15 @@ export default function OutilIAPage() {
               )}
             </div>
 
-            <p style={styles.sub}>{pack?.subtitle ?? "Choisis un pack IA pour débloquer l’outil."}</p>
+            <p style={styles.sub}>{headerSubtitle}</p>
 
             {/* mini barre état */}
             <div style={styles.statusRow}>
-              <div style={styles.statusPill}>
-                {loadingPage ? "…" : authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
-              </div>
+              {!loadingPage && (
+                <div style={styles.statusPill}>
+                  {authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
+                </div>
+              )}
 
               {authToken ? (
                 <button type="button" onClick={handleSignOut} style={styles.secondaryBtn}>
@@ -264,17 +279,16 @@ export default function OutilIAPage() {
                 </Link>
               )}
 
-              <div style={styles.statusPill}>
-                {packLoading ? "Chargement pack…" : `Crédits : ${formatCredits(pack)}`}
-              </div>
+              {/* ✅ pas de “Chargement pack…” */}
+              {showCredits && (
+                <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>
+              )}
 
               {pack?.packKey && (
                 <Link href="/compte-client" style={styles.secondaryBtn as any}>
                   Mon compte
                 </Link>
               )}
-
-              {/* ✅ supprimé : Voir les packs IA quand pack requis */}
             </div>
           </div>
         </header>
@@ -299,8 +313,6 @@ export default function OutilIAPage() {
                 <span>Tu reçois une structure complète : nom, slogan, sections, blocs produit.</span>
               </li>
             </ul>
-
-            {/* ✅ supprimé : bouton “Débloquer l’accès (choisir un pack)” */}
           </div>
 
           {/* RIGHT FORM */}
@@ -311,22 +323,20 @@ export default function OutilIAPage() {
               <div>
                 <label style={styles.label}>Image du produit (optionnel)</label>
 
-                {/* ✅ input caché + UI custom (fix overflow iOS) */}
-                <input
-                  id="product-image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={styles.hiddenFileInput}
-                />
-
-                <div style={styles.fileRow}>
-                  <label htmlFor="product-image" style={styles.fileBtn}>
+                {/* ✅ FILE INPUT CUSTOM (anti-débordement iPhone) */}
+                <div style={styles.fileWrap}>
+                  <input
+                    id="productImage"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={styles.fileHidden}
+                  />
+                  <label htmlFor="productImage" style={styles.fileBtn}>
                     Choisir un fichier
                   </label>
-
-                  <div style={styles.fileName} title={imageName ?? ""}>
-                    {imageName ? imageName : "Aucun fichier sélectionné"}
+                  <div style={styles.fileName} title={imageName ?? "Aucun fichier sélectionné"}>
+                    {imageName ?? "Aucun fichier sélectionné"}
                   </div>
                 </div>
               </div>
@@ -373,7 +383,7 @@ export default function OutilIAPage() {
               </button>
             </div>
 
-            <div style={styles.resultGrid} data-grid="result">
+            <div style={styles.resultGrid}>
               <div style={styles.resultCard}>
                 <div style={styles.resultLabel}>Nom de la boutique</div>
                 <div style={styles.resultValue}>{result.storeName}</div>
@@ -416,13 +426,15 @@ export default function OutilIAPage() {
           </section>
         )}
 
-        <div style={styles.bottomBand}>🧩 N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique</div>
+        <div style={styles.bottomBand}>
+          🧩 N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique
+        </div>
       </section>
 
       <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
         @media (max-width: 980px) {
           section[data-grid="outil"] { grid-template-columns: 1fr !important; }
-          div[data-grid="result"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </main>
@@ -435,8 +447,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "100vh",
     padding: "2.2rem 1.25rem 3rem",
     color: COLORS.text,
-    overflowX: "hidden", // ✅ évite scroll horizontal
-    overflowY: "hidden",
+    overflowX: "hidden",
   },
   bgGradient: {
     position: "fixed",
@@ -480,6 +491,12 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+  titleRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
   title: {
     fontSize: "clamp(1.7rem, 3.2vw, 2.7rem)",
     fontWeight: 950,
@@ -501,7 +518,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
     letterSpacing: "0.08em",
     textTransform: "uppercase",
-    boxShadow: "0 10px 22px rgba(0,0,0,0.28)",
+    boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
     border: "1px solid rgba(255,255,255,0.22)",
     whiteSpace: "nowrap",
   },
@@ -531,6 +548,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     cursor: "pointer",
     textDecoration: "none",
+    maxWidth: "100%",
   },
 
   grid: {
@@ -545,7 +563,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: "18px 18px",
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
-    minWidth: 0, // ✅ important pour éviter overflow en flex/grid
+    overflow: "hidden", // ✅ évite tout débordement visuel
+    maxWidth: "100%",
   },
   cardTitle: {
     margin: 0,
@@ -568,7 +587,6 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     color: COLORS.text,
     fontWeight: 650,
-    minWidth: 0,
   },
   dot: {
     width: 8,
@@ -588,27 +606,25 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
 
-  // ✅ FILE UPLOAD (custom, anti overflow iOS)
-  hiddenFileInput: {
+  // ✅ File input custom
+  fileWrap: {
+    width: "100%",
+    display: "grid",
+    gridTemplateColumns: "auto 1fr",
+    gap: 10,
+    alignItems: "center",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(2, 6, 23, 0.45)",
+    boxSizing: "border-box",
+  },
+  fileHidden: {
     position: "absolute",
-    left: "-9999px",
+    left: -99999,
     width: 1,
     height: 1,
     opacity: 0,
-  },
-  fileRow: {
-    width: "100%",
-    maxWidth: "100%",
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-    padding: "10px 12px",
-    borderRadius: 14,
-    border: `1px solid ${COLORS.panelBorder}`,
-    background: "rgba(2, 6, 23, 0.45)",
-    minWidth: 0,
-    overflow: "hidden",
   },
   fileBtn: {
     display: "inline-flex",
@@ -616,28 +632,24 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     padding: "10px 14px",
     borderRadius: 999,
-    border: "1px solid rgba(255,255,255,0.20)",
-    background: "rgba(255,255,255,0.10)",
-    color: COLORS.text,
     fontWeight: 900,
     cursor: "pointer",
-    textDecoration: "none",
-    flex: "0 0 auto",
+    border: "1px solid rgba(255,255,255,0.18)",
+    background: "rgba(255,255,255,0.10)",
+    color: COLORS.text,
+    whiteSpace: "nowrap",
   },
   fileName: {
-    color: "rgba(255,255,255,0.75)",
-    fontWeight: 700,
-    fontSize: "0.95rem",
     minWidth: 0,
-    flex: "1 1 180px",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: 750,
   },
 
   input: {
     width: "100%",
-    maxWidth: "100%",
     borderRadius: 12,
     border: `1px solid ${COLORS.panelBorder}`,
     background: "rgba(2, 6, 23, 0.65)",
@@ -645,7 +657,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "11px 12px",
     outline: "none",
     fontSize: "0.95rem",
-    minWidth: 0,
+    boxSizing: "border-box",
   },
   helper: {
     marginTop: 6,
@@ -661,9 +673,10 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "10px 12px",
     borderRadius: 12,
     fontWeight: 800,
+    boxSizing: "border-box",
   },
 
-  // ✅ bouton sans lueur rose
+  // ✅ bouton brand gradient + PAS de lueur rose
   primaryBtn: {
     width: "100%",
     padding: "12px 14px",
@@ -674,8 +687,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "0 14px 30px rgba(0,0,0,0.28)", // ✅ pas de glow rose
+    boxShadow: "0 12px 26px rgba(0,0,0,0.28)", // ✅ glow neutre
     opacity: 1,
+    boxSizing: "border-box",
   },
 
   resultHeader: {
@@ -696,7 +710,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${COLORS.panelBorder}`,
     borderRadius: 16,
     padding: "14px 14px",
-    minWidth: 0,
+    boxSizing: "border-box",
   },
   resultLabel: {
     fontSize: "0.85rem",
@@ -720,5 +734,6 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "center",
     fontWeight: 900,
     color: COLORS.text,
+    boxSizing: "border-box",
   },
 };
