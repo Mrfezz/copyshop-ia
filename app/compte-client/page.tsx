@@ -401,6 +401,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(64, 255, 141, 0.35)",
     boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
     maxWidth: 680,
+    boxSizing: "border-box",
   },
   paymentTitle: {
     fontWeight: 900,
@@ -435,6 +436,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.06)",
     color: COLORS.text,
     cursor: "pointer",
+    boxSizing: "border-box",
   },
 
   loadingBox: {
@@ -444,6 +446,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.04)",
     border: `1px dashed ${COLORS.border}`,
     borderRadius: 12,
+    boxSizing: "border-box",
   },
 
   grid: {
@@ -461,6 +464,9 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: "column",
     gap: 10,
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    boxSizing: "border-box",
+    maxWidth: "100%",
+    overflow: "hidden",
   },
 
   cardTitle: {
@@ -488,6 +494,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     boxShadow: "0 8px 20px rgba(106,47,214,0.35)",
     width: "fit-content",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
 
   buttonAlt: {
@@ -503,6 +511,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.08)",
     border: `1px solid ${COLORS.border}`,
     width: "fit-content",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
 
   infoBox: {
@@ -513,6 +523,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "10px 12px",
     display: "grid",
     gap: 8,
+    boxSizing: "border-box",
   },
   infoLine: {
     display: "flex",
@@ -548,12 +559,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: "18px",
     boxShadow: "0 14px 45px rgba(0,0,0,0.35)",
+    boxSizing: "border-box", // ✅ IMPORTANT
+    maxWidth: "100%", // ✅ IMPORTANT
+    overflow: "hidden", // ✅ sécurité anti-débordement
   },
   authTabs: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 8,
     marginBottom: 14,
+    boxSizing: "border-box",
   },
   authTab: {
     padding: "10px 12px",
@@ -563,6 +578,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.05)",
     color: COLORS.text,
     cursor: "pointer",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
   authTabActive: {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
@@ -572,6 +589,8 @@ const styles: Record<string, React.CSSProperties> = {
   authForm: {
     display: "grid",
     gap: 8,
+    width: "100%",
+    boxSizing: "border-box",
   },
   label: {
     fontSize: "0.9rem",
@@ -581,6 +600,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     width: "100%",
+    maxWidth: "100%", // ✅ IMPORTANT
+    display: "block",
     padding: "12px 12px",
     borderRadius: 12,
     border: `1px solid ${COLORS.border}`,
@@ -588,6 +609,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.text,
     outline: "none",
     fontSize: "1rem",
+    boxSizing: "border-box", // ✅ IMPORTANT (fix overflow)
   },
   authBtn: {
     marginTop: 8,
@@ -599,6 +621,8 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     boxShadow: "0 8px 20px rgba(106,47,214,0.35)",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
   authError: {
     marginTop: 4,
@@ -609,6 +633,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     color: "#ffb3b3",
     fontSize: "0.95rem",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
   authMsg: {
     marginTop: 4,
@@ -619,5 +645,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     color: "#b7ffd9",
     fontSize: "0.95rem",
+    boxSizing: "border-box",
+    maxWidth: "100%",
   },
 };
