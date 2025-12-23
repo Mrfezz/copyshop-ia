@@ -1,7 +1,7 @@
 // app/outil-ia/page.tsx
 "use client";
 
-import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -38,7 +38,6 @@ const COLORS = {
   violetDeep: "#4338ca",
   pink: "#e64aa7",
   green: "#22c55e",
-  amber: "#facc15",
 };
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`;
@@ -75,6 +74,7 @@ export default function OutilIAPage() {
   const [productUrl, setProductUrl] = useState("");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
@@ -97,8 +97,21 @@ export default function OutilIAPage() {
         return;
       }
 
-      const data = (await res.json()) as MePackResponse;
-      setPack(data);
+      const raw = await res.json();
+
+      // ✅ normalisation pour éviter les undefined si ton API ne renvoie pas tout
+      const normalized: MePackResponse = {
+        email: raw.email ?? "",
+        packKey: raw.packKey ?? null,
+        quota: raw.quota ?? null,
+        unlimited: raw.unlimited ?? (raw.packKey === "ia-ultime" || raw.quota == null),
+        creditsUsed: raw.creditsUsed ?? 0,
+        creditsRemaining: raw.creditsRemaining ?? (raw.quota ?? null),
+        title: raw.title ?? "Génère une boutique Shopify (pack requis).",
+        subtitle: raw.subtitle ?? "Choisis un pack IA pour débloquer l’outil.",
+      };
+
+      setPack(normalized);
     } finally {
       setPackLoading(false);
     }
@@ -164,6 +177,12 @@ export default function OutilIAPage() {
       setImageName(file.name);
     };
     reader.readAsDataURL(file);
+  }
+
+  function clearImage() {
+    setImageBase64(null);
+    setImageName(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleGenerate(e: FormEvent) {
@@ -233,7 +252,7 @@ export default function OutilIAPage() {
   }
 
   return (
-    <main style={styles.page}>
+    <main style={styles.page} data-outil-ia>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
 
@@ -243,16 +262,9 @@ export default function OutilIAPage() {
           <div style={{ display: "grid", gap: 10 }}>
             <p style={styles.kicker}>OUTIL IA • BOUTIQUES SHOPIFY</p>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={styles.titleRow}>
               <h1 style={styles.title}>{pack?.title ?? "Génère une boutique Shopify (pack requis)."}</h1>
-              <span
-                style={{
-                  ...styles.packBadge,
-                  background: badge.color,
-                }}
-              >
-                {badge.label}
-              </span>
+              <span style={{ ...styles.packBadge, background: badge.color }}>{badge.label}</span>
             </div>
 
             <p style={styles.sub}>{pack?.subtitle ?? "Choisis un pack IA pour débloquer l’outil."}</p>
@@ -264,11 +276,11 @@ export default function OutilIAPage() {
               </div>
 
               {authToken ? (
-                <button type="button" onClick={handleSignOut} style={styles.secondaryBtn}>
+                <button type="button" onClick={handleSignOut} style={styles.secondaryBtn} className="ui-btn">
                   Se déconnecter
                 </button>
               ) : (
-                <Link href="/connexion" style={styles.secondaryBtn as any}>
+                <Link href="/connexion" style={styles.secondaryBtn as any} className="ui-btn">
                   Se connecter
                 </Link>
               )}
@@ -278,11 +290,11 @@ export default function OutilIAPage() {
               </div>
 
               {pack?.packKey ? (
-                <Link href="/compte-client" style={styles.secondaryBtn as any}>
+                <Link href="/compte-client" style={styles.secondaryBtn as any} className="ui-btn">
                   Mon compte
                 </Link>
               ) : (
-                <Link href="/packs-ia" style={styles.ctaOutline as any}>
+                <Link href="/packs-ia" style={styles.ctaOutline as any} className="ui-btn">
                   Voir les packs IA
                 </Link>
               )}
@@ -313,7 +325,7 @@ export default function OutilIAPage() {
 
             {!pack?.packKey && (
               <div style={{ marginTop: 14 }}>
-                <Link href="/packs-ia" style={styles.ctaBig as any}>
+                <Link href="/packs-ia" style={styles.ctaBig as any} className="ui-btn">
                   Débloquer l’accès (choisir un pack)
                 </Link>
               </div>
@@ -327,8 +339,32 @@ export default function OutilIAPage() {
             <div style={{ display: "grid", gap: 12 }}>
               <div>
                 <label style={styles.label}>Image du produit (optionnel)</label>
-                <input type="file" accept="image/*" onChange={handleImageChange} style={styles.inputFile} />
-                {imageName && <div style={styles.helper}>Image sélectionnée : {imageName}</div>}
+
+                {/* ✅ input file custom (iOS safe) */}
+                <input
+                  ref={fileInputRef}
+                  id="outil-ia-file"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={styles.fileHidden}
+                />
+
+                <div style={styles.fileRow}>
+                  <label htmlFor="outil-ia-file" style={styles.fileBtn} className="ui-btn">
+                    Choisir un fichier
+                  </label>
+
+                  <div style={styles.fileName} title={imageName ?? "Aucun fichier sélectionné"}>
+                    {imageName ?? "Aucun fichier sélectionné"}
+                  </div>
+
+                  {imageName && (
+                    <button type="button" onClick={clearImage} style={styles.fileClear} className="ui-btn">
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -347,8 +383,8 @@ export default function OutilIAPage() {
               <button
                 type="submit"
                 disabled={loading || !authToken}
-                className="primary-btn"
                 style={styles.primaryBtn}
+                className="primary-cta"
               >
                 {loading ? "Génération en cours…" : "Générer ma boutique"}
               </button>
@@ -372,6 +408,7 @@ export default function OutilIAPage() {
               <button
                 type="button"
                 style={styles.secondaryBtn}
+                className="ui-btn"
                 onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
               >
                 Copier le JSON
@@ -386,12 +423,16 @@ export default function OutilIAPage() {
                 <div style={{ height: 10 }} />
 
                 <div style={styles.resultLabel}>Slogan</div>
-                <div style={{ color: COLORS.text, fontWeight: 700 }}>{result.tagline}</div>
+                <div style={{ color: COLORS.text, fontWeight: 700, overflowWrap: "anywhere" }}>
+                  {result.tagline}
+                </div>
 
                 <div style={{ height: 10 }} />
 
                 <div style={styles.resultLabel}>Ton de la marque</div>
-                <div style={{ color: COLORS.muted, lineHeight: 1.55 }}>{result.brandTone}</div>
+                <div style={{ color: COLORS.muted, lineHeight: 1.55, overflowWrap: "anywhere" }}>
+                  {result.brandTone}
+                </div>
               </div>
 
               <div style={styles.resultCard}>
@@ -400,7 +441,7 @@ export default function OutilIAPage() {
                   {result.homepageSections?.map((s) => (
                     <li key={s} style={styles.li}>
                       <span style={{ ...styles.dot, background: "#38bdf8" }} />
-                      <span>{s}</span>
+                      <span style={{ overflowWrap: "anywhere" }}>{s}</span>
                     </li>
                   ))}
                 </ul>
@@ -412,7 +453,7 @@ export default function OutilIAPage() {
                   {result.productPageBlocks?.map((b) => (
                     <li key={b} style={styles.li}>
                       <span style={{ ...styles.dot, background: "#f97316" }} />
-                      <span>{b}</span>
+                      <span style={{ overflowWrap: "anywhere" }}>{b}</span>
                     </li>
                   ))}
                 </ul>
@@ -422,25 +463,39 @@ export default function OutilIAPage() {
         )}
 
         <div style={styles.bottomBand}>
-          🧩 N'oublie pas d'activer ton abbonement shopify apres avoir générer ta boutique
+          🧩 N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique
         </div>
       </section>
 
       <style>{`
-        /* ✅ enlève la lueur (focus ring / halo) du bouton */
-        .primary-btn {
-          box-shadow: none !important;
-          outline: none !important;
+        /* ✅ scope anti-débordements */
+        [data-outil-ia] *, 
+        [data-outil-ia] *::before, 
+        [data-outil-ia] *::after {
+          box-sizing: border-box;
         }
-        .primary-btn:focus,
-        .primary-btn:focus-visible,
-        .primary-btn:active {
-          box-shadow: none !important;
+
+        /* ✅ supprimer les focus rings / lueurs (boutons & CTA) */
+        [data-outil-ia] .ui-btn:focus,
+        [data-outil-ia] .ui-btn:focus-visible,
+        [data-outil-ia] .primary-cta:focus,
+        [data-outil-ia] .primary-cta:focus-visible {
           outline: none !important;
+          box-shadow: none !important;
+        }
+
+        /* ✅ hover léger (pas de glow rose) */
+        [data-outil-ia] .primary-cta:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.03);
         }
 
         @media (max-width: 980px) {
           section[data-grid="outil"] { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 980px) {
+          div[data-result-grid="1"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </main>
@@ -484,11 +539,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     zIndex: 1,
   },
-  header: {
-    display: "grid",
-    gap: 14,
-    marginBottom: 18,
-  },
+
+  header: { display: "grid", gap: 14, marginBottom: 18 },
   kicker: {
     fontSize: "0.78rem",
     color: COLORS.muted,
@@ -497,12 +549,20 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+  titleRow: {
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    flexWrap: "wrap",
+    minWidth: 0,
+  },
   title: {
     fontSize: "clamp(1.7rem, 3.2vw, 2.7rem)",
     fontWeight: 950,
     lineHeight: 1.12,
     margin: 0,
     letterSpacing: "-0.02em",
+    overflowWrap: "anywhere",
   },
   sub: {
     color: COLORS.muted,
@@ -518,10 +578,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.8rem",
     letterSpacing: "0.08em",
     textTransform: "uppercase",
-    boxShadow: "0 10px 22px rgba(0,0,0,0.28)",
     border: "1px solid rgba(255,255,255,0.22)",
     whiteSpace: "nowrap",
   },
+
   statusRow: {
     display: "flex",
     gap: 10,
@@ -537,6 +597,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     fontSize: "0.9rem",
     color: COLORS.text,
+    maxWidth: "100%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   secondaryBtn: {
     background: "rgba(255,255,255,0.10)",
@@ -547,6 +611,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     cursor: "pointer",
     textDecoration: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
   },
   ctaOutline: {
     background: "rgba(255,255,255,0.08)",
@@ -557,11 +623,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     cursor: "pointer",
     textDecoration: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
   },
 
   grid: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: 16,
   },
 
@@ -571,6 +639,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: "18px 18px",
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
+    minWidth: 0,
   },
   cardTitle: {
     margin: 0,
@@ -593,6 +662,7 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     color: COLORS.text,
     fontWeight: 650,
+    minWidth: 0,
   },
   dot: {
     width: 8,
@@ -611,8 +681,10 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
     marginBottom: 6,
   },
+
   input: {
     width: "100%",
+    maxWidth: "100%",
     borderRadius: 12,
     border: `1px solid ${COLORS.panelBorder}`,
     background: "rgba(2, 6, 23, 0.65)",
@@ -620,18 +692,57 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "11px 12px",
     outline: "none",
     fontSize: "0.95rem",
+    boxSizing: "border-box",
   },
-  inputFile: {
+
+  // ✅ file picker custom
+  fileHidden: { display: "none" },
+  fileRow: {
     width: "100%",
-    borderRadius: 12,
+    maxWidth: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 14,
     border: `1px solid ${COLORS.panelBorder}`,
     background: "rgba(2, 6, 23, 0.45)",
-    color: COLORS.text,
     padding: "10px 12px",
-    outline: "none",
-    fontSize: "0.95rem",
-    cursor: "pointer",
+    overflow: "hidden",
+    boxSizing: "border-box",
   },
+  fileBtn: {
+    flex: "0 0 auto",
+    padding: "8px 12px",
+    borderRadius: 999,
+    fontWeight: 900,
+    cursor: "pointer",
+    color: COLORS.text,
+    background: "rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    whiteSpace: "nowrap",
+  },
+  fileName: {
+    flex: "1 1 auto",
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "rgba(255,255,255,0.75)",
+    fontWeight: 700,
+  },
+  fileClear: {
+    flex: "0 0 auto",
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontWeight: 900,
+    cursor: "pointer",
+    color: COLORS.text,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    appearance: "none",
+    WebkitAppearance: "none",
+  },
+
   helper: {
     marginTop: 6,
     color: "rgba(255,255,255,0.65)",
@@ -648,8 +759,10 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
+  // ✅ même dégradé que le reste + PAS de glow rose
   primaryBtn: {
     width: "100%",
+    maxWidth: "100%",
     padding: "12px 14px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.22)",
@@ -658,8 +771,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "none", // ✅ plus de lueur
-    opacity: 1,
+    boxShadow: "none",
+    outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
+    transition: "transform .2s ease, filter .2s ease",
   },
 
   ctaBig: {
@@ -673,7 +789,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "white",
     background: BRAND_GRADIENT,
     border: "1px solid rgba(255,255,255,0.22)",
-    boxShadow: "0 14px 32px rgba(106,47,214,0.25)",
+    boxShadow: "none",
   },
 
   resultHeader: {
@@ -686,7 +802,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   resultGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: 14,
   },
   resultCard: {
@@ -694,6 +810,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${COLORS.panelBorder}`,
     borderRadius: 16,
     padding: "14px 14px",
+    minWidth: 0,
   },
   resultLabel: {
     fontSize: "0.85rem",
@@ -706,6 +823,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.15rem",
     fontWeight: 950,
     color: COLORS.text,
+    overflowWrap: "anywhere",
   },
 
   bottomBand: {
@@ -717,5 +835,6 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "center",
     fontWeight: 900,
     color: COLORS.text,
+    maxWidth: "100%",
   },
 };
