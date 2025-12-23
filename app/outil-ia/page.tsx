@@ -422,7 +422,7 @@ export default function OutilIAPage() {
         )}
 
         <div style={styles.bottomBand}>
-          N'oublie pas d'activer ton abbonement shopify apres avoir générer ta boutique
+          🧩 N'oublie pas d'activer ton abbonement shopify apres avoir générer ta boutique
         </div>
       </section>
 
