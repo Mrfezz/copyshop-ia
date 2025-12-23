@@ -48,11 +48,9 @@ function badgeForPack(packKey: MePackResponse["packKey"]) {
     return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
   }
   if (packKey === "ia-premium") {
-    // tu peux garder le même dégradé brand pour cohérence
     return { label: "PREMIUM", color: BRAND_GRADIENT };
   }
   if (packKey === "ia-basic") {
-    // ✅ demandé : même dégradé que panier / bouton / pack IA
     return { label: "BASIC", color: BRAND_GRADIENT };
   }
   return { label: "PACK REQUIS", color: "linear-gradient(90deg, #64748b, #94a3b8)" };
@@ -313,14 +311,6 @@ export default function OutilIAPage() {
               </li>
             </ul>
 
-            <div style={styles.noteBox}>
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>⚠️ Accès réservé aux clients avec pack actif</div>
-              <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
-                Si tu as payé mais que ça bloque : vérifie que ton email est bien dans{" "}
-                <b>entitlements</b> avec <b>active = true</b>.
-              </div>
-            </div>
-
             {!pack?.packKey && (
               <div style={{ marginTop: 14 }}>
                 <Link href="/packs-ia" style={styles.ctaBig as any}>
@@ -354,7 +344,12 @@ export default function OutilIAPage() {
 
               {errorMsg && <div style={styles.errorBox}>{errorMsg}</div>}
 
-              <button type="submit" disabled={loading || !authToken} style={styles.primaryBtn}>
+              <button
+                type="submit"
+                disabled={loading || !authToken}
+                className="primary-btn"
+                style={styles.primaryBtn}
+              >
                 {loading ? "Génération en cours…" : "Générer ma boutique"}
               </button>
 
@@ -426,10 +421,24 @@ export default function OutilIAPage() {
           </section>
         )}
 
-        <div style={styles.bottomBand}>🧩 Après achat, l’accès s’active automatiquement via Stripe + Supabase.</div>
+        <div style={styles.bottomBand}>
+          N'oublie pas d'activer ton abbonement shopify apres avoir générer ta boutique
+        </div>
       </section>
 
       <style>{`
+        /* ✅ enlève la lueur (focus ring / halo) du bouton */
+        .primary-btn {
+          box-shadow: none !important;
+          outline: none !important;
+        }
+        .primary-btn:focus,
+        .primary-btn:focus-visible,
+        .primary-btn:active {
+          box-shadow: none !important;
+          outline: none !important;
+        }
+
         @media (max-width: 980px) {
           section[data-grid="outil"] { grid-template-columns: 1fr !important; }
         }
@@ -594,14 +603,6 @@ const styles: Record<string, React.CSSProperties> = {
     flex: "0 0 auto",
   },
 
-  noteBox: {
-    marginTop: 14,
-    background: "rgba(255, 255, 255, 0.06)",
-    border: "1px solid rgba(255,255,255,0.14)",
-    borderRadius: 14,
-    padding: "12px 12px",
-  },
-
   label: {
     display: "block",
     fontSize: "0.85rem",
@@ -647,7 +648,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
   },
 
-  // ✅ demandé : bouton "Générer ma boutique" = même dégradé brand
   primaryBtn: {
     width: "100%",
     padding: "12px 14px",
@@ -658,7 +658,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "0 14px 30px rgba(230,74,167,0.22)",
+    boxShadow: "none", // ✅ plus de lueur
     opacity: 1,
   },
 
@@ -671,7 +671,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     textDecoration: "none",
     color: "white",
-    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    background: BRAND_GRADIENT,
     border: "1px solid rgba(255,255,255,0.22)",
     boxShadow: "0 14px 32px rgba(106,47,214,0.25)",
   },
