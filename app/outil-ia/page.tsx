@@ -3,7 +3,6 @@
 
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type MePackResponse = {
@@ -23,10 +22,6 @@ type GeneratedBoutique = {
   homepageSections: string[];
   productPageBlocks: string[];
   brandTone: string;
-  meta?: {
-    pack?: string;
-    creditsRemaining?: number | null;
-  };
 };
 
 const COLORS = {
@@ -50,7 +45,7 @@ function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
   if (packKey === "ia-premium") return { label: "PREMIUM", color: BRAND_GRADIENT };
   if (packKey === "ia-basic") return { label: "BASIC", color: BRAND_GRADIENT };
-  return null; // pas de badge si aucun pack
+  return null; // ✅ pas de badge “pack requis”
 }
 
 function formatCredits(pack: MePackResponse | null) {
@@ -62,8 +57,6 @@ function formatCredits(pack: MePackResponse | null) {
 }
 
 export default function OutilIAPage() {
-  const router = useRouter();
-
   const [loadingPage, setLoadingPage] = useState(true);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -81,9 +74,10 @@ export default function OutilIAPage() {
 
   const badge = useMemo(() => badgeForPack(pack?.packKey ?? null), [pack?.packKey]);
 
+  // ✅ Titre/Subtitle propres même pendant le chargement
   const headerTitle = useMemo(() => {
     if (pack?.packKey) return pack.title;
-    return "Génère tes 5 boutiques Shopify grâce à l’IA";
+    return "Génère tes boutiques Shopify grâce à l’IA";
   }, [pack?.packKey, pack?.title]);
 
   const headerSubtitle = useMemo(() => {
@@ -133,6 +127,7 @@ export default function OutilIAPage() {
 
         setAuthToken(session.access_token);
         setUserEmail(session.user.email ?? null);
+
         await fetchMePack(session.access_token);
       } catch (e) {
         console.error(e);
@@ -143,27 +138,20 @@ export default function OutilIAPage() {
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const token = session?.access_token ?? null;
-
       setAuthToken(token);
       setUserEmail(session?.user?.email ?? null);
       setResult(null);
       setErrorMsg(null);
 
-      if (token) {
-        await fetchMePack(token);
-      } else {
-        setPack(null);
-        // ✅ IMPORTANT : redirection quand déconnecté
-        router.replace("/connexion");
-        router.refresh();
-      }
+      if (token) await fetchMePack(token);
+      else setPack(null);
     });
 
     return () => {
       mounted = false;
-      sub?.subscription?.unsubscribe();
+      sub.subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -214,6 +202,7 @@ export default function OutilIAPage() {
         body: JSON.stringify({
           productUrl: url,
           imageBase64,
+          productKey: pack.packKey,
         }),
       });
 
@@ -244,9 +233,6 @@ export default function OutilIAPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    // ✅ redirect direct (au cas où le listener ne déclenche pas instant)
-    router.replace("/connexion");
-    router.refresh();
   }
 
   const showCredits = !!pack?.packKey && !packLoading;
@@ -265,6 +251,7 @@ export default function OutilIAPage() {
             <div style={styles.titleRow}>
               <h1 style={styles.title}>{headerTitle}</h1>
 
+              {/* ✅ badge seulement si pack actif */}
               {badge && (
                 <span style={{ ...styles.packBadge, background: badge.color }}>
                   {badge.label}
@@ -274,6 +261,7 @@ export default function OutilIAPage() {
 
             <p style={styles.sub}>{headerSubtitle}</p>
 
+            {/* mini barre état */}
             <div style={styles.statusRow}>
               {!loadingPage && (
                 <div style={styles.statusPill}>
@@ -291,6 +279,7 @@ export default function OutilIAPage() {
                 </Link>
               )}
 
+              {/* ✅ pas de “Chargement pack…” */}
               {showCredits && (
                 <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>
               )}
@@ -334,6 +323,7 @@ export default function OutilIAPage() {
               <div>
                 <label style={styles.label}>Image du produit (optionnel)</label>
 
+                {/* ✅ FILE INPUT CUSTOM (anti-débordement iPhone) */}
                 <div style={styles.fileWrap}>
                   <input
                     id="productImage"
@@ -437,7 +427,7 @@ export default function OutilIAPage() {
         )}
 
         <div style={styles.bottomBand}>
-          🧩  N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique
+          🧩 N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique
         </div>
       </section>
 
@@ -560,18 +550,20 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     maxWidth: "100%",
   },
+
   grid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 16,
   },
+
   card: {
     background: COLORS.panelSoft,
     border: `1px solid ${COLORS.panelBorder}`,
     borderRadius: 18,
     padding: "18px 18px",
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
-    overflow: "hidden",
+    overflow: "hidden", // ✅ évite tout débordement visuel
     maxWidth: "100%",
   },
   cardTitle: {
@@ -580,6 +572,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     letterSpacing: "-0.01em",
   },
+
   ul: {
     listStyle: "none",
     padding: 0,
@@ -603,6 +596,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: 7,
     flex: "0 0 auto",
   },
+
   label: {
     display: "block",
     fontSize: "0.85rem",
@@ -611,6 +605,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.muted,
     marginBottom: 6,
   },
+
+  // ✅ File input custom
   fileWrap: {
     width: "100%",
     display: "grid",
@@ -651,6 +647,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(255,255,255,0.72)",
     fontWeight: 750,
   },
+
   input: {
     width: "100%",
     borderRadius: 12,
@@ -668,6 +665,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.85rem",
     fontWeight: 650,
   },
+
   errorBox: {
     background: "rgba(244,63,94,0.12)",
     border: "1px solid rgba(244,63,94,0.35)",
@@ -677,6 +675,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     boxSizing: "border-box",
   },
+
+  // ✅ bouton brand gradient + PAS de lueur rose
   primaryBtn: {
     width: "100%",
     padding: "12px 14px",
@@ -687,10 +687,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+    boxShadow: "0 12px 26px rgba(0,0,0,0.28)", // ✅ glow neutre
     opacity: 1,
     boxSizing: "border-box",
   },
+
   resultHeader: {
     display: "flex",
     alignItems: "flex-start",
@@ -723,6 +724,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     color: COLORS.text,
   },
+
   bottomBand: {
     marginTop: 18,
     background: COLORS.panel,
