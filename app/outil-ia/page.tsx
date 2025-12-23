@@ -1,9 +1,20 @@
 // app/outil-ia/page.tsx
 "use client";
 
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+
+type MePackResponse = {
+  email: string;
+  packKey: "ia-basic" | "ia-premium" | "ia-ultime" | null;
+  quota: number | null;
+  unlimited: boolean;
+  creditsUsed: number;
+  creditsRemaining: number | null;
+  title: string;
+  subtitle: string;
+};
 
 type GeneratedBoutique = {
   storeName: string;
@@ -13,49 +24,45 @@ type GeneratedBoutique = {
   brandTone: string;
 };
 
-type ApiError = { error?: string };
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  borderRadius: "0.75rem",
-  border: "1px solid rgba(148,163,184,0.6)",
-  backgroundColor: "#020617",
-  color: "#f9fafb",
-  padding: "0.55rem 0.7rem",
-  fontSize: "0.85rem",
-  outline: "none",
+const COLORS = {
+  bgTop: "#0b1026",
+  bgMid: "#0f1635",
+  bgBottom: "#171a52",
+  text: "#eef1ff",
+  muted: "#c9d2ff",
+  panel: "rgba(10, 15, 43, 0.85)",
+  panelSoft: "rgba(13, 18, 50, 0.90)",
+  panelBorder: "rgba(150, 170, 255, 0.18)",
+  navy: "#0b0f2a",
+  violet: "#6a2fd6",
+  violetDeep: "#4338ca",
+  pink: "#e64aa7",
+  green: "#22c55e",
+  amber: "#facc15",
 };
 
-const labelStyle: React.CSSProperties = {
-  fontSize: "0.82rem",
-  color: "#cbd5f5",
-  marginBottom: "0.3rem",
-  display: "block",
-};
+function badgeForPack(packKey: MePackResponse["packKey"]) {
+  if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
+  if (packKey === "ia-premium") return { label: "PREMIUM", color: "linear-gradient(90deg, #4338ca, #6a2fd6, #e64aa7)" };
+  if (packKey === "ia-basic") return { label: "BASIC", color: "linear-gradient(90deg, #2563eb, #6a2fd6)" };
+  return { label: "PACK REQUIS", color: "linear-gradient(90deg, #64748b, #94a3b8)" };
+}
 
-const cardStyle: React.CSSProperties = {
-  backgroundColor: "#020617",
-  borderRadius: "1.5rem",
-  border: "1px solid rgba(148,163,184,0.7)",
-  padding: "1.6rem 1.5rem",
-};
-
-const pillStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "10px 12px",
-  borderRadius: 14,
-  border: "1px solid rgba(255,255,255,0.12)",
-  background: "rgba(255,255,255,0.06)",
-  color: "#e5e7eb",
-  fontSize: "0.9rem",
-  fontWeight: 650,
-};
+function formatCredits(pack: MePackResponse | null) {
+  if (!pack || !pack.packKey) return "—";
+  if (pack.unlimited) return "Illimité";
+  const total = pack.quota ?? 0;
+  const remaining = pack.creditsRemaining ?? 0;
+  return `${remaining} / ${total}`;
+}
 
 export default function OutilIAPage() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingPage, setLoadingPage] = useState(true);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  const [pack, setPack] = useState<MePackResponse | null>(null);
+  const [packLoading, setPackLoading] = useState(false);
 
   const [productUrl, setProductUrl] = useState("");
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -63,27 +70,74 @@ export default function OutilIAPage() {
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
-
-  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const badge = useMemo(() => badgeForPack(pack?.packKey ?? null), [pack?.packKey]);
+
+  async function fetchMePack(token: string) {
+    setPackLoading(true);
+    try {
+      const res = await fetch("/api/me/pack", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("❌ /api/me/pack error:", t);
+        setPack(null);
+        return;
+      }
+
+      const data = (await res.json()) as MePackResponse;
+      setPack(data);
+    } finally {
+      setPackLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let ignore = false;
+    let mounted = true;
 
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!ignore) {
-        setSession(data.session ?? null);
-        setCheckingAuth(false);
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data.session;
+
+        if (!mounted) return;
+
+        if (!session?.access_token) {
+          setAuthToken(null);
+          setUserEmail(null);
+          setPack(null);
+          setLoadingPage(false);
+          return;
+        }
+
+        setAuthToken(session.access_token);
+        setUserEmail(session.user.email ?? null);
+
+        await fetchMePack(session.access_token);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (mounted) setLoadingPage(false);
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const token = session?.access_token ?? null;
+      setAuthToken(token);
+      setUserEmail(session?.user?.email ?? null);
+      setResult(null);
+      setErrorMsg(null);
+
+      if (token) await fetchMePack(token);
+      else setPack(null);
     });
 
     return () => {
-      ignore = true;
+      mounted = false;
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -98,8 +152,7 @@ export default function OutilIAPage() {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64 = reader.result as string; // data:image/...;base64,...
-      setImageBase64(base64);
+      setImageBase64(reader.result as string);
       setImageName(file.name);
     };
     reader.readAsDataURL(file);
@@ -108,20 +161,22 @@ export default function OutilIAPage() {
   async function handleGenerate(e: FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
-    setStatusMsg(null);
     setResult(null);
 
-    // ✅ Ton API exige productUrl
-    const url = productUrl.trim();
-    if (!url) {
-      setErrorMsg("Pour l’instant, le lien produit est obligatoire (l’image sera ajoutée après).");
+    if (!authToken) {
+      setErrorMsg("Tu dois être connecté pour utiliser l’outil.");
       return;
     }
 
-    // ✅ Doit être connecté
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      setErrorMsg("Tu dois être connecté pour utiliser l’outil IA.");
+    // Pour l’instant ton API exige productUrl
+    const url = productUrl.trim();
+    if (!url) {
+      setErrorMsg("Colle un lien produit (obligatoire pour le moment).");
+      return;
+    }
+
+    if (!pack?.packKey) {
+      setErrorMsg("Pack requis : choisis un pack IA pour débloquer l’outil.");
       return;
     }
 
@@ -132,445 +187,241 @@ export default function OutilIAPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           productUrl: url,
-          imageBase64, // accepté (pas utilisé pour l’instant)
-          // productKey: "ia-basic", // optionnel si tu veux forcer un pack précis
+          imageBase64,
+          // optionnel : si tu veux forcer le pack précis côté API
+          productKey: pack.packKey,
         }),
       });
 
-      // 🔥 Gestion erreurs API
       if (!res.ok) {
-        let payload: ApiError | null = null;
+        const t = await res.text();
+        console.error("❌ /api/outil-ia error:", t);
+
+        // Essaye de remonter un message sympa
         try {
-          payload = (await res.json()) as ApiError;
+          const j = JSON.parse(t);
+          setErrorMsg(j?.error ?? "Erreur lors de la génération.");
         } catch {
-          // ignore
+          setErrorMsg("Erreur lors de la génération. Réessaie.");
         }
-
-        const msg = payload?.error || (await res.text()) || "Erreur inconnue";
-
-        if (res.status === 401) {
-          setErrorMsg("Session invalide. Reconnecte-toi pour continuer.");
-          return;
-        }
-
-        if (res.status === 403) {
-          setErrorMsg(
-            "Accès refusé : aucun pack actif détecté. Achète un pack IA puis reconnecte-toi."
-          );
-          return;
-        }
-
-        if (res.status === 400) {
-          setErrorMsg(msg);
-          return;
-        }
-
-        setErrorMsg(`Erreur serveur (${res.status}) : ${msg}`);
         return;
       }
 
       const data = (await res.json()) as GeneratedBoutique;
-
       setResult(data);
-      setStatusMsg("✅ Boutique générée avec succès.");
+
+      // Optionnel : refresh pack (utile si tu incrémentes credits_used côté API)
+      await fetchMePack(authToken);
     } catch (err) {
-      console.error("Erreur réseau :", err);
-      setErrorMsg("Erreur réseau pendant l'appel à l'IA.");
+      console.error(err);
+      setErrorMsg("Erreur réseau pendant l'appel à l’IA.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function signOut() {
+  async function handleSignOut() {
     await supabase.auth.signOut();
   }
 
-  const userEmail = session?.user?.email ?? "";
-
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "3.5rem 1.5rem 3rem",
-        background:
-          "radial-gradient(circle at top left, #1d4ed8 0, #020617 55%, #020617 100%)",
-        color: "#f9fafb",
-      }}
-    >
-      <div style={{ maxWidth: "1120px", margin: "0 auto" }}>
+    <main style={styles.page}>
+      <div style={styles.bgGradient} />
+      <div style={styles.bgDots} />
+
+      <section style={styles.container}>
         {/* HEADER */}
-        <header style={{ marginBottom: "1.4rem" }}>
-          <p
-            style={{
-              fontSize: "0.75rem",
-              letterSpacing: "0.3em",
-              textTransform: "uppercase",
-              color: "#a5b4fc",
-              marginBottom: "0.5rem",
-            }}
-          >
-            Outil IA • Boutiques Shopify
-          </p>
+        <header style={styles.header}>
+          <div style={{ display: "grid", gap: 10 }}>
+            <p style={styles.kicker}>OUTIL IA • BOUTIQUES SHOPIFY</p>
 
-          <h1 style={{ fontSize: "2.2rem", fontWeight: 800, marginBottom: "0.3rem" }}>
-            Génère une boutique Shopify (pack requis).
-          </h1>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <h1 style={styles.title}>{pack?.title ?? "Génère une boutique Shopify (pack requis)."}</h1>
+              <span
+                style={{
+                  ...styles.packBadge,
+                  background: badge.color,
+                }}
+              >
+                {badge.label}
+              </span>
+            </div>
 
-          <p style={{ fontSize: "0.95rem", color: "#e5e7eb", maxWidth: "720px" }}>
-            Colle un lien produit (AliExpress / fournisseur). L’IA génère : nom, slogan,
-            sections, page produit. <br />
-            <span style={{ color: "rgba(255,255,255,0.70)" }}>
-              (L’analyse d’image viendra après — ton API actuelle utilise surtout le lien.)
-            </span>
-          </p>
+            <p style={styles.sub}>{pack?.subtitle ?? "Choisis un pack IA pour débloquer l’outil."}</p>
 
-          {/* Auth line */}
-          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {checkingAuth ? (
-              <span style={pillStyle}>⏳ Vérification de la session…</span>
-            ) : session ? (
-              <>
-                <span style={pillStyle}>✅ Connecté : <strong>{userEmail}</strong></span>
-                <button
-                  onClick={signOut}
-                  style={{
-                    ...pillStyle,
-                    cursor: "pointer",
-                    background: "rgba(255,255,255,0.08)",
-                  }}
-                >
+            {/* mini barre état */}
+            <div style={styles.statusRow}>
+              <div style={styles.statusPill}>
+                {loadingPage ? "…" : authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
+              </div>
+
+              {authToken ? (
+                <button type="button" onClick={handleSignOut} style={styles.secondaryBtn}>
                   Se déconnecter
                 </button>
-              </>
-            ) : (
-              <>
-                <span style={pillStyle}>🔒 Connecte-toi pour utiliser l’outil IA</span>
-                <a
-                  href="/compte-client"
-                  style={{
-                    ...pillStyle,
-                    textDecoration: "none",
-                    background: "linear-gradient(to right, #22c55e, #a3e635, #facc15)",
-                    color: "#022c22",
-                    border: "none",
-                  }}
-                >
-                  Aller à l’espace client
-                </a>
-              </>
-            )}
-          </div>
+              ) : (
+                <Link href="/connexion" style={styles.secondaryBtn as any}>
+                  Se connecter
+                </Link>
+              )}
 
-          {/* Messages */}
-          {errorMsg && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                borderRadius: 14,
-                border: "1px solid rgba(255, 77, 77, 0.35)",
-                background: "rgba(255, 77, 77, 0.12)",
-                color: "#ffb3b3",
-                fontWeight: 700,
-              }}
-            >
-              ❌ {errorMsg}
-              {errorMsg.includes("pack actif") && (
-                <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <a
-                    href="/packs-ia"
-                    style={{
-                      ...pillStyle,
-                      textDecoration: "none",
-                      background: "rgba(255,255,255,0.10)",
-                    }}
-                  >
-                    Voir les packs IA
-                  </a>
-                  <a
-                    href="/compte-client"
-                    style={{
-                      ...pillStyle,
-                      textDecoration: "none",
-                      background: "rgba(255,255,255,0.10)",
-                    }}
-                  >
-                    Me reconnecter
-                  </a>
-                </div>
+              <div style={styles.statusPill}>
+                {packLoading ? "Chargement pack…" : `Crédits : ${formatCredits(pack)}`}
+              </div>
+
+              {pack?.packKey ? (
+                <Link href="/compte-client" style={styles.secondaryBtn as any}>
+                  Mon compte
+                </Link>
+              ) : (
+                <Link href="/packs-ia" style={styles.ctaOutline as any}>
+                  Voir les packs IA
+                </Link>
               )}
             </div>
-          )}
-
-          {statusMsg && !errorMsg && (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "10px 12px",
-                borderRadius: 14,
-                border: "1px solid rgba(64, 255, 141, 0.35)",
-                background: "rgba(64, 255, 141, 0.10)",
-                color: "#b7ffd9",
-                fontWeight: 800,
-              }}
-            >
-              {statusMsg}
-            </div>
-          )}
+          </div>
         </header>
 
-        {/* GRID : EXPLICATION + FORMULAIRE */}
-        <section
-          className="outil-grid"
-          style={{
-            display: "grid",
-            gap: "1.6rem",
-            gridTemplateColumns: "minmax(0, 1.25fr) minmax(0, 1fr)",
-            alignItems: "flex-start",
-          }}
-        >
-          {/* COLONNE GAUCHE : EXPLICATION */}
-          <div style={cardStyle}>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.7rem" }}>
-              Comment ça marche
-            </h2>
+        {/* GRID */}
+        <section style={styles.grid}>
+          {/* LEFT INFO */}
+          <div style={styles.card}>
+            <h2 style={styles.cardTitle}>Comment ça marche</h2>
 
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                fontSize: "0.9rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.5rem",
-              }}
-            >
-              <li style={{ display: "flex", gap: "0.45rem" }}>
-                <span
-                  style={{
-                    marginTop: "0.4rem",
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "999px",
-                    backgroundColor: "#22c55e",
-                    flexShrink: 0,
-                  }}
-                />
+            <ul style={styles.ul}>
+              <li style={styles.li}>
+                <span style={styles.dot} />
                 <span>Colle un lien produit (AliExpress / fournisseur).</span>
               </li>
-
-              <li style={{ display: "flex", gap: "0.45rem" }}>
-                <span
-                  style={{
-                    marginTop: "0.4rem",
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "999px",
-                    backgroundColor: "#22c55e",
-                    flexShrink: 0,
-                  }}
-                />
-                <span>L’IA te renvoie un JSON complet pour construire la boutique.</span>
+              <li style={styles.li}>
+                <span style={styles.dot} />
+                <span>Optionnel : ajoute une image (on l’exploitera ensuite).</span>
               </li>
-
-              <li style={{ display: "flex", gap: "0.45rem" }}>
-                <span
-                  style={{
-                    marginTop: "0.4rem",
-                    width: "7px",
-                    height: "7px",
-                    borderRadius: "999px",
-                    backgroundColor: "#22c55e",
-                    flexShrink: 0,
-                  }}
-                />
-                <span>
-                  Accès réservé aux clients avec un pack actif (entitlements).
-                </span>
+              <li style={styles.li}>
+                <span style={styles.dot} />
+                <span>Tu reçois une structure complète : nom, slogan, sections, blocs produit.</span>
               </li>
             </ul>
 
-            <p style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#9ca3af" }}>
-              ⚠️ Si tu as payé mais que ça bloque : reconnecte-toi, ou vérifie que
-              ton email apparaît dans <strong>entitlements</strong> avec <strong>active = true</strong>.
-            </p>
+            <div style={styles.noteBox}>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                ⚠️ Accès réservé aux clients avec pack actif
+              </div>
+              <div style={{ color: COLORS.muted, lineHeight: 1.5 }}>
+                Si tu as payé mais que ça bloque : vérifie que ton email est bien dans{" "}
+                <b>entitlements</b> avec <b>active = true</b>.
+              </div>
+            </div>
+
+            {!pack?.packKey && (
+              <div style={{ marginTop: 14 }}>
+                <Link href="/packs-ia" style={styles.ctaBig as any}>
+                  Débloquer l’accès (choisir un pack)
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* COLONNE DROITE : FORMULAIRE */}
-          <form onSubmit={handleGenerate} style={cardStyle}>
-            <h2 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.9rem" }}>
-              Envoyer à l’IA
-            </h2>
+          {/* RIGHT FORM */}
+          <form onSubmit={handleGenerate} style={styles.card}>
+            <h2 style={styles.cardTitle}>Envoyer à l’IA</h2>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+            <div style={{ display: "grid", gap: 12 }}>
               <div>
-                <label style={labelStyle}>Image du produit (optionnel)</label>
+                <label style={styles.label}>Image du produit (optionnel)</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  style={{ ...inputStyle, padding: "0.4rem 0.7rem", cursor: "pointer" }}
+                  style={styles.inputFile}
                 />
-                {imageName && (
-                  <p style={{ marginTop: "0.35rem", fontSize: "0.78rem", color: "#9ca3af" }}>
-                    Image sélectionnée : {imageName}
-                  </p>
-                )}
+                {imageName && <div style={styles.helper}>Image sélectionnée : {imageName}</div>}
               </div>
 
               <div>
-                <label style={labelStyle}>Lien produit (obligatoire pour le moment)</label>
+                <label style={styles.label}>Lien produit (obligatoire pour le moment)</label>
                 <input
                   type="url"
                   placeholder="https://..."
                   value={productUrl}
                   onChange={(e) => setProductUrl(e.target.value)}
-                  style={inputStyle}
+                  style={styles.input}
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading || checkingAuth || !session}
-                style={{
-                  marginTop: "0.6rem",
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  borderRadius: "999px",
-                  border: "none",
-                  background: "linear-gradient(to right, #22c55e, #a3e635, #facc15)",
-                  color: "#022c22",
-                  fontSize: "0.9rem",
-                  fontWeight: 700,
-                  cursor: loading ? "wait" : "pointer",
-                  opacity: loading || checkingAuth || !session ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Génération..." : "Générer ma boutique"}
+              {errorMsg && <div style={styles.errorBox}>{errorMsg}</div>}
+
+              <button type="submit" disabled={loading || !authToken} style={styles.primaryBtn}>
+                {loading ? "Génération en cours…" : "Générer ma boutique"}
               </button>
 
-              {!session && !checkingAuth && (
-                <a
-                  href="/compte-client"
-                  style={{
-                    marginTop: 8,
-                    textAlign: "center",
-                    textDecoration: "none",
-                    color: "#a5b4fc",
-                    fontWeight: 800,
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  Se connecter pour activer l’outil
-                </a>
+              {!authToken && (
+                <div style={styles.helper}>
+                  Connecte-toi pour utiliser l’outil.
+                </div>
               )}
             </div>
           </form>
         </section>
 
-        {/* RÉSULTAT */}
+        {/* RESULT */}
         {result && (
-          <section style={{ marginTop: "2rem", ...cardStyle }}>
-            <h2 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "0.4rem" }}>
-              Boutique générée
-            </h2>
-            <p style={{ fontSize: "0.9rem", color: "#a5b4fc", marginBottom: "1rem" }}>
-              À adapter ensuite dans Shopify.
-            </p>
-
-            <div
-              className="result-grid"
-              style={{
-                display: "grid",
-                gap: "1.2rem",
-                gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 1fr)",
-              }}
-            >
+          <section style={{ ...styles.card, marginTop: 18 }}>
+            <div style={styles.resultHeader}>
               <div>
-                <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.3rem" }}>
-                  Nom de la boutique
-                </h3>
-                <p style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.6rem" }}>
-                  {result.storeName}
-                </p>
-
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.3rem" }}>
-                  Slogan
-                </h3>
-                <p style={{ fontSize: "0.9rem", color: "#e5e7eb", marginBottom: "0.8rem" }}>
-                  {result.tagline}
-                </p>
-
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.3rem" }}>
-                  Ton de la marque
-                </h3>
-                <p style={{ fontSize: "0.86rem", color: "#cbd5f5" }}>{result.brandTone}</p>
+                <h2 style={{ ...styles.cardTitle, marginBottom: 6 }}>Résultat</h2>
+                <div style={{ color: COLORS.muted }}>
+                  Copie/colle directement dans Shopify (ou délègue la mise en place).
+                </div>
               </div>
 
-              <div>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.4rem" }}>
-                  Sections page d’accueil
-                </h3>
-                <ul
-                  style={{
-                    listStyle: "none",
-                    padding: 0,
-                    margin: 0,
-                    fontSize: "0.86rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.3rem",
-                    marginBottom: "0.9rem",
-                  }}
-                >
+              <button
+                type="button"
+                style={styles.secondaryBtn}
+                onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
+              >
+                Copier le JSON
+              </button>
+            </div>
+
+            <div style={styles.resultGrid}>
+              <div style={styles.resultCard}>
+                <div style={styles.resultLabel}>Nom de la boutique</div>
+                <div style={styles.resultValue}>{result.storeName}</div>
+
+                <div style={{ height: 10 }} />
+
+                <div style={styles.resultLabel}>Slogan</div>
+                <div style={{ color: COLORS.text, fontWeight: 700 }}>{result.tagline}</div>
+
+                <div style={{ height: 10 }} />
+
+                <div style={styles.resultLabel}>Ton de la marque</div>
+                <div style={{ color: COLORS.muted, lineHeight: 1.55 }}>{result.brandTone}</div>
+              </div>
+
+              <div style={styles.resultCard}>
+                <div style={styles.resultLabel}>Sections homepage</div>
+                <ul style={{ ...styles.ul, marginTop: 10 }}>
                   {result.homepageSections?.map((s) => (
-                    <li key={s} style={{ display: "flex", gap: "0.4rem" }}>
-                      <span
-                        style={{
-                          marginTop: "0.4rem",
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "999px",
-                          backgroundColor: "#38bdf8",
-                          flexShrink: 0,
-                        }}
-                      />
+                    <li key={s} style={styles.li}>
+                      <span style={{ ...styles.dot, background: "#38bdf8" }} />
                       <span>{s}</span>
                     </li>
                   ))}
                 </ul>
 
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "0.4rem" }}>
-                  Blocs page produit
-                </h3>
-                <ul
-                  style={{
-                    listStyle: "none",
-                    padding: 0,
-                    margin: 0,
-                    fontSize: "0.86rem",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.3rem",
-                  }}
-                >
+                <div style={{ height: 14 }} />
+
+                <div style={styles.resultLabel}>Blocs page produit</div>
+                <ul style={{ ...styles.ul, marginTop: 10 }}>
                   {result.productPageBlocks?.map((b) => (
-                    <li key={b} style={{ display: "flex", gap: "0.4rem" }}>
-                      <span
-                        style={{
-                          marginTop: "0.4rem",
-                          width: "6px",
-                          height: "6px",
-                          borderRadius: "999px",
-                          backgroundColor: "#f97316",
-                          flexShrink: 0,
-                        }}
-                      />
+                    <li key={b} style={styles.li}>
+                      <span style={{ ...styles.dot, background: "#f97316" }} />
                       <span>{b}</span>
                     </li>
                   ))}
@@ -579,15 +430,296 @@ export default function OutilIAPage() {
             </div>
           </section>
         )}
-      </div>
 
-      {/* Responsive */}
+        <div style={styles.bottomBand}>🧩 Après achat, l’accès s’active automatiquement via Stripe + Supabase.</div>
+      </section>
+
       <style>{`
         @media (max-width: 980px) {
-          .outil-grid { grid-template-columns: 1fr !important; }
-          .result-grid { grid-template-columns: 1fr !important; }
+          section[data-grid="outil"] { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </main>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    position: "relative",
+    minHeight: "100vh",
+    padding: "2.2rem 1.25rem 3rem",
+    color: COLORS.text,
+    overflow: "hidden",
+  },
+  bgGradient: {
+    position: "fixed",
+    inset: 0,
+    background:
+      "radial-gradient(1200px circle at 10% -10%, #3a6bff33, transparent 50%)," +
+      "radial-gradient(900px circle at 90% 10%, #8b5cf633, transparent 45%)," +
+      `linear-gradient(180deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 45%, ${COLORS.bgBottom} 100%)`,
+    zIndex: -2,
+  },
+  bgDots: {
+    position: "fixed",
+    inset: 0,
+    backgroundImage:
+      "radial-gradient(circle at 8% 12%, #6aa2ff66 0 2px, transparent 3px)," +
+      "radial-gradient(circle at 12% 18%, #6aa2ff44 0 1.5px, transparent 3px)," +
+      "radial-gradient(circle at 16% 8%, #6aa2ff55 0 2px, transparent 4px)",
+    backgroundRepeat: "repeat",
+    backgroundSize: "32px 32px",
+    opacity: 0.7,
+    zIndex: -1,
+    pointerEvents: "none",
+  },
+  container: {
+    maxWidth: 1200,
+    margin: "0 auto",
+    padding: "52px 20px 28px",
+    position: "relative",
+    zIndex: 1,
+  },
+  header: {
+    display: "grid",
+    gap: 14,
+    marginBottom: 18,
+  },
+  kicker: {
+    fontSize: "0.78rem",
+    color: COLORS.muted,
+    fontWeight: 900,
+    letterSpacing: "0.22em",
+    textTransform: "uppercase",
+    margin: 0,
+  },
+  title: {
+    fontSize: "clamp(1.7rem, 3.2vw, 2.7rem)",
+    fontWeight: 950,
+    lineHeight: 1.12,
+    margin: 0,
+    letterSpacing: "-0.02em",
+  },
+  sub: {
+    color: COLORS.muted,
+    fontSize: "1.02rem",
+    margin: 0,
+    maxWidth: 900,
+    lineHeight: 1.5,
+  },
+  packBadge: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    fontWeight: 950,
+    fontSize: "0.8rem",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    boxShadow: "0 10px 22px rgba(0,0,0,0.28)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    whiteSpace: "nowrap",
+  },
+  statusRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  statusPill: {
+    background: COLORS.panel,
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 999,
+    padding: "8px 12px",
+    fontWeight: 800,
+    fontSize: "0.9rem",
+    color: COLORS.text,
+  },
+  secondaryBtn: {
+    background: "rgba(255,255,255,0.10)",
+    border: "1px solid rgba(255,255,255,0.22)",
+    color: COLORS.text,
+    padding: "9px 12px",
+    borderRadius: 999,
+    fontWeight: 900,
+    cursor: "pointer",
+    textDecoration: "none",
+  },
+  ctaOutline: {
+    background: "rgba(255,255,255,0.08)",
+    border: `1px solid rgba(230,74,167,0.55)`,
+    color: COLORS.text,
+    padding: "9px 12px",
+    borderRadius: 999,
+    fontWeight: 950,
+    cursor: "pointer",
+    textDecoration: "none",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 16,
+  },
+
+  card: {
+    background: COLORS.panelSoft,
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 18,
+    padding: "18px 18px",
+    boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
+  },
+  cardTitle: {
+    margin: 0,
+    fontSize: "1.15rem",
+    fontWeight: 950,
+    letterSpacing: "-0.01em",
+  },
+
+  ul: {
+    listStyle: "none",
+    padding: 0,
+    margin: "14px 0 0",
+    display: "grid",
+    gap: 10,
+  },
+  li: {
+    display: "flex",
+    gap: 10,
+    alignItems: "flex-start",
+    lineHeight: 1.5,
+    color: COLORS.text,
+    fontWeight: 650,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    background: COLORS.green,
+    marginTop: 7,
+    flex: "0 0 auto",
+  },
+
+  noteBox: {
+    marginTop: 14,
+    background: "rgba(255, 255, 255, 0.06)",
+    border: "1px solid rgba(255,255,255,0.14)",
+    borderRadius: 14,
+    padding: "12px 12px",
+  },
+
+  label: {
+    display: "block",
+    fontSize: "0.85rem",
+    fontWeight: 900,
+    letterSpacing: "0.02em",
+    color: COLORS.muted,
+    marginBottom: 6,
+  },
+  input: {
+    width: "100%",
+    borderRadius: 12,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(2, 6, 23, 0.65)",
+    color: COLORS.text,
+    padding: "11px 12px",
+    outline: "none",
+    fontSize: "0.95rem",
+  },
+  inputFile: {
+    width: "100%",
+    borderRadius: 12,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(2, 6, 23, 0.45)",
+    color: COLORS.text,
+    padding: "10px 12px",
+    outline: "none",
+    fontSize: "0.95rem",
+    cursor: "pointer",
+  },
+  helper: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.65)",
+    fontSize: "0.85rem",
+    fontWeight: 650,
+  },
+
+  errorBox: {
+    background: "rgba(244,63,94,0.12)",
+    border: "1px solid rgba(244,63,94,0.35)",
+    color: "#fecdd3",
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 800,
+  },
+
+  primaryBtn: {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 999,
+    border: "none",
+    background: `linear-gradient(90deg, ${COLORS.green}, ${COLORS.amber})`,
+    color: "#06281f",
+    fontSize: "1rem",
+    fontWeight: 950,
+    cursor: "pointer",
+    boxShadow: "0 14px 30px rgba(34,197,94,0.20)",
+    opacity: 1,
+  },
+
+  ctaBig: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 14px",
+    borderRadius: 999,
+    fontWeight: 950,
+    textDecoration: "none",
+    color: "white",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    border: "1px solid rgba(255,255,255,0.22)",
+    boxShadow: "0 14px 32px rgba(106,47,214,0.25)",
+  },
+
+  resultHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 14,
+  },
+  resultGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+  },
+  resultCard: {
+    background: "rgba(2,6,23,0.55)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 16,
+    padding: "14px 14px",
+  },
+  resultLabel: {
+    fontSize: "0.85rem",
+    fontWeight: 950,
+    color: COLORS.muted,
+    letterSpacing: "0.02em",
+  },
+  resultValue: {
+    marginTop: 6,
+    fontSize: "1.15rem",
+    fontWeight: 950,
+    color: COLORS.text,
+  },
+
+  bottomBand: {
+    marginTop: 18,
+    background: COLORS.panel,
+    border: `1px solid ${COLORS.panelBorder}`,
+    padding: "12px 14px",
+    borderRadius: 14,
+    textAlign: "center",
+    fontWeight: 900,
+    color: COLORS.text,
+  },
+};

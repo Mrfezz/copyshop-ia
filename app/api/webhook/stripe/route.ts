@@ -1,56 +1,43 @@
 // app/api/webhook/stripe/route.ts
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-/**
- * ✅ Réponses helpers
- */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function ok() {
   return NextResponse.json({ received: true }, { status: 200 });
 }
+
 function bad(msg: string, status = 400) {
   return NextResponse.json({ error: msg }, { status });
 }
 
-/**
- * ✅ Map status Stripe -> status DB
- */
 function mapCheckoutStatus(session: Stripe.Checkout.Session) {
-  // Stripe: paid | unpaid | no_payment_required
   const ps = session.payment_status ?? "unknown";
   if (ps === "paid" || ps === "no_payment_required") return "paid";
   if (ps === "unpaid") return "pending";
   return String(ps);
 }
 
-/**
- * ✅ Produit (priorité metadata session, sinon metadata PaymentIntent)
- */
 async function resolveProductKey(session: Stripe.Checkout.Session) {
-  const direct = session.metadata?.productKey as string | undefined;
-  if (direct) return direct;
+  let productKey = session.metadata?.productKey as string | undefined;
+  if (productKey) return productKey;
 
   if (typeof session.payment_intent === "string") {
     try {
       const pi = await stripe.paymentIntents.retrieve(session.payment_intent);
-      const fromPi = (pi.metadata?.productKey as string | undefined) ?? undefined;
-      if (fromPi) return fromPi;
+      productKey = (pi.metadata?.productKey as string | undefined) ?? undefined;
+      if (productKey) return productKey;
     } catch (e) {
-      console.warn("⚠️ Impossible de récupérer payment_intent metadata", e);
+      console.warn("⚠️ Impossible PI metadata", e);
     }
   }
-
   return "unknown";
 }
 
-/**
- * ✅ Email (priorité customer_details.email, sinon customer_email, sinon customer)
- */
 async function resolveEmail(session: Stripe.Checkout.Session) {
   const email =
     (session.customer_details?.email as string | null) ??
@@ -64,20 +51,21 @@ async function resolveEmail(session: Stripe.Checkout.Session) {
       const customer = (await stripe.customers.retrieve(
         session.customer
       )) as Stripe.Customer;
-
       if (customer?.email) return customer.email;
     } catch (e) {
-      console.warn("⚠️ Impossible de récupérer customer email", e);
+      console.warn("⚠️ Impossible customer email", e);
     }
   }
-
   return null;
 }
 
-/**
- * ✅ Upsert purchase (anti-doublon via stripe_session_id)
- * NOTE: ton schéma purchases doit contenir les colonnes ci-dessous
- */
+function packDefaults(productKey: string) {
+  if (productKey === "ia-basic") return { credits_total: 5, unlimited: false };
+  if (productKey === "ia-premium") return { credits_total: 15, unlimited: false };
+  if (productKey === "ia-ultime") return { credits_total: null as any, unlimited: true };
+  return { credits_total: null as any, unlimited: false };
+}
+
 async function upsertPurchase(params: {
   productKey: string;
   email: string | null;
@@ -91,7 +79,7 @@ async function upsertPurchase(params: {
 
   const { error } = await supabaseAdmin.from("purchases").upsert(
     {
-      product_key: productKey, // NOT NULL chez toi
+      product_key: productKey,
       email,
       stripe_session_id: session.id,
       stripe_customer_id: stripeCustomerId,
@@ -104,40 +92,37 @@ async function upsertPurchase(params: {
   );
 
   if (error) {
-    console.error("❌ Erreur Supabase upsert purchases:", error);
+    console.error("❌ Supabase upsert purchases:", error);
   } else {
-    console.log("✅ Achat enregistré:", {
-      productKey,
-      email,
-      sessionId: session.id,
-      status,
-    });
+    console.log("✅ Achat enregistré:", { productKey, email, sessionId: session.id, status });
   }
 
   return stripeCustomerId;
 }
 
-/**
- * ✅ Entitlements : active l'accès au pack pour l'email
- * Table entitlements attendue :
- * - id (serial/bigserial) ou uuid
- * - email text
- * - product_key text
- * - active boolean
- * - stripe_session_id text
- * - stripe_customer_id text (optionnel)
- * - updated_at timestamptz (optionnel)
- * Conflit : unique(email, product_key)
- */
-async function grantEntitlement(params: {
-  email: string | null;
+async function grantPackEntitlement(params: {
+  email: string;
   productKey: string;
   sessionId: string;
   stripeCustomerId: string | null;
 }) {
   const { email, productKey, sessionId, stripeCustomerId } = params;
 
-  if (!email || !productKey || productKey === "unknown") return;
+  const defaults = packDefaults(productKey);
+
+  // On lit l’existant pour ne pas écraser credits_used
+  const { data: existing } = await supabaseAdmin
+    .from("entitlements")
+    .select("credits_total, credits_used, unlimited")
+    .eq("email", email)
+    .eq("product_key", productKey)
+    .maybeSingle();
+
+  const creditsUsed = existing?.credits_used ?? 0;
+  const unlimited = defaults.unlimited;
+
+  const creditsTotal =
+    unlimited ? null : (existing?.credits_total ?? defaults.credits_total ?? null);
 
   const { error } = await supabaseAdmin.from("entitlements").upsert(
     {
@@ -146,42 +131,82 @@ async function grantEntitlement(params: {
       active: true,
       stripe_session_id: sessionId,
       stripe_customer_id: stripeCustomerId,
+      unlimited,
+      credits_total: creditsTotal,
+      credits_used: creditsUsed,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "email,product_key" }
   );
 
-  if (error) {
-    console.error("❌ Erreur upsert entitlements:", error);
-  } else {
-    console.log("✅ Pack activé (entitlements):", { email, productKey });
+  if (error) console.warn("⚠️ Entitlements pack non mis à jour:", error);
+  else console.log("✅ Pack activé:", { email, productKey, creditsTotal, unlimited });
+}
+
+async function applyRecharge(params: {
+  email: string;
+  sessionId: string;
+  stripeCustomerId: string | null;
+  addCredits: number;
+}) {
+  const { email, sessionId, stripeCustomerId, addCredits } = params;
+
+  // Recharge uniquement si le user a basic OU premium actif
+  const { data: ent } = await supabaseAdmin
+    .from("entitlements")
+    .select("product_key, credits_total, credits_used, unlimited")
+    .eq("email", email)
+    .eq("active", true)
+    .in("product_key", ["ia-premium", "ia-basic"])
+    .order("product_key", { ascending: true }) // ia-basic avant ia-premium (on va gérer à la main)
+    .limit(2);
+
+  // priorité premium si les deux existent
+  const picked =
+    ent?.find((e) => e.product_key === "ia-premium") ??
+    ent?.find((e) => e.product_key === "ia-basic") ??
+    null;
+
+  if (!picked) {
+    console.warn("⚠️ Recharge achetée mais aucun pack basic/premium actif:", email);
+    return;
   }
+
+  const currentTotal = picked.credits_total ?? (picked.product_key === "ia-basic" ? 5 : 15);
+  const newTotal = currentTotal + addCredits;
+
+  const { error } = await supabaseAdmin
+    .from("entitlements")
+    .update({
+      credits_total: newTotal,
+      stripe_session_id: sessionId,
+      stripe_customer_id: stripeCustomerId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("email", email)
+    .eq("product_key", picked.product_key);
+
+  if (error) console.error("❌ Recharge update entitlements:", error);
+  else console.log("✅ Recharge appliquée:", { email, pack: picked.product_key, newTotal });
 }
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-  if (!sig || !webhookSecret) {
-    console.error("❌ Signature Stripe ou STRIPE_WEBHOOK_SECRET manquante");
-    return bad("Webhook non configuré", 400);
-  }
+  if (!sig || !webhookSecret) return bad("Webhook non configuré", 400);
 
-  // ✅ RAW body (obligatoire pour la vérification de signature)
   const buf = Buffer.from(await req.arrayBuffer());
 
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err: any) {
-    console.error("❌ Erreur vérification webhook Stripe:", err?.message);
+    console.error("❌ Signature invalide:", err?.message);
     return bad("Signature invalide", 400);
   }
 
   try {
-    /**
-     * ✅ 1) Checkout terminé (peut être paid ou pending)
-     */
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
@@ -189,78 +214,72 @@ export async function POST(req: NextRequest) {
       const email = await resolveEmail(session);
       const status = mapCheckoutStatus(session);
 
-      const stripeCustomerId = await upsertPurchase({
-        productKey,
-        email,
-        session,
-        status,
-      });
+      const stripeCustomerId = await upsertPurchase({ productKey, email, session, status });
 
-      // ✅ Activation immédiate si paid
-      if (status === "paid") {
-        await grantEntitlement({
-          email,
-          productKey,
-          sessionId: session.id,
-          stripeCustomerId,
-        });
+      if (status === "paid" && email) {
+        // Packs IA
+        if (["ia-basic", "ia-premium", "ia-ultime"].includes(productKey)) {
+          await grantPackEntitlement({
+            email,
+            productKey,
+            sessionId: session.id,
+            stripeCustomerId,
+          });
+        }
+
+        // Recharge (ex : productKey = ia-recharge-5)
+        if (productKey === "ia-recharge-5") {
+          await applyRecharge({
+            email,
+            sessionId: session.id,
+            stripeCustomerId,
+            addCredits: 5,
+          });
+        }
       }
 
       return ok();
     }
 
-    /**
-     * ✅ 2) Paiement async réussi -> passer paid + activation
-     */
     if (event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
 
       const productKey = await resolveProductKey(session);
       const email = await resolveEmail(session);
 
-      const { error } = await supabaseAdmin
+      await supabaseAdmin
         .from("purchases")
         .update({ status: "paid", updated_at: new Date().toISOString() })
         .eq("stripe_session_id", session.id);
 
-      if (error) console.error("❌ Erreur update async_payment_succeeded:", error);
-      else console.log("✅ Paiement async confirmé:", session.id);
+      const stripeCustomerId = typeof session.customer === "string" ? session.customer : null;
 
-      const stripeCustomerId =
-        typeof session.customer === "string" ? session.customer : null;
-
-      await grantEntitlement({
-        email,
-        productKey,
-        sessionId: session.id,
-        stripeCustomerId,
-      });
+      if (email) {
+        if (["ia-basic", "ia-premium", "ia-ultime"].includes(productKey)) {
+          await grantPackEntitlement({ email, productKey, sessionId: session.id, stripeCustomerId });
+        }
+        if (productKey === "ia-recharge-5") {
+          await applyRecharge({ email, sessionId: session.id, stripeCustomerId, addCredits: 5 });
+        }
+      }
 
       return ok();
     }
 
-    /**
-     * ✅ 3) Paiement async échoué
-     */
     if (event.type === "checkout.session.async_payment_failed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      const { error } = await supabaseAdmin
+      await supabaseAdmin
         .from("purchases")
         .update({ status: "failed", updated_at: new Date().toISOString() })
         .eq("stripe_session_id", session.id);
 
-      if (error) console.error("❌ Erreur update async_payment_failed:", error);
-      else console.log("⚠️ Paiement async échoué:", session.id);
-
       return ok();
     }
 
-    // ℹ️ Events non gérés
-    console.log("ℹ️ Event Stripe ignoré:", event.type);
     return ok();
   } catch (err: any) {
-    console.error("❌ Erreur handler webhook:", err?.message ?? err);
+    console.error("❌ Erreur webhook:", err?.message ?? err);
     return NextResponse.json({ error: "Erreur webhook" }, { status: 500 });
   }
 }
