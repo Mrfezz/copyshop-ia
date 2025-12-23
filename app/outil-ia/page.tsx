@@ -3,6 +3,7 @@
 
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type MePackResponse = {
@@ -57,6 +58,8 @@ function formatCredits(pack: MePackResponse | null) {
 }
 
 export default function OutilIAPage() {
+  const router = useRouter();
+
   const [loadingPage, setLoadingPage] = useState(true);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -136,7 +139,7 @@ export default function OutilIAPage() {
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       const token = session?.access_token ?? null;
       setAuthToken(token);
       setUserEmail(session?.user?.email ?? null);
@@ -145,13 +148,18 @@ export default function OutilIAPage() {
 
       if (token) await fetchMePack(token);
       else setPack(null);
+
+      // ✅ Redirection après déconnexion vers l'espace client
+      if (event === "SIGNED_OUT") {
+        router.replace("/compte-client");
+      }
     });
 
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -233,6 +241,7 @@ export default function OutilIAPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    router.replace("/compte-client"); // ✅ redirection immédiate après clic
   }
 
   const showCredits = !!pack?.packKey && !packLoading;
@@ -252,11 +261,7 @@ export default function OutilIAPage() {
               <h1 style={styles.title}>{headerTitle}</h1>
 
               {/* ✅ badge seulement si pack actif */}
-              {badge && (
-                <span style={{ ...styles.packBadge, background: badge.color }}>
-                  {badge.label}
-                </span>
-              )}
+              {badge && <span style={{ ...styles.packBadge, background: badge.color }}>{badge.label}</span>}
             </div>
 
             <p style={styles.sub}>{headerSubtitle}</p>
@@ -264,9 +269,7 @@ export default function OutilIAPage() {
             {/* mini barre état */}
             <div style={styles.statusRow}>
               {!loadingPage && (
-                <div style={styles.statusPill}>
-                  {authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
-                </div>
+                <div style={styles.statusPill}>{authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}</div>
               )}
 
               {authToken ? (
@@ -280,9 +283,7 @@ export default function OutilIAPage() {
               )}
 
               {/* ✅ pas de “Chargement pack…” */}
-              {showCredits && (
-                <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>
-              )}
+              {showCredits && <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>}
 
               {pack?.packKey && (
                 <Link href="/compte-client" style={styles.secondaryBtn as any}>
