@@ -1,3 +1,4 @@
+// app/api/outil-ia/route.ts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -6,7 +7,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type RequestBody = {
   productUrl?: string;
-  imageBase64?: string | null;
+  imageBase64?: string | null; // (optionnel, pas utilisé dans le prompt pour éviter un payload énorme)
 };
 
 function jsonError(message: string, status = 400) {
@@ -26,12 +27,22 @@ function rankPack(productKey: string) {
   return 0;
 }
 
+function isValidHttpUrl(value: string) {
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       return jsonError("OPENAI_API_KEY manquante", 500);
     }
 
+    // 1) Auth via Bearer token (access_token Supabase)
     const token = getBearerToken(req);
     if (!token) return jsonError("Non autorisé (Bearer token manquant)", 401);
 
@@ -40,6 +51,7 @@ export async function POST(req: Request) {
 
     const email = userData.user.email;
 
+    // 2) Body
     let body: RequestBody;
     try {
       body = (await req.json()) as RequestBody;
@@ -49,30 +61,40 @@ export async function POST(req: Request) {
 
     const productUrl = (body.productUrl || "").trim();
     if (!productUrl) return jsonError("productUrl est requis", 400);
+    if (!isValidHttpUrl(productUrl)) return jsonError("productUrl invalide (http/https uniquement)", 400);
 
-    // 1) récupérer meilleur pack actif
+    // Sécurité : si image base64 énorme, on refuse
+    if (body.imageBase64 && body.imageBase64.length > 3_000_000) {
+      return jsonError("Image trop lourde. Réduis la taille avant envoi.", 413);
+    }
+
+    // 3) Récupérer le meilleur pack actif
     const { data: ents, error: entErr } = await supabaseAdmin
       .from("entitlements")
-      .select("product_key, credits_total, credits_used, unlimited")
+      .select("product_key, credits_total, credits_used, unlimited, active")
       .eq("email", email)
       .eq("active", true);
 
     if (entErr) return jsonError("Erreur DB entitlements", 500);
 
     const best =
-      (ents ?? []).sort((a, b) => rankPack(b.product_key) - rankPack(a.product_key))[0] ?? null;
+      (ents ?? [])
+        .filter((e: any) => !!e?.product_key)
+        .sort((a: any, b: any) => rankPack(b.product_key) - rankPack(a.product_key))[0] ?? null;
 
     if (!best) return jsonError("Accès refusé : aucun pack actif", 403);
 
-    const creditsRemaining = best.unlimited
-      ? null
-      : Math.max(0, (best.credits_total ?? 0) - (best.credits_used ?? 0));
+    const total = Number(best.credits_total ?? 0);
+    const used = Number(best.credits_used ?? 0);
+    const unlimited = Boolean(best.unlimited);
 
-    if (!best.unlimited && (creditsRemaining ?? 0) <= 0) {
+    const creditsRemaining = unlimited ? null : Math.max(0, total - used);
+
+    if (!unlimited && (creditsRemaining ?? 0) <= 0) {
       return jsonError("Crédits épuisés. Recharge nécessaire.", 403);
     }
 
-    // 2) prompt différent selon pack (tu peux enrichir premium/ultime)
+    // 4) Prompt selon pack
     const packHint =
       best.product_key === "ia-basic"
         ? "Pack BASIC: réponse simple et efficace."
@@ -99,6 +121,7 @@ Renvoie UNIQUEMENT du JSON valide:
 }
 `.trim();
 
+    // 5) Appel OpenAI
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -108,6 +131,7 @@ Renvoie UNIQUEMENT du JSON valide:
       body: JSON.stringify({
         model: "gpt-4o-mini",
         response_format: { type: "json_object" },
+        temperature: 0.7,
         messages: [
           { role: "system", content: "Assistant e-commerce / Shopify." },
           { role: "user", content: prompt },
@@ -121,8 +145,8 @@ Renvoie UNIQUEMENT du JSON valide:
       return jsonError("Erreur OpenAI", 502);
     }
 
-    const data = await openaiRes.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const aiData = await openaiRes.json();
+    const content = aiData?.choices?.[0]?.message?.content;
     if (!content) return jsonError("Réponse OpenAI vide", 500);
 
     let parsed: any;
@@ -132,27 +156,46 @@ Renvoie UNIQUEMENT du JSON valide:
       return jsonError("OpenAI a renvoyé un JSON invalide", 502);
     }
 
-    // 3) consommer 1 crédit (si pas illimité)
-    if (!best.unlimited) {
-      await supabaseAdmin
+    // 6) Consommer 1 crédit (si pas illimité) — avec garde anti-race légère
+    let newCreditsRemaining = unlimited ? null : creditsRemaining;
+
+    if (!unlimited) {
+      const nextUsed = used + 1;
+
+      // On tente l’update. (NB: pas parfaitement atomique sans RPC, mais mieux que rien)
+      const { data: updatedRows, error: updErr } = await supabaseAdmin
         .from("entitlements")
         .update({
-          credits_used: (best.credits_used ?? 0) + 1,
+          credits_used: nextUsed,
           updated_at: new Date().toISOString(),
         })
         .eq("email", email)
-        .eq("product_key", best.product_key);
+        .eq("product_key", best.product_key)
+        .eq("active", true)
+        .select("credits_total, credits_used, unlimited");
+
+      if (updErr) {
+        console.error("Credits update error:", updErr.message);
+        return jsonError("Erreur lors de la consommation des crédits", 500);
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        // Cas rare : ligne introuvable ou pack désactivé entre temps
+        return jsonError("Impossible de consommer les crédits (pack indisponible).", 409);
+      }
+
+      newCreditsRemaining = Math.max(0, total - nextUsed);
     }
 
     return NextResponse.json({
       ...parsed,
       meta: {
         pack: best.product_key,
-        creditsRemaining: best.unlimited ? null : (creditsRemaining! - 1),
+        creditsRemaining: unlimited ? null : newCreditsRemaining,
       },
     });
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    console.error("[api/outil-ia] server error:", e?.message ?? e);
     return jsonError("Erreur serveur", 500);
   }
 }
