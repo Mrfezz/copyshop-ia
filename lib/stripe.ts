@@ -1,4 +1,5 @@
 // lib/stripe.ts
+import "server-only";
 import Stripe from "stripe";
 
 const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -10,6 +11,5 @@ if (!secretKey) {
 }
 
 export const stripe = new Stripe(secretKey, {
-  // ✅ Laisse Stripe utiliser la version API de ton compte (celle du dashboard)
   typescript: true,
 });

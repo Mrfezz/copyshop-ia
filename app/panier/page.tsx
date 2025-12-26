@@ -280,7 +280,7 @@ export default function PanierPage() {
 
               {/* ✅ Texte neutre (plus de confusion pack / outil IA) */}
               <div style={styles.summaryHint}>
-                Paiement unique via Stripe. La livraison dépend du produit (accès, prise en charge, ou informations).
+                Paiement unique via Stripe. La commande dépend du produit (accès, prise en charge, ou informations).
               </div>
             </div>
 
