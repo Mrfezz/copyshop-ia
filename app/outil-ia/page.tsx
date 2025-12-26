@@ -80,12 +80,12 @@ export default function OutilIAPage() {
   // ✅ Titre/Subtitle propres même pendant le chargement
   const headerTitle = useMemo(() => {
     if (pack?.packKey) return pack.title;
-    return "Génère tes boutiques Shopify grâce à l’IA";
+    return "Génère tes 5 boutiques Shopify grâce à l’IA";
   }, [pack?.packKey, pack?.title]);
 
   const headerSubtitle = useMemo(() => {
     if (pack?.packKey) return pack.subtitle;
-    return "Colle un lien produit et lance la génération.";
+    return "5 boutique t'attendent, prêtes à être générées.";
   }, [pack?.packKey, pack?.subtitle]);
 
   async function fetchMePack(token: string) {
