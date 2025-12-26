@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Item = {
   text: string;
@@ -101,12 +102,41 @@ const DEMO_POSTER_PRIMARY = "/images/demo-services-poster.jpg";
 const DEMO_POSTER_FALLBACK = "/images/boutique-client.jpg";
 
 export default function ServicesDigitauxPage() {
+  const router = useRouter();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posterSrc, setPosterSrc] = useState(DEMO_POSTER_PRIMARY);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => setIsModalOpen(true);
+
+  function saveCartAndGo(pack: ServicePack) {
+    try {
+      const cartKey = "copyshop_ia_cart";
+      const titleClean = pack.title.replace(/\n/g, " ");
+
+      const payload = {
+        items: [
+          {
+            id: `service:${pack.productKey}`,
+            productKey: pack.productKey,
+            title: titleClean,
+            price: pack.price,
+            subtitle: titleClean,
+          },
+        ],
+        updatedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem(cartKey, JSON.stringify(payload));
+    } catch (e) {
+      console.error("cart save error", e);
+      // même si localStorage échoue, on redirige quand même
+    }
+
+    router.push("/panier");
+  }
 
   // lock scroll + play on open + ESC to close
   useEffect(() => {
@@ -225,9 +255,13 @@ export default function ServicesDigitauxPage() {
                 </div>
 
                 <Link
-                  href={`/paiement?product=${pack.productKey}`}
+                  href="/panier"
                   className="services-cta"
                   style={styles.priceBtn}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    saveCartAndGo(pack);
+                  }}
                 >
                   Choisir ce pack
                 </Link>

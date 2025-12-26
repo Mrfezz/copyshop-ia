@@ -24,17 +24,39 @@ const COLORS = {
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`;
 
+// ✅ Supporte packs IA + services digitaux
+type ProductKey =
+  | "ia-basic"
+  | "ia-premium"
+  | "ia-ultime"
+  | "services-essentiel"
+  | "services-pro"
+  | "services-business";
+
 type CartItem = {
   id: string;
+  productKey?: ProductKey;
   title: string;
   priceLabel: string;
+  subtitle?: string;
+};
+
+type CartPayload = {
+  items: Array<{
+    id: string;
+    productKey?: ProductKey;
+    title: string;
+    price?: string;
+    priceLabel?: string;
+    subtitle?: string;
+  }>;
+  updatedAt?: string;
 };
 
 export default function PanierPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // ✅ panier simple (placeholder). Tu pourras le brancher à Stripe/DB ensuite.
   const [items, setItems] = useState<CartItem[]>([]);
 
   useEffect(() => {
@@ -58,13 +80,68 @@ export default function PanierPage() {
     };
   }, []);
 
+  // ✅ Lire le panier depuis localStorage
+  useEffect(() => {
+    try {
+      const cartKey = "copyshop_ia_cart";
+      const raw = localStorage.getItem(cartKey);
+      if (!raw) {
+        setItems([]);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as CartPayload;
+      const mapped: CartItem[] = (parsed.items ?? []).map((it) => ({
+        id: it.id,
+        productKey: it.productKey,
+        title: it.title,
+        priceLabel: it.priceLabel ?? it.price ?? "—",
+        subtitle: it.subtitle,
+      }));
+
+      setItems(mapped);
+    } catch (e) {
+      console.error("cart read error", e);
+      setItems([]);
+    }
+  }, []);
+
   const userEmail = session?.user?.email ?? null;
 
   const totalLabel = useMemo(() => {
     if (!items.length) return "0 €";
-    // placeholder : si tu veux un vrai total, on stockera un price number
+    if (items.length === 1) return items[0].priceLabel;
     return "—";
-  }, [items.length]);
+  }, [items]);
+
+  function saveCart(next: CartItem[]) {
+    try {
+      const cartKey = "copyshop_ia_cart";
+      const payload: CartPayload = {
+        items: next.map((it) => ({
+          id: it.id,
+          productKey: it.productKey,
+          title: it.title,
+          priceLabel: it.priceLabel,
+          subtitle: it.subtitle,
+        })),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(cartKey, JSON.stringify(payload));
+    } catch (e) {
+      console.error("cart save error", e);
+    }
+  }
+
+  function removeItem(id: string) {
+    setItems((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      saveCart(next);
+      return next;
+    });
+  }
+
+  const firstPackKey = items?.[0]?.productKey;
 
   return (
     <main style={styles.page}>
@@ -75,9 +152,7 @@ export default function PanierPage() {
         <header style={styles.header}>
           <p style={styles.kicker}>PANIER</p>
           <h1 style={styles.title}>Ton panier</h1>
-          <p style={styles.sub}>
-            Finalise ton achat et active l’accès à l’outil IA.
-          </p>
+          <p style={styles.sub}>Finalise ton achat et active l’accès à l’outil IA.</p>
 
           <div style={styles.statusRow}>
             {!checking && (
@@ -110,9 +185,7 @@ export default function PanierPage() {
             {!items.length ? (
               <div style={styles.emptyBox}>
                 <div style={styles.emptyTitle}>Ton panier est vide</div>
-                <div style={styles.emptyText}>
-                  Choisis un pack IA pour l’ajouter au panier.
-                </div>
+                <div style={styles.emptyText}>Choisis un pack IA pour l’ajouter au panier.</div>
 
                 <Link href="/packs-ia" style={styles.primaryBtn as any}>
                   Choisir un pack
@@ -124,13 +197,16 @@ export default function PanierPage() {
                   <div key={it.id} style={styles.itemRow}>
                     <div style={{ minWidth: 0 }}>
                       <div style={styles.itemTitle}>{it.title}</div>
-                      <div style={styles.itemSub}>{it.priceLabel}</div>
+                      <div style={styles.itemSub}>
+                        {it.priceLabel}
+                        {it.subtitle ? ` • ${it.subtitle}` : ""}
+                      </div>
                     </div>
 
                     <button
                       type="button"
                       style={styles.removeBtn}
-                      onClick={() => setItems((prev) => prev.filter((x) => x.id !== it.id))}
+                      onClick={() => removeItem(it.id)}
                     >
                       Retirer
                     </button>
@@ -150,13 +226,19 @@ export default function PanierPage() {
                 <span style={styles.summaryValue}>{totalLabel}</span>
               </div>
               <div style={styles.summaryHint}>
-                Le paiement et l’ajout d’articles seront branchés à Stripe ensuite.
+                Paiement unique. Après paiement, ton pack sera activé automatiquement.
               </div>
             </div>
 
-            <Link href="/packs-ia" style={styles.primaryBtn as any}>
-              Continuer (choisir un pack)
-            </Link>
+            {firstPackKey ? (
+              <Link href={`/paiement?product=${firstPackKey}`} style={styles.primaryBtn as any}>
+                Passer au paiement
+              </Link>
+            ) : (
+              <Link href="/packs-ia" style={styles.primaryBtn as any}>
+                Continuer (choisir un pack)
+              </Link>
+            )}
 
             <div style={styles.note}>
               Après paiement, ton pack sera actif et tu auras accès à <strong>/outil-ia</strong>.
@@ -164,9 +246,7 @@ export default function PanierPage() {
           </div>
         </section>
 
-        <div style={styles.bottomBand}>
-          🔒 Accès à l’outil IA uniquement après achat d’un pack.
-        </div>
+        <div style={styles.bottomBand}>🔒 Accès à l’outil IA uniquement après achat d’un pack.</div>
       </section>
 
       <style>{`
@@ -288,6 +368,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
     overflow: "hidden",
     maxWidth: "100%",
+    boxSizing: "border-box",
   },
   cardTitle: {
     margin: 0,
@@ -304,6 +385,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(255,255,255,0.04)",
     display: "grid",
     gap: 10,
+    boxSizing: "border-box",
   },
   emptyTitle: {
     fontWeight: 950,
@@ -332,6 +414,7 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    maxWidth: "100%",
   },
   itemSub: {
     color: COLORS.muted,
@@ -348,6 +431,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.text,
     cursor: "pointer",
     whiteSpace: "nowrap",
+    boxSizing: "border-box",
   },
 
   summaryBox: {
@@ -358,6 +442,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 10,
     marginBottom: 12,
+    boxSizing: "border-box",
   },
   summaryLine: {
     display: "flex",
@@ -394,6 +479,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
     textDecoration: "none",
     maxWidth: "100%",
+    boxSizing: "border-box",
   },
 
   note: {

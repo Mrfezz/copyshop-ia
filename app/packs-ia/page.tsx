@@ -1,6 +1,9 @@
+"use client";
+
 // app/packs-ia/page.tsx
 import type React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Pack = {
   title: string;
@@ -73,6 +76,32 @@ const COLORS = {
 };
 
 export default function PacksIAPage() {
+  const router = useRouter();
+
+  function saveCartAndGo(pack: Pack) {
+    try {
+      const cartKey = "copyshop_ia_cart";
+      const payload = {
+        items: [
+          {
+            id: `pack:${pack.productKey}`,
+            productKey: pack.productKey,
+            title: pack.title,
+            price: pack.price,
+            subtitle: pack.subtitle,
+          },
+        ],
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(cartKey, JSON.stringify(payload));
+    } catch (e) {
+      console.error("cart save error", e);
+      // même si localStorage échoue, on redirige quand même
+    }
+
+    router.push("/panier");
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -147,9 +176,13 @@ export default function PacksIAPage() {
                 </div>
 
                 <Link
-                  href={`/paiement?product=${pack.productKey}`}
+                  href="/panier"
                   className="pack-cta"
                   style={styles.priceCta}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    saveCartAndGo(pack);
+                  }}
                 >
                   Choisir ce pack
                 </Link>

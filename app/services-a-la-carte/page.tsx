@@ -1,6 +1,9 @@
+"use client";
+
 // app/services-a-la-carte/page.tsx
 import Link from "next/link";
 import type React from "react";
+import { useRouter } from "next/navigation";
 
 type Service = {
   title: string;
@@ -88,6 +91,35 @@ const SERVICES: Service[] = [
 ];
 
 export default function ServicesALaCartePage() {
+  const router = useRouter();
+
+  function saveCartAndGo(service: Service) {
+    try {
+      const cartKey = "copyshop_ia_cart";
+
+      const payload = {
+        items: [
+          {
+            id: `service:${service.productKey}`,
+            productKey: service.productKey,
+            title: service.title,
+            price: service.price,
+            priceLabel: service.price,
+            subtitle: service.tag ?? "",
+          },
+        ],
+        updatedAt: new Date().toISOString(),
+      };
+
+      localStorage.setItem(cartKey, JSON.stringify(payload));
+    } catch (e) {
+      console.error("cart save error", e);
+      // même si localStorage échoue, on redirige quand même
+    }
+
+    router.push("/panier");
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -126,8 +158,12 @@ export default function ServicesALaCartePage() {
             <div style={styles.priceRow}>
               <div style={styles.price}>{s.price}</div>
               <Link
-                href={`/paiement?product=${s.productKey}`}
+                href="/panier"
                 style={styles.btn}
+                onClick={(e) => {
+                  e.preventDefault();
+                  saveCartAndGo(s);
+                }}
               >
                 Commander
               </Link>
