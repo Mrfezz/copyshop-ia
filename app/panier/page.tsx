@@ -284,11 +284,7 @@ export default function PanierPage() {
               </div>
             </div>
 
-            {/* ✅ SEULE MODIF : on descend un peu le bouton */}
-            <Link
-              href={payHref}
-              style={{ ...(styles.primaryBtn as any), marginTop: 8 }}
-            >
+            <Link href={payHref} style={styles.primaryBtn as any}>
               Passer au paiement
             </Link>
 
