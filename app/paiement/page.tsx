@@ -3,7 +3,6 @@
 
 import React, { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PRODUCTS, type ProductKey } from "@/lib/products";
 
 type CartPayload = {
@@ -19,7 +18,7 @@ type CartPayload = {
 };
 
 type CartLine = {
-  productKey: string;
+  productKey: ProductKey;
   title: string;
   priceLabel: string;
   subtitle?: string;
@@ -64,8 +63,6 @@ const COLORS = {
 };
 
 export default function PaiementPage() {
-  const router = useRouter();
-
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<"cart" | "single">("cart");
   const [singleKey, setSingleKey] = useState<ProductKey | null>(null);
@@ -95,13 +92,19 @@ export default function PaiementPage() {
       const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
 
       const mapped: CartLine[] = existing
-        .filter((it) => typeof it?.productKey === "string" && it.productKey)
-        .map((it) => ({
-          productKey: String(it.productKey),
-          title: it.title || String(it.productKey),
-          priceLabel: it.priceLabel || it.price || "—",
-          subtitle: it.subtitle,
-        }));
+        .map((it) => {
+          const k = it?.productKey as ProductKey | undefined;
+          if (!k) return null;
+          if (!Object.prototype.hasOwnProperty.call(PRODUCTS, k)) return null;
+
+          return {
+            productKey: k,
+            title: it.title || (PRODUCTS as any)[k]?.name || String(k),
+            priceLabel: it.priceLabel || it.price || "—",
+            subtitle: it.subtitle,
+          } as CartLine;
+        })
+        .filter(Boolean) as CartLine[];
 
       setCartItems(mapped);
     } catch {
@@ -155,7 +158,7 @@ export default function PaiementPage() {
       const payload =
         mode === "single" && singleKey
           ? { productKey: singleKey }
-          : { items: displayItems.map((it) => ({ productKey: it.productKey })) };
+          : { productKeys: displayItems.map((it) => it.productKey) };
 
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -202,9 +205,15 @@ export default function PaiementPage() {
             <p style={styles.sub}>Ajoute un pack ou un service pour payer.</p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-              <Link href="/packs-ia" style={styles.btnAlt as any}>Voir les packs IA</Link>
-              <Link href="/services-a-la-carte" style={styles.btnAlt as any}>Services à la carte</Link>
-              <Link href="/services-digitaux" style={styles.btnAlt as any}>Services digitaux</Link>
+              <Link href="/packs-ia" style={styles.btnAlt as any}>
+                Voir les packs IA
+              </Link>
+              <Link href="/services-a-la-carte" style={styles.btnAlt as any}>
+                Services à la carte
+              </Link>
+              <Link href="/services-digitaux" style={styles.btnAlt as any}>
+                Services digitaux
+              </Link>
             </div>
 
             <Link href="/panier" style={{ ...styles.btnAlt, marginTop: 12 } as any}>
@@ -235,7 +244,9 @@ export default function PaiementPage() {
             </div>
 
             <h2 style={styles.cardTitle}>
-              {mode === "single" ? (singleProduct?.name ?? "Produit") : "Récapitulatif du panier"}
+              {mode === "single"
+                ? (singleProduct?.name ?? "Produit")
+                : "Récapitulatif du panier"}
             </h2>
           </div>
 
@@ -279,7 +290,9 @@ export default function PaiementPage() {
           {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 
           <div style={{ marginTop: 10 }}>
-            <Link href="/panier" style={styles.backLink as any}>← Retour panier</Link>
+            <Link href="/panier" style={styles.backLink as any}>
+              ← Retour panier
+            </Link>
           </div>
         </article>
       </section>
@@ -392,7 +405,12 @@ const styles: Record<string, CSSProperties> = {
     padding: "12px 12px",
     background: "rgba(2,6,23,0.35)",
   },
-  lineTitle: { fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  lineTitle: {
+    fontWeight: 900,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
   lineSub: { color: COLORS.muted, fontWeight: 700, fontSize: "0.92rem", marginTop: 4 },
   linePrice: { fontWeight: 900, whiteSpace: "nowrap" },
 

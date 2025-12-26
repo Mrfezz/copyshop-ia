@@ -9,44 +9,35 @@ import { PRODUCTS, type ProductKey } from "@/lib/products";
 function normalizeBaseUrl(raw?: string | null) {
   if (!raw) return null;
   let url = raw.trim();
-
-  // si l'utilisateur a mis "www.domaine.com" sans protocole
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     url = `https://${url}`;
   }
-
-  // enlever slash final
   url = url.replace(/\/+$/, "");
   return url;
 }
 
 function getBaseUrl(req: Request) {
-  // 1) priorité à l'env (recommandé)
   const fromEnv = normalizeBaseUrl(
     process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_BASE_URL
   );
   if (fromEnv) return fromEnv;
 
-  // 2) Vercel URL (sans protocole) -> on force https
   const fromVercel = process.env.VERCEL_URL
     ? normalizeBaseUrl(`https://${process.env.VERCEL_URL}`)
     : null;
   if (fromVercel) return fromVercel;
 
-  // 3) fallback via headers (utile sur Vercel/Proxy)
   const proto = req.headers.get("x-forwarded-proto") || "https";
   const host =
     req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
   if (host) return normalizeBaseUrl(`${proto}://${host}`);
 
-  // 4) fallback origin
   const origin = req.headers.get("origin");
   return normalizeBaseUrl(origin);
 }
 
 export async function POST(req: Request) {
   try {
-    // Lire le body JSON
     let body: any = null;
     try {
       body = await req.json();
@@ -54,23 +45,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Body JSON invalide" }, { status: 400 });
     }
 
-    const productKey = body?.productKey as ProductKey | undefined;
     const email = (body?.email as string | undefined)?.trim() || undefined;
 
-    // ✅ Vérif produit
-    if (!productKey || !(productKey in PRODUCTS)) {
-      return NextResponse.json({ error: "Produit invalide" }, { status: 400 });
+    // ✅ supporte: { productKey } OU { productKeys: [] }
+    const keysRaw: unknown =
+      Array.isArray(body?.productKeys) && body.productKeys.length
+        ? body.productKeys
+        : body?.productKey
+          ? [body.productKey]
+          : [];
+
+    const productKeys = Array.isArray(keysRaw) ? keysRaw : [];
+    const cleaned: ProductKey[] = [];
+    const seen = new Set<string>();
+
+    for (const k of productKeys) {
+      const kk = String(k) as ProductKey;
+      if (!kk) continue;
+      if (seen.has(kk)) continue;
+      if (!(kk in PRODUCTS)) {
+        return NextResponse.json({ error: `Produit invalide: ${kk}` }, { status: 400 });
+      }
+      seen.add(kk);
+      cleaned.push(kk);
     }
 
-    const product = PRODUCTS[productKey];
-
-    // ✅ Vérif Stripe Price ID
-    const stripePriceId = (product as any).stripePriceId as string | undefined;
-    if (!stripePriceId || !stripePriceId.startsWith("price_")) {
-      return NextResponse.json(
-        { error: "Stripe Price ID manquant ou invalide pour ce produit." },
-        { status: 400 }
-      );
+    if (!cleaned.length) {
+      return NextResponse.json({ error: "Aucun produit à payer" }, { status: 400 });
     }
 
     // ✅ Base URL
@@ -85,39 +86,38 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Stripe Checkout Session
+    // ✅ line_items multi-produits (1 paiement, plusieurs articles)
+    const line_items = cleaned.map((productKey) => {
+      const product = PRODUCTS[productKey] as any;
+      const stripePriceId = product?.stripePriceId as string | undefined;
+
+      if (!stripePriceId || !stripePriceId.startsWith("price_")) {
+        throw new Error(`Stripe Price ID manquant/invalide pour: ${productKey}`);
+      }
+
+      return { price: stripePriceId, quantity: 1 };
+    });
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [{ price: stripePriceId, quantity: 1 }],
+      line_items,
       allow_promotion_codes: true,
 
-      // (optionnel) si tu envoies email depuis le front
       ...(email ? { customer_email: email } : {}),
 
-      // pratique pour retrouver côté Stripe
-      client_reference_id: productKey,
+      // ✅ Redirections (pages success/cancel)
+      success_url: `${baseUrl}/paiement/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/paiement/cancel`,
 
-      // ✅ Redirections
-      success_url: `${baseUrl}/compte-client?success=1&product=${encodeURIComponent(
-        productKey
-      )}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/paiement?canceled=1&product=${encodeURIComponent(
-        productKey
-      )}`,
-
-      // ✅ metadata session
       metadata: {
-        productKey,
-        productName: product.name,
-        priceLabel: product.priceLabel,
+        productKeys: cleaned.join(","),
+        count: String(cleaned.length),
       },
 
-      // ✅ metadata sur PaymentIntent (top pour webhook)
       payment_intent_data: {
         metadata: {
-          productKey,
-          productName: product.name,
-          priceLabel: product.priceLabel,
+          productKeys: cleaned.join(","),
+          count: String(cleaned.length),
         },
       },
     });
@@ -139,7 +139,6 @@ export async function POST(req: Request) {
   }
 }
 
-// (Optionnel) si quelqu’un appelle GET
 export async function GET() {
   return NextResponse.json({ error: "Method Not Allowed" }, { status: 405 });
 }
