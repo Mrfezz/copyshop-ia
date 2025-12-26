@@ -249,7 +249,7 @@ export default function CompteClientPage() {
               <p style={styles.cardText}>
                 Reprends ton achat ou passe à un pack supérieur.
               </p>
-              <a href="/packs-ia" style={styles.button}>
+              <a href="/panier" style={styles.button}>
                 Aller au panier
               </a>
             </article>
@@ -559,9 +559,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: "18px",
     boxShadow: "0 14px 45px rgba(0,0,0,0.35)",
-    boxSizing: "border-box", // ✅ IMPORTANT
-    maxWidth: "100%", // ✅ IMPORTANT
-    overflow: "hidden", // ✅ sécurité anti-débordement
+    boxSizing: "border-box",
+    maxWidth: "100%",
+    overflow: "hidden",
   },
   authTabs: {
     display: "grid",
@@ -600,7 +600,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   input: {
     width: "100%",
-    maxWidth: "100%", // ✅ IMPORTANT
+    maxWidth: "100%",
     display: "block",
     padding: "12px 12px",
     borderRadius: 12,
@@ -609,7 +609,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.text,
     outline: "none",
     fontSize: "1rem",
-    boxSizing: "border-box", // ✅ IMPORTANT (fix overflow)
+    boxSizing: "border-box",
   },
   authBtn: {
     marginTop: 8,
