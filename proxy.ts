@@ -1,8 +1,8 @@
-// middleware.ts
+// proxy.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const res = NextResponse.next();
 
   // ✅ évite tout cache sur les routes sensibles
