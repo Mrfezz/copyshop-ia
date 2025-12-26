@@ -297,7 +297,7 @@ export default function PanierPage() {
                 </>
               ) : (
                 <>
-                  📩 Ton panier contient des <strong>services</strong> : tu recevras la suite (instructions / prise en charge)
+                  📩 Tu recevras la suite (instructions / prise en charge)
                   par WhatsApp ou email.
                 </>
               )}
