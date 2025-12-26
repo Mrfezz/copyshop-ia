@@ -80,12 +80,12 @@ export default function OutilIAPage() {
   // ✅ Titre/Subtitle propres même pendant le chargement
   const headerTitle = useMemo(() => {
     if (pack?.packKey) return pack.title;
-    return "Génère tes 5 boutiques Shopify grâce à l’IA";
+    return "Génère tes boutiques Shopify grâce à l’IA";
   }, [pack?.packKey, pack?.title]);
 
   const headerSubtitle = useMemo(() => {
     if (pack?.packKey) return pack.subtitle;
-    return "5 boutique t'attendent, prêtes à être générées.";
+    return "Colle un lien produit et lance la génération.";
   }, [pack?.packKey, pack?.subtitle]);
 
   async function fetchMePack(token: string) {
@@ -100,11 +100,12 @@ export default function OutilIAPage() {
         const t = await res.text();
         console.error("❌ /api/me/pack error:", t);
         setPack(null);
-        return;
+        return null;
       }
 
       const data = (await res.json()) as MePackResponse;
       setPack(data);
+      return data;
     } finally {
       setPackLoading(false);
     }
@@ -120,18 +121,27 @@ export default function OutilIAPage() {
 
         if (!mounted) return;
 
+        // ✅ pas connecté => pas accès à /outil-ia
         if (!session?.access_token) {
           setAuthToken(null);
           setUserEmail(null);
           setPack(null);
           setLoadingPage(false);
+          router.replace("/compte-client");
           return;
         }
 
         setAuthToken(session.access_token);
         setUserEmail(session.user.email ?? null);
 
-        await fetchMePack(session.access_token);
+        const p = await fetchMePack(session.access_token);
+
+        // ✅ connecté mais pas de pack actif => pas accès à /outil-ia
+        if (!p?.packKey) {
+          setLoadingPage(false);
+          router.replace("/packs-ia");
+          return;
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -141,17 +151,28 @@ export default function OutilIAPage() {
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
       const token = session?.access_token ?? null;
+
       setAuthToken(token);
       setUserEmail(session?.user?.email ?? null);
       setResult(null);
       setErrorMsg(null);
 
-      if (token) await fetchMePack(token);
-      else setPack(null);
-
-      // ✅ Redirection après déconnexion vers l'espace client
       if (event === "SIGNED_OUT") {
+        setPack(null);
         router.replace("/compte-client");
+        return;
+      }
+
+      if (token) {
+        const p = await fetchMePack(token);
+        if (!p?.packKey) {
+          router.replace("/packs-ia");
+          return;
+        }
+      } else {
+        setPack(null);
+        router.replace("/compte-client");
+        return;
       }
     });
 
@@ -246,6 +267,19 @@ export default function OutilIAPage() {
 
   const showCredits = !!pack?.packKey && !packLoading;
 
+  // ✅ pendant la vérif + redirections => on évite le flash
+  if (loadingPage || packLoading) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.bgGradient} />
+        <div style={styles.bgDots} />
+        <section style={styles.container}>
+          <div style={styles.card}>Chargement...</div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -261,16 +295,20 @@ export default function OutilIAPage() {
               <h1 style={styles.title}>{headerTitle}</h1>
 
               {/* ✅ badge seulement si pack actif */}
-              {badge && <span style={{ ...styles.packBadge, background: badge.color }}>{badge.label}</span>}
+              {badge && (
+                <span style={{ ...styles.packBadge, background: badge.color }}>
+                  {badge.label}
+                </span>
+              )}
             </div>
 
             <p style={styles.sub}>{headerSubtitle}</p>
 
             {/* mini barre état */}
             <div style={styles.statusRow}>
-              {!loadingPage && (
-                <div style={styles.statusPill}>{authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}</div>
-              )}
+              <div style={styles.statusPill}>
+                {authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
+              </div>
 
               {authToken ? (
                 <button type="button" onClick={handleSignOut} style={styles.secondaryBtn}>
@@ -282,8 +320,9 @@ export default function OutilIAPage() {
                 </Link>
               )}
 
-              {/* ✅ pas de “Chargement pack…” */}
-              {showCredits && <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>}
+              {showCredits && (
+                <div style={styles.statusPill}>Crédits : {formatCredits(pack)}</div>
+              )}
 
               {pack?.packKey && (
                 <Link href="/compte-client" style={styles.secondaryBtn as any}>
@@ -324,7 +363,6 @@ export default function OutilIAPage() {
               <div>
                 <label style={styles.label}>Image du produit (optionnel)</label>
 
-                {/* ✅ FILE INPUT CUSTOM (anti-débordement iPhone) */}
                 <div style={styles.fileWrap}>
                   <input
                     id="productImage"
@@ -564,7 +602,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: "18px 18px",
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
-    overflow: "hidden", // ✅ évite tout débordement visuel
+    overflow: "hidden",
     maxWidth: "100%",
   },
   cardTitle: {
@@ -607,7 +645,6 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 6,
   },
 
-  // ✅ File input custom
   fileWrap: {
     width: "100%",
     display: "grid",
@@ -677,7 +714,6 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  // ✅ bouton brand gradient + PAS de lueur rose
   primaryBtn: {
     width: "100%",
     padding: "12px 14px",
@@ -688,7 +724,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     fontWeight: 950,
     cursor: "pointer",
-    boxShadow: "0 12px 26px rgba(0,0,0,0.28)", // ✅ glow neutre
+    boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
     opacity: 1,
     boxSizing: "border-box",
   },
