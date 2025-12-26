@@ -4,6 +4,7 @@
 import React, { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { PRODUCTS, type ProductKey } from "@/lib/products";
+import { supabase } from "@/lib/supabaseClient";
 
 type CartPayload = {
   items?: Array<{
@@ -26,12 +27,23 @@ type CartLine = {
 
 const CART_KEY = "copyshop_ia_cart";
 
+// ✅ Recharge key officielle (lib/products.ts)
+const RECHARGE_KEY: ProductKey = "recharge-ia";
+
+// ✅ compat ancien nom (si tu l’as déjà utilisé quelque part)
+function normalizeProductKey(raw: string | null): ProductKey | null {
+  if (!raw) return null;
+  const fixed = raw === "ia-recharge-5" ? "recharge-ia" : raw;
+  return Object.prototype.hasOwnProperty.call(PRODUCTS, fixed) ? (fixed as ProductKey) : null;
+}
+
+function isRechargeKey(k: ProductKey) {
+  return k === RECHARGE_KEY;
+}
+
 function parseEuro(label: string): number | null {
   try {
-    const s = String(label)
-      .replace(/\s/g, "")
-      .replace("€", "")
-      .replace(",", ".");
+    const s = String(label).replace(/\s/g, "").replace("€", "").replace(",", ".");
     const n = Number.parseFloat(s);
     return Number.isFinite(n) ? n : null;
   } catch {
@@ -71,47 +83,133 @@ export default function PaiementPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ init: lit ?product (compat) + lit panier
+  // ✅ si on bloque l’accès (ex: Ultime → recharge interdite)
+  const [blocked, setBlocked] = useState<{ title: string; text: string } | null>(null);
+
+  // ✅ init: lit ?product (compat) + lit panier + guard recharge vs pack ultime
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const sp = new URLSearchParams(window.location.search);
-    const rawKey = sp.get("product") as ProductKey | null;
+    let cancelled = false;
 
-    if (rawKey && Object.prototype.hasOwnProperty.call(PRODUCTS, rawKey)) {
-      setMode("single");
-      setSingleKey(rawKey);
-    } else {
-      setMode("cart");
-      setSingleKey(null);
-    }
+    const init = async () => {
+      const sp = new URLSearchParams(window.location.search);
+      const rawKey = sp.get("product");
+      const normalizedKey = normalizeProductKey(rawKey);
 
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
-      const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
+      if (normalizedKey) {
+        setMode("single");
+        setSingleKey(normalizedKey);
+      } else {
+        setMode("cart");
+        setSingleKey(null);
+      }
 
-      const mapped: CartLine[] = existing
-        .map((it) => {
-          const k = it?.productKey as ProductKey | undefined;
-          if (!k) return null;
-          if (!Object.prototype.hasOwnProperty.call(PRODUCTS, k)) return null;
+      // ✅ read cart
+      let mapped: CartLine[] = [];
+      try {
+        const raw = localStorage.getItem(CART_KEY);
+        const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
+        const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
 
-          return {
-            productKey: k,
-            title: it.title || (PRODUCTS as any)[k]?.name || String(k),
-            priceLabel: it.priceLabel || it.price || "—",
-            subtitle: it.subtitle,
-          } as CartLine;
-        })
-        .filter(Boolean) as CartLine[];
+        mapped = existing
+          .map((it) => {
+            const kNorm = normalizeProductKey(it?.productKey ?? null);
+            if (!kNorm) return null;
 
-      setCartItems(mapped);
-    } catch {
-      setCartItems([]);
-    }
+            return {
+              productKey: kNorm,
+              title: it.title || (PRODUCTS as any)[kNorm]?.name || String(kNorm),
+              priceLabel: it.priceLabel || it.price || "—",
+              subtitle: it.subtitle,
+            } as CartLine;
+          })
+          .filter(Boolean) as CartLine[];
 
-    setReady(true);
+        setCartItems(mapped);
+      } catch {
+        setCartItems([]);
+        mapped = [];
+      }
+
+      // ✅ Guard spécial recharge
+      const wantsRechargeInit =
+        (normalizedKey ? isRechargeKey(normalizedKey) : false) ||
+        (!normalizedKey ? mapped.some((x) => isRechargeKey(x.productKey)) : false);
+
+      if (wantsRechargeInit) {
+        try {
+          const { data } = await supabase.auth.getSession();
+          const email = data.session?.user?.email ?? null;
+
+          // Pas connecté => on force passage par /compte-client
+          if (!email) {
+            if (!cancelled) {
+              setBlocked({
+                title: "Connexion requise",
+                text: "La recharge est réservée aux clients ayant déjà un pack IA (Basic/Premium).",
+              });
+              setReady(true);
+              setTimeout(() => window.location.replace("/compte-client"), 250);
+            }
+            return;
+          }
+
+          const { data: ent, error: entErr } = await supabase
+            .from("entitlements")
+            .select("product_key, active")
+            .eq("email", email)
+            .eq("active", true)
+            .in("product_key", ["ia-basic", "ia-premium", "ia-ultime"]);
+
+          // ⚠️ Si ta RLS bloque ce SELECT, le guard UI peut ne pas pouvoir décider.
+          // Le vrai blocage reste garanti côté /api/checkout (si tu envoies le token).
+          if (entErr) {
+            console.warn("⚠️ Entitlements non lisibles côté client:", entErr?.message ?? entErr);
+          }
+
+          const keys = (ent ?? []).map((x: any) => String(x.product_key));
+          const hasUltime = keys.includes("ia-ultime");
+          const hasBasicOrPremium = keys.includes("ia-basic") || keys.includes("ia-premium");
+
+          // ✅ Ultime => recharge interdite
+          if (hasUltime) {
+            if (!cancelled) {
+              setBlocked({
+                title: "Recharge inutile (Pack Ultime)",
+                text: "Tu as déjà le Pack Ultime (illimité). La recharge boutiques IA n’est pas disponible.",
+              });
+              setReady(true);
+              setTimeout(() => window.location.replace("/compte-client"), 250);
+            }
+            return;
+          }
+
+          // ✅ pas de Basic/Premium => recharge interdite
+          if (!hasBasicOrPremium) {
+            if (!cancelled) {
+              setBlocked({
+                title: "Recharge indisponible",
+                text: "Pour acheter une recharge, il faut déjà avoir un Pack Basic ou Premium actif.",
+              });
+              setReady(true);
+              setTimeout(() => window.location.replace("/compte-client"), 250);
+            }
+            return;
+          }
+        } catch (e) {
+          console.warn("⚠️ Guard recharge: erreur:", e);
+        }
+      }
+
+      if (!cancelled) setReady(true);
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const singleProduct = useMemo<any | null>(() => {
@@ -127,6 +225,10 @@ export default function PaiementPage() {
     }
     return cartItems;
   }, [mode, singleKey, singleProduct, cartItems]);
+
+  const wantsRecharge = useMemo(() => {
+    return displayItems.some((x) => isRechargeKey(x.productKey));
+  }, [displayItems]);
 
   const totalNumber = useMemo(() => {
     if (!displayItems.length) return 0;
@@ -160,16 +262,40 @@ export default function PaiementPage() {
           ? { productKey: singleKey }
           : { productKeys: displayItems.map((it) => it.productKey) };
 
+      // ✅ IMPORTANT: si recharge => on envoie le token Supabase (pour que /api/checkout bloque Ultime etc.)
+      let accessToken: string | null = null;
+      if (wantsRecharge) {
+        const { data } = await supabase.auth.getSession();
+        accessToken = data.session?.access_token ?? null;
+
+        if (!accessToken) {
+          window.location.href = "/compte-client";
+          return;
+        }
+      }
+
       const res = await fetch("/api/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || !data?.url) {
+      // ✅ si l’API veut rediriger (ultime / pas basic-premium / pas connecté)
+      if (!res.ok) {
+        if (data?.redirectTo) {
+          window.location.href = String(data.redirectTo);
+          return;
+        }
         throw new Error(data?.error || "Impossible de créer la session de paiement.");
+      }
+
+      if (!data?.url) {
+        throw new Error("Stripe n'a pas renvoyé d'URL.");
       }
 
       window.location.href = data.url;
@@ -189,6 +315,31 @@ export default function PaiementPage() {
             <h1 style={styles.title}>Préparation du paiement…</h1>
             <p style={styles.sub}>Chargement de ta commande.</p>
           </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ✅ si bloqué (ultime / pas de pack / pas connecté)
+  if (blocked) {
+    return (
+      <main style={styles.page}>
+        <div style={styles.bgGradient} />
+        <div style={styles.bgDots} />
+        <section style={styles.container}>
+          <article style={styles.card}>
+            <h1 style={styles.title}>{blocked.title}</h1>
+            <p style={styles.sub}>{blocked.text}</p>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+              <Link href="/compte-client" style={styles.btnAlt as any}>
+                Aller à mon compte
+              </Link>
+              <Link href="/packs-ia" style={styles.btnAlt as any}>
+                Voir les packs IA
+              </Link>
+            </div>
+          </article>
         </section>
       </main>
     );
@@ -244,9 +395,7 @@ export default function PaiementPage() {
             </div>
 
             <h2 style={styles.cardTitle}>
-              {mode === "single"
-                ? (singleProduct?.name ?? "Produit")
-                : "Récapitulatif du panier"}
+              {mode === "single" ? singleProduct?.name ?? "Produit" : "Récapitulatif du panier"}
             </h2>
           </div>
 
@@ -283,9 +432,7 @@ export default function PaiementPage() {
             </button>
           </div>
 
-          <div style={styles.smallNote}>
-            Tu recevras une confirmation de commande après paiement.
-          </div>
+          <div style={styles.smallNote}>Tu recevras une confirmation de commande après paiement.</div>
 
           {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 

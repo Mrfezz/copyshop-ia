@@ -5,6 +5,19 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { PRODUCTS, type ProductKey } from "@/lib/products";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+const RECHARGE_KEY: ProductKey = "recharge-ia";
+const IA_PACK_KEYS = ["ia-basic", "ia-premium", "ia-ultime"] as const;
+
+function normalizeProductKey(raw: unknown): ProductKey {
+  const s = String(raw || "").trim();
+
+  // ✅ compat ancien nom
+  const fixed = s === "ia-recharge-5" ? "recharge-ia" : s;
+
+  return fixed as ProductKey;
+}
 
 function normalizeBaseUrl(raw?: string | null) {
   if (!raw) return null;
@@ -36,13 +49,41 @@ function uniqValidKeys(keys: unknown[]): ProductKey[] {
   const seen = new Set<string>();
 
   for (const k of keys) {
-    const kk = String(k || "") as ProductKey;
+    const kk = normalizeProductKey(k);
     if (!kk || seen.has(kk)) continue;
-    if (!(kk in PRODUCTS)) throw new Error(`Produit invalide: ${kk}`);
+
+    if (!(kk in PRODUCTS)) {
+      throw new Error(`Produit invalide: ${String(k)}`);
+    }
+
     seen.add(kk);
     out.push(kk);
   }
   return out;
+}
+
+function jsonBlocked(message: string) {
+  return NextResponse.json({ error: message, redirectTo: "/compte-client" }, { status: 403 });
+}
+
+async function getRequesterEmail(req: Request, body: any): Promise<string | null> {
+  // 1) Bearer token (recommandé)
+  const auth = req.headers.get("authorization") || "";
+  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : null;
+
+  // 2) fallback si envoyé dans body (optionnel)
+  const bodyToken =
+    (typeof body?.access_token === "string" && body.access_token.trim()) ||
+    (typeof body?.accessToken === "string" && body.accessToken.trim()) ||
+    null;
+
+  const token = bearer || bodyToken;
+  if (!token) return null;
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data?.user?.email) return null;
+
+  return data.user.email;
 }
 
 export async function POST(req: Request) {
@@ -50,23 +91,17 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Body JSON invalide" }, { status: 400 });
 
-    const email = (body?.email as string | undefined)?.trim() || undefined;
+    // Email optionnel (sert surtout à Stripe)
+    const emailFromBody = (body?.email as string | undefined)?.trim() || undefined;
 
     // ✅ accepte 3 formats :
-    // 1) { productKey: "..." }
-    // 2) { productKeys: ["...", "..."] }
-    // 3) { items: [{ productKey: "..." }, ...] }
     const keysFromProductKey = body?.productKey ? [body.productKey] : [];
     const keysFromProductKeys = Array.isArray(body?.productKeys) ? body.productKeys : [];
     const keysFromItems = Array.isArray(body?.items)
       ? body.items.map((x: any) => x?.productKey).filter(Boolean)
       : [];
 
-    const cleaned = uniqValidKeys([
-      ...keysFromProductKey,
-      ...keysFromProductKeys,
-      ...keysFromItems,
-    ]);
+    const cleaned = uniqValidKeys([...keysFromProductKey, ...keysFromProductKeys, ...keysFromItems]);
 
     if (!cleaned.length) {
       return NextResponse.json({ error: "Aucun produit à payer" }, { status: 400 });
@@ -80,31 +115,84 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ 1 seule session Stripe avec plusieurs line_items
+    // ✅ email du demandeur (1 seule fois)
+    const requesterEmail = await getRequesterEmail(req, body);
+
+    // ✅ Guard recharge (serveur)
+    const includesRecharge = cleaned.includes(RECHARGE_KEY);
+    if (includesRecharge) {
+      // Interdit: recharge + ultime dans la même commande
+      if (cleaned.includes("ia-ultime")) {
+        return jsonBlocked("Recharge incompatible avec le Pack Ultime (illimité).");
+      }
+
+      // Recharge = uniquement clients connectés
+      if (!requesterEmail) {
+        return jsonBlocked("Connexion requise pour acheter une recharge.");
+      }
+
+      const { data: ent, error: entErr } = await supabaseAdmin
+        .from("entitlements")
+        .select("product_key, active")
+        .eq("email", requesterEmail)
+        .eq("active", true)
+        .in("product_key", [...IA_PACK_KEYS]);
+
+      if (entErr) {
+        console.error("❌ Entitlements lookup error:", entErr);
+        return NextResponse.json({ error: "Erreur serveur (entitlements)." }, { status: 500 });
+      }
+
+      const keys = (ent ?? []).map((x: any) => String(x.product_key));
+      const hasUltime = keys.includes("ia-ultime");
+      const hasBasicOrPremium = keys.includes("ia-basic") || keys.includes("ia-premium");
+
+      if (hasUltime) {
+        return jsonBlocked("Tu as déjà le Pack Ultime (illimité) : recharge non disponible.");
+      }
+      if (!hasBasicOrPremium) {
+        return jsonBlocked("Pour acheter une recharge, il faut déjà un Pack Basic ou Premium actif.");
+      }
+
+      // (Optionnel) Si tu veux INTERDIRE recharge + basic/premium dans la même commande :
+      // if (cleaned.includes("ia-basic") || cleaned.includes("ia-premium")) {
+      //   return jsonBlocked("Recharge à acheter séparément après activation du pack.");
+      // }
+    }
+
+    // ✅ Stripe line_items
     const line_items = cleaned.map((productKey) => {
       const product = PRODUCTS[productKey] as any;
       const stripePriceId = product?.stripePriceId as string | undefined;
+
       if (!stripePriceId || !stripePriceId.startsWith("price_")) {
         throw new Error(`Stripe Price ID manquant/invalide pour: ${productKey}`);
       }
       return { price: stripePriceId, quantity: 1 };
     });
 
+    const singleProductKey = cleaned.length === 1 ? cleaned[0] : null;
+
+    // ✅ email envoyé à Stripe (priorité: body.email > requesterEmail)
+    const stripeEmail = emailFromBody || requesterEmail || undefined;
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
       allow_promotion_codes: true,
-      ...(email ? { customer_email: email } : {}),
+      ...(stripeEmail ? { customer_email: stripeEmail } : {}),
 
       success_url: `${baseUrl}/paiement/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/paiement/cancel`,
 
       metadata: {
+        ...(singleProductKey ? { productKey: singleProductKey } : {}),
         productKeys: cleaned.join(","),
         count: String(cleaned.length),
       },
       payment_intent_data: {
         metadata: {
+          ...(singleProductKey ? { productKey: singleProductKey } : {}),
           productKeys: cleaned.join(","),
           count: String(cleaned.length),
         },
