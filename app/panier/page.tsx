@@ -203,7 +203,9 @@ export default function PanierPage() {
 
   // ✅ Paiement panier entier (si 1 seul item et productKey présent, on peut garder le mode "produit")
   const payHref =
-    items.length === 1 && items[0]?.productKey ? `/paiement?product=${items[0].productKey}` : "/paiement";
+    items.length === 1 && items[0]?.productKey
+      ? `/paiement?product=${items[0].productKey}`
+      : "/paiement";
 
   return (
     <main style={styles.page}>
@@ -241,7 +243,9 @@ export default function PanierPage() {
             {!items.length ? (
               <div style={styles.emptyBox}>
                 <div style={styles.emptyTitle}>Ton panier est vide</div>
-                <div style={styles.emptyText}>Choisis un produit pour l’ajouter au panier.</div>
+                <div style={styles.emptyText}>
+                  Choisis un produit pour l’ajouter au panier.
+                </div>
 
                 <Link href="/packs-ia" style={styles.primaryBtn as any}>
                   Choisir un pack
@@ -259,7 +263,11 @@ export default function PanierPage() {
                       </div>
                     </div>
 
-                    <button type="button" style={styles.removeBtn} onClick={() => removeItem(it.id)}>
+                    <button
+                      type="button"
+                      style={styles.removeBtn}
+                      onClick={() => removeItem(it.id)}
+                    >
                       Retirer
                     </button>
                   </div>
@@ -280,11 +288,21 @@ export default function PanierPage() {
 
               {/* ✅ Texte neutre (plus de confusion pack / outil IA) */}
               <div style={styles.summaryHint}>
-                Paiement unique via Stripe. La commande dépend du produit (accès, prise en charge, ou informations).
+                Paiement unique via Stripe. La commande dépend du produit (accès,
+                prise en charge, ou informations).
               </div>
             </div>
 
-            <Link href={payHref} style={styles.primaryBtn as any}>
+            {/* ✅ FIX : séparation verticale du bouton (Link = inline par défaut) */}
+            <Link
+              href={payHref}
+              style={{
+                ...(styles.primaryBtn as any),
+                display: "inline-block",
+                marginTop: 12,
+                marginBottom: 12,
+              }}
+            >
               Passer au paiement
             </Link>
 
@@ -292,13 +310,14 @@ export default function PanierPage() {
             <div style={styles.note}>
               {hasIaInCart ? (
                 <>
-                  ✅ Ton panier contient un <strong>pack IA</strong> : l’accès à <strong>/outil-ia</strong> sera débloqué après
-                  validation du paiement.
+                  ✅ Ton panier contient un <strong>pack IA</strong> : l’accès à{" "}
+                  <strong>/outil-ia</strong> sera débloqué après validation du
+                  paiement.
                 </>
               ) : (
                 <>
-                  📩 Tu recevras la suite (instructions / prise en charge)
-                  par WhatsApp ou email.
+                  📩 Tu recevras la suite (instructions / prise en charge) par
+                  WhatsApp ou email.
                 </>
               )}
             </div>
