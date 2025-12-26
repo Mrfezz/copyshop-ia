@@ -286,7 +286,7 @@ export default function CompteClientPage() {
                 Basic/Premium.
               </p>
 
-              <a href="/recharges" style={styles.buttonAlt}>
+              <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
                 Voir les recharges
               </a>
             </article>
