@@ -26,14 +26,23 @@ const COLORS = {
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`;
 
-// ✅ Supporte packs IA + services digitaux
+// ✅ Supporte packs IA + services digitaux + services à la carte
 type ProductKey =
   | "ia-basic"
   | "ia-premium"
   | "ia-ultime"
   | "services-essentiel"
   | "services-pro"
-  | "services-business";
+  | "services-business"
+  | "kbis-24h"
+  | "logo-shopify"
+  | "nom-domaine"
+  | "contact-fournisseur"
+  | "shopify-paiement"
+  | "reseaux-sociaux"
+  | "flyer-image-video"
+  | "recharge-ia"
+  | "optimisation-boutique";
 
 type CartItem = {
   id: string;
@@ -44,7 +53,7 @@ type CartItem = {
 };
 
 type CartPayload = {
-  items: Array<{
+  items?: Array<{
     id: string;
     productKey?: ProductKey;
     title: string;
@@ -61,6 +70,7 @@ export default function PanierPage() {
 
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // ✅ Session
   useEffect(() => {
     let ignore = false;
 
@@ -82,42 +92,39 @@ export default function PanierPage() {
     };
   }, []);
 
-  // ✅ fonction centrale: relire le panier depuis localStorage
-  const loadCartFromStorage = () => {
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      if (!raw) {
-        setItems([]);
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as CartPayload;
-      const mapped: CartItem[] = (parsed.items ?? []).map((it) => ({
-        id: it.id,
-        productKey: it.productKey,
-        title: it.title,
-        priceLabel: it.priceLabel ?? it.price ?? "—",
-        subtitle: it.subtitle,
-      }));
-
-      setItems(mapped);
-    } catch (e) {
-      console.error("cart read error", e);
-      setItems([]);
-    }
-  };
-
-  // ✅ Lire le panier au chargement + écouter les updates (badge / autres pages)
+  // ✅ Lire panier (et se rafraîchir si panier modifié)
   useEffect(() => {
-    loadCartFromStorage();
+    const readCart = () => {
+      try {
+        const raw = localStorage.getItem(CART_KEY);
+        if (!raw) {
+          setItems([]);
+          return;
+        }
 
-    // ✅ si panier modifié depuis un autre onglet
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === CART_KEY) loadCartFromStorage();
+        const parsed = JSON.parse(raw) as CartPayload;
+        const mapped: CartItem[] = (parsed.items ?? []).map((it) => ({
+          id: it.id,
+          productKey: it.productKey,
+          title: it.title,
+          priceLabel: it.priceLabel ?? it.price ?? "—",
+          subtitle: it.subtitle,
+        }));
+
+        setItems(mapped);
+      } catch (e) {
+        console.error("cart read error", e);
+        setItems([]);
+      }
     };
 
-    // ✅ si panier modifié dans le même onglet (event custom)
-    const onCustom = () => loadCartFromStorage();
+    readCart();
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CART_KEY) readCart();
+    };
+
+    const onCustom = () => readCart();
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("copyshop_cart_updated", onCustom as any);
@@ -126,13 +133,24 @@ export default function PanierPage() {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("copyshop_cart_updated", onCustom as any);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const userEmail = session?.user?.email ?? null;
 
+  const hasIAPack = useMemo(() => {
+    return items.some((it) => String(it.productKey ?? "").startsWith("ia-"));
+  }, [items]);
+
+  const headerSub = useMemo(() => {
+    if (!items.length) return "Ajoute des produits au panier et reviens quand tu veux.";
+    // ✅ neutre pour éviter confusion pack vs service
+    return "Finalise ton achat. Tu recevras les prochaines étapes selon ton article.";
+  }, [items.length]);
+
   const totalLabel = useMemo(() => {
     if (!items.length) return "0 €";
+    // Ici on garde simple (prix en texte).
+    // Quand tu voudras un total réel, on stockera un number.
     if (items.length === 1) return items[0].priceLabel;
     return "—";
   }, [items]);
@@ -149,9 +167,10 @@ export default function PanierPage() {
         })),
         updatedAt: new Date().toISOString(),
       };
+
       localStorage.setItem(CART_KEY, JSON.stringify(payload));
 
-      // ✅ important: update badge panier (même onglet)
+      // ✅ important: update badge dans le même onglet
       window.dispatchEvent(new Event("copyshop_cart_updated"));
     } catch (e) {
       console.error("cart save error", e);
@@ -166,7 +185,15 @@ export default function PanierPage() {
     });
   }
 
-  const firstPackKey = items?.[0]?.productKey;
+  const firstProductKey = items?.[0]?.productKey;
+
+  const summaryHintText = "Paiement unique.";
+  const noteText =
+    "Après paiement, tu recevras un email de confirmation avec les prochaines étapes selon ton achat.";
+
+  const bottomBandText = hasIAPack
+    ? "🔒 Paiement sécurisé. (Packs IA : accès inclus après achat.)"
+    : "🔒 Paiement sécurisé. Les prochaines étapes dépendent de l’article acheté.";
 
   return (
     <main style={styles.page}>
@@ -177,9 +204,7 @@ export default function PanierPage() {
         <header style={styles.header}>
           <p style={styles.kicker}>PANIER</p>
           <h1 style={styles.title}>Ton panier</h1>
-          <p style={styles.sub}>
-            Finalise ton achat et active l’accès à l’outil IA.
-          </p>
+          <p style={styles.sub}>{headerSub}</p>
 
           <div style={styles.statusRow}>
             {!checking && (
@@ -188,15 +213,9 @@ export default function PanierPage() {
               </div>
             )}
 
-            {userEmail ? (
-              <Link href="/compte-client" style={styles.secondaryBtn as any}>
-                Mon compte
-              </Link>
-            ) : (
-              <Link href="/compte-client" style={styles.secondaryBtn as any}>
-                Se connecter
-              </Link>
-            )}
+            <Link href="/compte-client" style={styles.secondaryBtn as any}>
+              {userEmail ? "Mon compte" : "Se connecter"}
+            </Link>
 
             <Link href="/packs-ia" style={styles.secondaryBtn as any}>
               Voir les packs
@@ -213,11 +232,11 @@ export default function PanierPage() {
               <div style={styles.emptyBox}>
                 <div style={styles.emptyTitle}>Ton panier est vide</div>
                 <div style={styles.emptyText}>
-                  Choisis un pack IA pour l’ajouter au panier.
+                  Choisis un produit pour l’ajouter au panier.
                 </div>
 
                 <Link href="/packs-ia" style={styles.primaryBtn as any}>
-                  Choisir un pack
+                  Choisir un produit
                 </Link>
               </div>
             ) : (
@@ -254,35 +273,30 @@ export default function PanierPage() {
                 <span style={styles.summaryLabel}>Total</span>
                 <span style={styles.summaryValue}>{totalLabel}</span>
               </div>
-              <div style={styles.summaryHint}>
-                Paiement unique. Après paiement, ton pack sera activé
-                automatiquement.
-              </div>
+
+              {/* ✅ phrase nettoyée */}
+              <div style={styles.summaryHint}>{summaryHintText}</div>
             </div>
 
-            {firstPackKey ? (
+            {firstProductKey ? (
               <Link
-                href={`/paiement?product=${firstPackKey}`}
+                href={`/paiement?product=${firstProductKey}`}
                 style={styles.primaryBtn as any}
               >
                 Passer au paiement
               </Link>
             ) : (
               <Link href="/packs-ia" style={styles.primaryBtn as any}>
-                Continuer (choisir un pack)
+                Continuer (choisir un produit)
               </Link>
             )}
 
-            <div style={styles.note}>
-              Après paiement, ton pack sera actif et tu auras accès à{" "}
-              <strong>/outil-ia</strong>.
-            </div>
+            {/* ✅ phrase nettoyée */}
+            <div style={styles.note}>{noteText}</div>
           </div>
         </section>
 
-        <div style={styles.bottomBand}>
-          🔒 Accès à l’outil IA uniquement après achat d’un pack.
-        </div>
+        <div style={styles.bottomBand}>{bottomBandText}</div>
       </section>
 
       <style>{`
