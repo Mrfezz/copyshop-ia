@@ -1,8 +1,7 @@
 "use client";
 
 // app/panier/page.tsx
-import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
@@ -27,7 +26,7 @@ const COLORS = {
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`;
 
-// ✅ Supporte packs IA + services digitaux + services à la carte
+// ✅ Tous tes productKey (packs IA + services digitaux + services à la carte)
 type ProductKey =
   | "ia-basic"
   | "ia-premium"
@@ -54,7 +53,7 @@ type CartItem = {
 };
 
 type CartPayload = {
-  items?: Array<{
+  items: Array<{
     id: string;
     productKey?: ProductKey;
     title: string;
@@ -65,31 +64,25 @@ type CartPayload = {
   updatedAt?: string;
 };
 
-const IA_KEYS: ProductKey[] = ["ia-basic", "ia-premium", "ia-ultime"];
-const SERVICE_PACK_KEYS: ProductKey[] = [
-  "services-essentiel",
-  "services-pro",
-  "services-business",
-];
-
-function parseEuroToCents(label: string): number | null {
-  // Ex: "49,99€", "100€", "119,99€ • Branding" => on prend le premier nombre
-  const cleaned = String(label)
-    .replace(/\s/g, "")
-    .replace("€", "")
-    .replace(",", ".");
-  const m = cleaned.match(/-?\d+(\.\d+)?/);
-  if (!m) return null;
-  const n = Number(m[0]);
-  if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+function parseEuroToCents(input: string): number | null {
+  try {
+    const s = String(input ?? "")
+      .replace(/\s/g, "")
+      .replace("€", "")
+      .replace(",", ".");
+    const m = s.match(/-?\d+(\.\d+)?/);
+    if (!m) return null;
+    const n = Number(m[0]);
+    if (!Number.isFinite(n)) return null;
+    return Math.round(n * 100);
+  } catch {
+    return null;
+  }
 }
 
 function formatCentsToEuro(cents: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(cents / 100);
+  const v = (cents / 100).toFixed(2).replace(".", ",");
+  return `${v} €`;
 }
 
 export default function PanierPage() {
@@ -97,7 +90,7 @@ export default function PanierPage() {
   const [checking, setChecking] = useState(true);
   const [items, setItems] = useState<CartItem[]>([]);
 
-  // ✅ Session
+  // ✅ Session Supabase
   useEffect(() => {
     let ignore = false;
 
@@ -119,7 +112,7 @@ export default function PanierPage() {
     };
   }, []);
 
-  // ✅ Lire panier + refresh si modifié (même onglet / autre onglet)
+  // ✅ Lire le panier (et se mettre à jour si un autre endroit modifie le panier)
   useEffect(() => {
     const readCart = () => {
       try {
@@ -150,7 +143,6 @@ export default function PanierPage() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === CART_KEY) readCart();
     };
-
     const onCustom = () => readCart();
 
     window.addEventListener("storage", onStorage);
@@ -164,79 +156,21 @@ export default function PanierPage() {
 
   const userEmail = session?.user?.email ?? null;
 
-  const cartMeta = useMemo(() => {
-    const iaCount = items.filter((it) => IA_KEYS.includes(it.productKey as any)).length;
-    const servicePackCount = items.filter((it) =>
-      SERVICE_PACK_KEYS.includes(it.productKey as any)
-    ).length;
-    const aLaCarteCount = items.filter((it) => {
-      const k = it.productKey as any;
-      if (!k) return false;
-      return !IA_KEYS.includes(k) && !SERVICE_PACK_KEYS.includes(k);
-    }).length;
-
-    const isEmpty = items.length === 0;
-    const isOnlyIA = !isEmpty && iaCount > 0 && servicePackCount === 0 && aLaCarteCount === 0;
-    const isOnlyServices = !isEmpty && iaCount === 0 && (servicePackCount > 0 || aLaCarteCount > 0);
-    const isMixed = !isEmpty && iaCount > 0 && (servicePackCount > 0 || aLaCarteCount > 0);
-
-    return { iaCount, servicePackCount, aLaCarteCount, isEmpty, isOnlyIA, isOnlyServices, isMixed };
-  }, [items]);
-
-  const totalCents = useMemo(() => {
-    if (!items.length) return 0;
-    let sum = 0;
-    for (const it of items) {
-      const cents = parseEuroToCents(it.priceLabel);
-      if (cents === null) return null;
-      sum += cents;
-    }
-    return sum;
+  const hasIaInCart = useMemo(() => {
+    // ✅ uniquement les vrais produits IA qui donnent accès à /outil-ia
+    return items.some((it) => {
+      const k = String(it.productKey ?? "");
+      return k === "ia-basic" || k === "ia-premium" || k === "ia-ultime";
+    });
   }, [items]);
 
   const totalLabel = useMemo(() => {
     if (!items.length) return "0 €";
-    if (totalCents !== null) return formatCentsToEuro(totalCents);
-    if (items.length === 1) return items[0].priceLabel;
-    return "—";
-  }, [items, totalCents]);
-
-  const headerSub = useMemo(() => {
-    if (cartMeta.isEmpty) return "Ajoute des produits au panier et reviens quand tu veux.";
-    if (cartMeta.isMixed)
-      return "Ton panier contient plusieurs types d’articles. Pour éviter toute confusion, le paiement se fait article par article.";
-    if (cartMeta.isOnlyIA)
-      return "Finalise ton achat pour activer ton pack IA.";
-    // services only
-    return "Finalise ton achat : tu recevras les prochaines étapes selon le service choisi.";
-  }, [cartMeta]);
-
-  const summaryHintText = useMemo(() => {
-    if (cartMeta.isEmpty) return "—";
-    if (cartMeta.isMixed) return "Paiement unique (article par article recommandé).";
-    return "Paiement unique.";
-  }, [cartMeta]);
-
-  const noteText = useMemo(() => {
-    if (cartMeta.isEmpty) return "";
-    if (cartMeta.isMixed)
-      return "Conseil : règle d’abord un article, puis reviens ici pour payer les autres.";
-    if (cartMeta.isOnlyIA)
-      return "Après paiement, ton accès au pack IA est activé. (Le détail dépend du pack choisi.)";
-    return "Après paiement, tu reçois un email de confirmation et on te contacte si besoin pour démarrer la prestation.";
-  }, [cartMeta]);
-
-  const bottomBandText = useMemo(() => {
-    if (cartMeta.isEmpty) return "🔒 Paiement sécurisé.";
-    if (cartMeta.isMixed)
-      return "🔒 Paiement sécurisé. Panier mixte : recommande de payer article par article.";
-    if (cartMeta.isOnlyIA)
-      return "🔒 Paiement sécurisé. Packs IA : activation incluse après achat.";
-    return "🔒 Paiement sécurisé. Services : prise en charge selon l’article acheté.";
-  }, [cartMeta]);
-
-  const firstProductKey = items?.[0]?.productKey;
-  const payingTitle = items?.[0]?.title ?? null;
+    const cents = items.map((it) => parseEuroToCents(it.priceLabel));
+    if (cents.some((c) => c === null)) return "—";
+    const sum = (cents as number[]).reduce((a, b) => a + b, 0);
+    return formatCentsToEuro(sum);
+  }, [items]);
 
   function saveCart(next: CartItem[]) {
     try {
@@ -250,10 +184,9 @@ export default function PanierPage() {
         })),
         updatedAt: new Date().toISOString(),
       };
-
       localStorage.setItem(CART_KEY, JSON.stringify(payload));
 
-      // ✅ update badge dans le même onglet
+      // ✅ important: update badge dans le même onglet
       window.dispatchEvent(new Event("copyshop_cart_updated"));
     } catch (e) {
       console.error("cart save error", e);
@@ -268,11 +201,9 @@ export default function PanierPage() {
     });
   }
 
-  const ctaLabel = useMemo(() => {
-    if (!items.length) return "Continuer (choisir un produit)";
-    if (items.length === 1) return "Passer au paiement";
-    return "Payer le 1er article";
-  }, [items.length]);
+  // ✅ Paiement panier entier (si 1 seul item et productKey présent, on peut garder le mode "produit")
+  const payHref =
+    items.length === 1 && items[0]?.productKey ? `/paiement?product=${items[0].productKey}` : "/paiement";
 
   return (
     <main style={styles.page}>
@@ -283,7 +214,7 @@ export default function PanierPage() {
         <header style={styles.header}>
           <p style={styles.kicker}>PANIER</p>
           <h1 style={styles.title}>Ton panier</h1>
-          <p style={styles.sub}>{headerSub}</p>
+          <p style={styles.sub}>Finalise ta commande en toute sécurité.</p>
 
           <div style={styles.statusRow}>
             {!checking && (
@@ -310,12 +241,10 @@ export default function PanierPage() {
             {!items.length ? (
               <div style={styles.emptyBox}>
                 <div style={styles.emptyTitle}>Ton panier est vide</div>
-                <div style={styles.emptyText}>
-                  Choisis un produit pour l’ajouter au panier.
-                </div>
+                <div style={styles.emptyText}>Choisis un produit pour l’ajouter au panier.</div>
 
                 <Link href="/packs-ia" style={styles.primaryBtn as any}>
-                  Choisir un produit
+                  Choisir un pack
                 </Link>
               </div>
             ) : (
@@ -349,31 +278,39 @@ export default function PanierPage() {
                 <span style={styles.summaryValue}>{totalLabel}</span>
               </div>
 
-              <div style={styles.summaryHint}>{summaryHintText}</div>
-
-              {/* ✅ Si plusieurs items : on dit clairement ce que le bouton va payer */}
-              {items.length > 1 && payingTitle && (
-                <div style={styles.payInfo}>
-                  Le bouton paiera : <strong>{payingTitle}</strong>
-                </div>
-              )}
+              {/* ✅ Texte neutre (plus de confusion pack / outil IA) */}
+              <div style={styles.summaryHint}>
+                Paiement unique via Stripe. La livraison dépend du produit (accès, prise en charge, ou informations).
+              </div>
             </div>
 
-            {firstProductKey ? (
-              <Link href={`/paiement?product=${firstProductKey}`} style={styles.primaryBtn as any}>
-                {ctaLabel}
-              </Link>
-            ) : (
-              <Link href="/packs-ia" style={styles.primaryBtn as any}>
-                {ctaLabel}
-              </Link>
-            )}
+            <Link href={payHref} style={styles.primaryBtn as any}>
+              Passer au paiement
+            </Link>
 
-            {!!noteText && <div style={styles.note}>{noteText}</div>}
+            {/* ✅ note claire et “safe” */}
+            <div style={styles.note}>
+              {hasIaInCart ? (
+                <>
+                  ✅ Ton panier contient un <strong>pack IA</strong> : l’accès à <strong>/outil-ia</strong> sera débloqué après
+                  validation du paiement.
+                </>
+              ) : (
+                <>
+                  📩 Ton panier contient des <strong>services</strong> : tu recevras la suite (instructions / prise en charge)
+                  par WhatsApp ou email.
+                </>
+              )}
+            </div>
           </div>
         </section>
 
-        <div style={styles.bottomBand}>{bottomBandText}</div>
+        {/* ✅ bande bas conditionnelle */}
+        <div style={styles.bottomBand}>
+          {hasIaInCart
+            ? "🔒 Accès à l’outil IA uniquement avec un pack IA."
+            : "🔒 Paiement sécurisé. Support WhatsApp disponible après commande."}
+        </div>
       </section>
 
       <style>{`
@@ -386,7 +323,7 @@ export default function PanierPage() {
   );
 }
 
-const styles: Record<string, CSSProperties> = {
+const styles: Record<string, React.CSSProperties> = {
   page: {
     position: "relative",
     minHeight: "100vh",
@@ -592,12 +529,6 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "0.9rem",
     lineHeight: 1.5,
   },
-  payInfo: {
-    color: "rgba(255,255,255,0.78)",
-    fontWeight: 700,
-    fontSize: "0.9rem",
-    lineHeight: 1.45,
-  },
 
   primaryBtn: {
     width: "fit-content",
@@ -617,7 +548,7 @@ const styles: Record<string, CSSProperties> = {
 
   note: {
     marginTop: 10,
-    color: "rgba(255,255,255,0.72)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: "0.92rem",
     fontWeight: 700,
     lineHeight: 1.55,
