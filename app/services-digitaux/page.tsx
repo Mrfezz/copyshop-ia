@@ -3,7 +3,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type Item = {
   text: string;
@@ -101,41 +100,84 @@ const DEMO_VIDEO_SRC = "/video/demo-services-480p.mp4";
 const DEMO_POSTER_PRIMARY = "/images/demo-services-poster.jpg";
 const DEMO_POSTER_FALLBACK = "/images/boutique-client.jpg";
 
-export default function ServicesDigitauxPage() {
-  const router = useRouter();
+type CartPayload = {
+  items?: Array<{
+    id: string;
+    productKey?: string;
+    title?: string;
+    price?: string;
+    priceLabel?: string;
+    subtitle?: string;
+  }>;
+  updatedAt?: string;
+};
 
+const CART_KEY = "copyshop_ia_cart";
+const SERVICE_KEYS: Array<ServicePack["productKey"]> = [
+  "services-essentiel",
+  "services-pro",
+  "services-business",
+];
+
+export default function ServicesDigitauxPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [posterSrc, setPosterSrc] = useState(DEMO_POSTER_PRIMARY);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  const [justAdded, setJustAdded] = useState<ServicePack["productKey"] | null>(
+    null
+  );
+
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => setIsModalOpen(true);
 
-  function saveCartAndGo(pack: ServicePack) {
+  useEffect(() => {
+    if (!justAdded) return;
+    const t = window.setTimeout(() => setJustAdded(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [justAdded]);
+
+  function addServiceToCart(pack: ServicePack) {
     try {
-      const cartKey = "copyshop_ia_cart";
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
+      const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
+
       const titleClean = pack.title.replace(/\n/g, " ");
 
-      const payload = {
-        items: [
-          {
-            id: `service:${pack.productKey}`,
-            productKey: pack.productKey,
-            title: titleClean,
-            price: pack.price,
-            subtitle: titleClean,
-          },
-        ],
+      // ✅ on garde les autres items (packs IA, services à la carte…), mais on remplace le pack Service
+      const kept = existing.filter((it) => {
+        const k = (it?.productKey ?? "") as ServicePack["productKey"];
+        return !SERVICE_KEYS.includes(k);
+      });
+
+      const next = [
+        ...kept,
+        {
+          id: `service:${pack.productKey}`,
+          productKey: pack.productKey,
+          title: titleClean,
+          price: pack.price,
+          priceLabel: pack.price,
+          subtitle: titleClean,
+        },
+      ];
+
+      const payload: CartPayload = {
+        items: next,
         updatedAt: new Date().toISOString(),
       };
 
-      localStorage.setItem(cartKey, JSON.stringify(payload));
+      localStorage.setItem(CART_KEY, JSON.stringify(payload));
+
+      // ✅ important: update badge panier (même onglet)
+      window.dispatchEvent(new Event("copyshop_cart_updated"));
+
+      setJustAdded(pack.productKey);
     } catch (e) {
       console.error("cart save error", e);
-      // même si localStorage échoue, on redirige quand même
+      setJustAdded(pack.productKey);
     }
-
-    router.push("/panier");
   }
 
   // lock scroll + play on open + ESC to close
@@ -172,6 +214,13 @@ export default function ServicesDigitauxPage() {
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
+
+      {/* ✅ mini feedback */}
+      {justAdded && (
+        <div style={styles.toastWrap} aria-live="polite">
+          <div style={styles.toast}>✅ Ajouté au panier</div>
+        </div>
+      )}
 
       <section style={styles.container}>
         {/* HERO */}
@@ -244,7 +293,7 @@ export default function ServicesDigitauxPage() {
                 ))}
               </ul>
 
-              {/* ✅ PRIX + Paiement unique + CTA */}
+              {/* ✅ PRIX + Paiement unique + CTA (NE REDIRIGE PLUS) */}
               <div
                 className="services-priceBar"
                 style={{ ...styles.priceBar, background: PRICE_GRADIENT_HOME }}
@@ -260,7 +309,7 @@ export default function ServicesDigitauxPage() {
                   style={styles.priceBtn}
                   onClick={(e) => {
                     e.preventDefault();
-                    saveCartAndGo(pack);
+                    addServiceToCart(pack);
                   }}
                 >
                   Choisir ce pack
@@ -403,7 +452,7 @@ export default function ServicesDigitauxPage() {
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
-            white-space: normal !important; /* overwrite nowrap */
+            white-space: normal !important;
             text-align: center !important;
           }
         }
@@ -528,7 +577,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: COLORS.cardBg,
     color: COLORS.navy,
     borderRadius: 18,
-    padding: "22px 22px 18px", // ✅ important: laisse de l’air en bas comme packs-ia
+    padding: "22px 22px 18px",
     display: "flex",
     flexDirection: "column",
     minHeight: 560,
@@ -578,7 +627,7 @@ const styles: Record<string, React.CSSProperties> = {
   priceBar: {
     marginTop: 14,
     padding: "12px 14px",
-    borderRadius: 12, // ✅ comme packs-ia (pas “coupé”)
+    borderRadius: 12,
     color: "white",
     display: "flex",
     alignItems: "center",
@@ -790,5 +839,27 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto",
     background: "black",
     objectFit: "contain",
+  },
+
+  // ✅ toast
+  toastWrap: {
+    position: "fixed",
+    top: 74,
+    right: 16,
+    zIndex: 10000,
+    maxWidth: "calc(100vw - 32px)",
+  },
+  toast: {
+    background: "rgba(10, 15, 43, 0.92)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    color: "#eef1ff",
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 900,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
   },
 };

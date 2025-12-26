@@ -2,8 +2,7 @@
 
 // app/services-a-la-carte/page.tsx
 import Link from "next/link";
-import type React from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 type Service = {
   title: string;
@@ -90,40 +89,80 @@ const SERVICES: Service[] = [
   },
 ];
 
+type CartPayload = {
+  items?: Array<{
+    id: string;
+    productKey?: string;
+    title?: string;
+    price?: string;
+    priceLabel?: string;
+    subtitle?: string;
+  }>;
+  updatedAt?: string;
+};
+
+const CART_KEY = "copyshop_ia_cart";
+
 export default function ServicesALaCartePage() {
-  const router = useRouter();
+  const [justAdded, setJustAdded] = useState<string | null>(null);
 
-  function saveCartAndGo(service: Service) {
+  useEffect(() => {
+    if (!justAdded) return;
+    const t = window.setTimeout(() => setJustAdded(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [justAdded]);
+
+  function addToCart(service: Service) {
     try {
-      const cartKey = "copyshop_ia_cart";
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
+      const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
 
-      const payload = {
-        items: [
-          {
-            id: `service:${service.productKey}`,
-            productKey: service.productKey,
-            title: service.title,
-            price: service.price,
-            priceLabel: service.price,
-            subtitle: service.tag ?? "",
-          },
-        ],
+      // ✅ évite doublon sur le même service (on remplace si déjà présent)
+      const kept = existing.filter(
+        (it) => (it?.productKey ?? "") !== service.productKey
+      );
+
+      const next = [
+        ...kept,
+        {
+          id: `service:${service.productKey}`,
+          productKey: service.productKey,
+          title: service.title,
+          price: service.price,
+          priceLabel: service.price,
+          subtitle: service.tag ?? "",
+        },
+      ];
+
+      const payload: CartPayload = {
+        items: next,
         updatedAt: new Date().toISOString(),
       };
 
-      localStorage.setItem(cartKey, JSON.stringify(payload));
+      localStorage.setItem(CART_KEY, JSON.stringify(payload));
+
+      // ✅ important: update badge dans le même onglet
+      window.dispatchEvent(new Event("copyshop_cart_updated"));
+
+      setJustAdded(service.title);
     } catch (e) {
       console.error("cart save error", e);
-      // même si localStorage échoue, on redirige quand même
+      setJustAdded(service.title);
     }
-
-    router.push("/panier");
   }
 
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
+
+      {/* ✅ mini feedback */}
+      {justAdded && (
+        <div style={styles.toastWrap} aria-live="polite">
+          <div style={styles.toast}>✅ Ajouté au panier</div>
+        </div>
+      )}
 
       <section style={styles.hero}>
         <p style={styles.kicker}>SERVICES À LA CARTE</p>
@@ -162,7 +201,7 @@ export default function ServicesALaCartePage() {
                 style={styles.btn}
                 onClick={(e) => {
                   e.preventDefault();
-                  saveCartAndGo(s);
+                  addToCart(s);
                 }}
               >
                 Commander
@@ -270,7 +309,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
   },
 
-  // 🔹 nouvelle ligne haut de carte
   cardTop: {
     display: "flex",
     alignItems: "center",
@@ -323,9 +361,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#22c55e",
   },
 
-  domainSeparator: {
-    opacity: 0.7,
-  },
+  domainSeparator: { opacity: 0.7 },
 
   cardTitle: {
     fontSize: "1.25rem",
@@ -396,5 +432,26 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#c9d2ff",
     textDecoration: "none",
     fontWeight: 700,
+  },
+
+  toastWrap: {
+    position: "fixed",
+    top: 74,
+    right: 16,
+    zIndex: 10000,
+    maxWidth: "calc(100vw - 32px)",
+  },
+  toast: {
+    background: "rgba(10, 15, 43, 0.92)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    color: "#eef1ff",
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 900,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
   },
 };

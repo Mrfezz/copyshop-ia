@@ -6,6 +6,8 @@ import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
+const CART_KEY = "copyshop_ia_cart";
+
 const COLORS = {
   bgTop: "#0b1026",
   bgMid: "#0f1635",
@@ -80,11 +82,10 @@ export default function PanierPage() {
     };
   }, []);
 
-  // ✅ Lire le panier depuis localStorage
-  useEffect(() => {
+  // ✅ fonction centrale: relire le panier depuis localStorage
+  const loadCartFromStorage = () => {
     try {
-      const cartKey = "copyshop_ia_cart";
-      const raw = localStorage.getItem(cartKey);
+      const raw = localStorage.getItem(CART_KEY);
       if (!raw) {
         setItems([]);
         return;
@@ -104,6 +105,28 @@ export default function PanierPage() {
       console.error("cart read error", e);
       setItems([]);
     }
+  };
+
+  // ✅ Lire le panier au chargement + écouter les updates (badge / autres pages)
+  useEffect(() => {
+    loadCartFromStorage();
+
+    // ✅ si panier modifié depuis un autre onglet
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CART_KEY) loadCartFromStorage();
+    };
+
+    // ✅ si panier modifié dans le même onglet (event custom)
+    const onCustom = () => loadCartFromStorage();
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("copyshop_cart_updated", onCustom as any);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("copyshop_cart_updated", onCustom as any);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const userEmail = session?.user?.email ?? null;
@@ -116,7 +139,6 @@ export default function PanierPage() {
 
   function saveCart(next: CartItem[]) {
     try {
-      const cartKey = "copyshop_ia_cart";
       const payload: CartPayload = {
         items: next.map((it) => ({
           id: it.id,
@@ -127,7 +149,10 @@ export default function PanierPage() {
         })),
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem(cartKey, JSON.stringify(payload));
+      localStorage.setItem(CART_KEY, JSON.stringify(payload));
+
+      // ✅ important: update badge panier (même onglet)
+      window.dispatchEvent(new Event("copyshop_cart_updated"));
     } catch (e) {
       console.error("cart save error", e);
     }
@@ -152,7 +177,9 @@ export default function PanierPage() {
         <header style={styles.header}>
           <p style={styles.kicker}>PANIER</p>
           <h1 style={styles.title}>Ton panier</h1>
-          <p style={styles.sub}>Finalise ton achat et active l’accès à l’outil IA.</p>
+          <p style={styles.sub}>
+            Finalise ton achat et active l’accès à l’outil IA.
+          </p>
 
           <div style={styles.statusRow}>
             {!checking && (
@@ -185,7 +212,9 @@ export default function PanierPage() {
             {!items.length ? (
               <div style={styles.emptyBox}>
                 <div style={styles.emptyTitle}>Ton panier est vide</div>
-                <div style={styles.emptyText}>Choisis un pack IA pour l’ajouter au panier.</div>
+                <div style={styles.emptyText}>
+                  Choisis un pack IA pour l’ajouter au panier.
+                </div>
 
                 <Link href="/packs-ia" style={styles.primaryBtn as any}>
                   Choisir un pack
@@ -226,12 +255,16 @@ export default function PanierPage() {
                 <span style={styles.summaryValue}>{totalLabel}</span>
               </div>
               <div style={styles.summaryHint}>
-                Paiement unique. Après paiement, ton pack sera activé automatiquement.
+                Paiement unique. Après paiement, ton pack sera activé
+                automatiquement.
               </div>
             </div>
 
             {firstPackKey ? (
-              <Link href={`/paiement?product=${firstPackKey}`} style={styles.primaryBtn as any}>
+              <Link
+                href={`/paiement?product=${firstPackKey}`}
+                style={styles.primaryBtn as any}
+              >
                 Passer au paiement
               </Link>
             ) : (
@@ -241,12 +274,15 @@ export default function PanierPage() {
             )}
 
             <div style={styles.note}>
-              Après paiement, ton pack sera actif et tu auras accès à <strong>/outil-ia</strong>.
+              Après paiement, ton pack sera actif et tu auras accès à{" "}
+              <strong>/outil-ia</strong>.
             </div>
           </div>
         </section>
 
-        <div style={styles.bottomBand}>🔒 Accès à l’outil IA uniquement après achat d’un pack.</div>
+        <div style={styles.bottomBand}>
+          🔒 Accès à l’outil IA uniquement après achat d’un pack.
+        </div>
       </section>
 
       <style>{`

@@ -1,9 +1,8 @@
 "use client";
 
 // app/packs-ia/page.tsx
-import type React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 type Pack = {
   title: string;
@@ -75,37 +74,82 @@ const COLORS = {
   cardBorder: "rgba(11,15,42,0.10)",
 };
 
-export default function PacksIAPage() {
-  const router = useRouter();
+type CartPayload = {
+  items?: Array<{
+    id: string;
+    productKey?: string;
+    title?: string;
+    price?: string;
+    priceLabel?: string;
+    subtitle?: string;
+  }>;
+  updatedAt?: string;
+};
 
-  function saveCartAndGo(pack: Pack) {
+const CART_KEY = "copyshop_ia_cart";
+const IA_KEYS: Array<Pack["productKey"]> = ["ia-basic", "ia-premium", "ia-ultime"];
+
+export default function PacksIAPage() {
+  const [justAdded, setJustAdded] = useState<Pack["productKey"] | null>(null);
+
+  useEffect(() => {
+    if (!justAdded) return;
+    const t = window.setTimeout(() => setJustAdded(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [justAdded]);
+
+  function addPackToCart(pack: Pack) {
     try {
-      const cartKey = "copyshop_ia_cart";
-      const payload = {
-        items: [
-          {
-            id: `pack:${pack.productKey}`,
-            productKey: pack.productKey,
-            title: pack.title,
-            price: pack.price,
-            subtitle: pack.subtitle,
-          },
-        ],
+      const raw = localStorage.getItem(CART_KEY);
+      const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
+      const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
+
+      // ✅ on garde les autres items (services…), mais on remplace le pack IA
+      const kept = existing.filter((it) => {
+        const k = (it?.productKey ?? "") as Pack["productKey"];
+        return !IA_KEYS.includes(k);
+      });
+
+      const next = [
+        ...kept,
+        {
+          id: `pack:${pack.productKey}`,
+          productKey: pack.productKey,
+          title: pack.title,
+          price: pack.price,
+          subtitle: pack.subtitle,
+        },
+      ];
+
+      const payload: CartPayload = {
+        items: next,
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem(cartKey, JSON.stringify(payload));
+
+      localStorage.setItem(CART_KEY, JSON.stringify(payload));
+
+      // ✅ important: update badge dans le même onglet
+      window.dispatchEvent(new Event("copyshop_cart_updated"));
+
+      setJustAdded(pack.productKey);
     } catch (e) {
       console.error("cart save error", e);
-      // même si localStorage échoue, on redirige quand même
+      // même si localStorage échoue, on affiche quand même le feedback
+      setJustAdded(pack.productKey);
     }
-
-    router.push("/panier");
   }
 
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
+
+      {/* ✅ mini feedback (n'altère pas le layout) */}
+      {justAdded && (
+        <div style={styles.toastWrap} aria-live="polite">
+          <div style={styles.toast}>✅ Ajouté au panier</div>
+        </div>
+      )}
 
       <section style={styles.container}>
         <header style={styles.header} data-header="packs">
@@ -175,13 +219,14 @@ export default function PacksIAPage() {
                   <div style={styles.priceNote}>Paiement unique</div>
                 </div>
 
+                {/* ✅ NE REDIRIGE PLUS: ajoute au panier, le client continue à explorer */}
                 <Link
                   href="/panier"
                   className="pack-cta"
                   style={styles.priceCta}
                   onClick={(e) => {
                     e.preventDefault();
-                    saveCartAndGo(pack);
+                    addPackToCart(pack);
                   }}
                 >
                   Choisir ce pack
@@ -463,5 +508,27 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     fontSize: "1.05rem",
     fontWeight: 800,
+  },
+
+  // ✅ toast
+  toastWrap: {
+    position: "fixed",
+    top: 74,
+    right: 16,
+    zIndex: 10000,
+    maxWidth: "calc(100vw - 32px)",
+  },
+  toast: {
+    background: "rgba(10, 15, 43, 0.92)",
+    border: "1px solid rgba(255,255,255,0.18)",
+    color: "#eef1ff",
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 900,
+    boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
   },
 };
