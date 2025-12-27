@@ -62,6 +62,12 @@ function uniqValidKeys(keys: unknown[]): ProductKey[] {
   return out;
 }
 
+// ✅ 401 = pas connecté (on veut forcer création/connexion compte avant paiement)
+function jsonAuthRequired(message: string) {
+  return NextResponse.json({ error: message, redirectTo: "/compte-client" }, { status: 401 });
+}
+
+// ✅ 403 = connecté mais action refusée (règle métier)
 function jsonBlocked(message: string) {
   return NextResponse.json({ error: message, redirectTo: "/compte-client" }, { status: 403 });
 }
@@ -91,9 +97,6 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Body JSON invalide" }, { status: 400 });
 
-    // Email optionnel (sert surtout à Stripe)
-    const emailFromBody = (body?.email as string | undefined)?.trim() || undefined;
-
     // ✅ accepte 3 formats :
     const keysFromProductKey = body?.productKey ? [body.productKey] : [];
     const keysFromProductKeys = Array.isArray(body?.productKeys) ? body.productKeys : [];
@@ -115,8 +118,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ email du demandeur (1 seule fois)
+    // ✅ email du demandeur (lié AU COMPTE connecté)
+    // 🔥 IMPORTANT : si pas connecté => on bloque TOUT paiement
     const requesterEmail = await getRequesterEmail(req, body);
+    if (!requesterEmail) {
+      return jsonAuthRequired("Connexion requise : crée un compte / connecte-toi avant de payer.");
+    }
 
     // ✅ Guard recharge (serveur)
     const includesRecharge = cleaned.includes(RECHARGE_KEY);
@@ -124,11 +131,6 @@ export async function POST(req: Request) {
       // Interdit: recharge + ultime dans la même commande
       if (cleaned.includes("ia-ultime")) {
         return jsonBlocked("Recharge incompatible avec le Pack Ultime (illimité).");
-      }
-
-      // Recharge = uniquement clients connectés
-      if (!requesterEmail) {
-        return jsonBlocked("Connexion requise pour acheter une recharge.");
       }
 
       const { data: ent, error: entErr } = await supabaseAdmin
@@ -153,11 +155,6 @@ export async function POST(req: Request) {
       if (!hasBasicOrPremium) {
         return jsonBlocked("Pour acheter une recharge, il faut déjà un Pack Basic ou Premium actif.");
       }
-
-      // (Optionnel) Si tu veux INTERDIRE recharge + basic/premium dans la même commande :
-      // if (cleaned.includes("ia-basic") || cleaned.includes("ia-premium")) {
-      //   return jsonBlocked("Recharge à acheter séparément après activation du pack.");
-      // }
     }
 
     // ✅ Stripe line_items
@@ -173,25 +170,29 @@ export async function POST(req: Request) {
 
     const singleProductKey = cleaned.length === 1 ? cleaned[0] : null;
 
-    // ✅ email envoyé à Stripe (priorité: body.email > requesterEmail)
-    const stripeEmail = emailFromBody || requesterEmail || undefined;
+    // ✅ IMPORTANT : on force l'email Stripe = email du compte connecté
+    // (comme ça, le client ne peut pas payer "pour quelqu'un d'autre" et l'accès reste cohérent)
+    const stripeEmail = requesterEmail;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items,
       allow_promotion_codes: true,
-      ...(stripeEmail ? { customer_email: stripeEmail } : {}),
+
+      customer_email: stripeEmail,
 
       success_url: `${baseUrl}/paiement/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/paiement/cancel`,
 
       metadata: {
+        requesterEmail, // utile pour suivi / webhook / debug
         ...(singleProductKey ? { productKey: singleProductKey } : {}),
         productKeys: cleaned.join(","),
         count: String(cleaned.length),
       },
       payment_intent_data: {
         metadata: {
+          requesterEmail,
           ...(singleProductKey ? { productKey: singleProductKey } : {}),
           productKeys: cleaned.join(","),
           count: String(cleaned.length),
