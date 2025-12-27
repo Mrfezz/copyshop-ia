@@ -2,7 +2,7 @@
 
 // app/services-a-la-carte/page.tsx
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 type Service = {
   title: string;
@@ -104,14 +104,6 @@ type CartPayload = {
 const CART_KEY = "copyshop_ia_cart";
 
 export default function ServicesALaCartePage() {
-  const [justAdded, setJustAdded] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!justAdded) return;
-    const t = window.setTimeout(() => setJustAdded(null), 1600);
-    return () => window.clearTimeout(t);
-  }, [justAdded]);
-
   function addToCart(service: Service) {
     try {
       const raw = localStorage.getItem(CART_KEY);
@@ -119,9 +111,7 @@ export default function ServicesALaCartePage() {
       const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
 
       // ✅ évite doublon sur le même service (on remplace si déjà présent)
-      const kept = existing.filter(
-        (it) => (it?.productKey ?? "") !== service.productKey
-      );
+      const kept = existing.filter((it) => (it?.productKey ?? "") !== service.productKey);
 
       const next = [
         ...kept,
@@ -144,11 +134,8 @@ export default function ServicesALaCartePage() {
 
       // ✅ important: update badge dans le même onglet
       window.dispatchEvent(new Event("copyshop_cart_updated"));
-
-      setJustAdded(service.title);
     } catch (e) {
       console.error("cart save error", e);
-      setJustAdded(service.title);
     }
   }
 
@@ -156,13 +143,6 @@ export default function ServicesALaCartePage() {
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
-
-      {/* ✅ mini feedback */}
-      {justAdded && (
-        <div style={styles.toastWrap} aria-live="polite">
-          <div style={styles.toast}>✅ Ajouté au panier</div>
-        </div>
-      )}
 
       <section style={styles.hero}>
         <p style={styles.kicker}>SERVICES À LA CARTE</p>
@@ -432,26 +412,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#c9d2ff",
     textDecoration: "none",
     fontWeight: 700,
-  },
-
-  toastWrap: {
-    position: "fixed",
-    top: 74,
-    right: 16,
-    zIndex: 10000,
-    maxWidth: "calc(100vw - 32px)",
-  },
-  toast: {
-    background: "rgba(10, 15, 43, 0.92)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    color: "#eef1ff",
-    padding: "10px 12px",
-    borderRadius: 12,
-    fontWeight: 900,
-    boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
-    boxSizing: "border-box",
-    whiteSpace: "nowrap",
   },
 };

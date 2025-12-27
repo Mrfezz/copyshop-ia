@@ -124,18 +124,8 @@ export default function ServicesDigitauxPage() {
   const [posterSrc, setPosterSrc] = useState(DEMO_POSTER_PRIMARY);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const [justAdded, setJustAdded] = useState<ServicePack["productKey"] | null>(
-    null
-  );
-
   const closeModal = () => setIsModalOpen(false);
   const openModal = () => setIsModalOpen(true);
-
-  useEffect(() => {
-    if (!justAdded) return;
-    const t = window.setTimeout(() => setJustAdded(null), 1600);
-    return () => window.clearTimeout(t);
-  }, [justAdded]);
 
   function addServiceToCart(pack: ServicePack) {
     try {
@@ -172,11 +162,8 @@ export default function ServicesDigitauxPage() {
 
       // ✅ important: update badge panier (même onglet)
       window.dispatchEvent(new Event("copyshop_cart_updated"));
-
-      setJustAdded(pack.productKey);
     } catch (e) {
       console.error("cart save error", e);
-      setJustAdded(pack.productKey);
     }
   }
 
@@ -214,13 +201,6 @@ export default function ServicesDigitauxPage() {
     <main style={styles.page}>
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
-
-      {/* ✅ mini feedback */}
-      {justAdded && (
-        <div style={styles.toastWrap} aria-live="polite">
-          <div style={styles.toast}>✅ Ajouté au panier</div>
-        </div>
-      )}
 
       <section style={styles.container}>
         {/* HERO */}
@@ -839,27 +819,5 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 auto",
     background: "black",
     objectFit: "contain",
-  },
-
-  // ✅ toast
-  toastWrap: {
-    position: "fixed",
-    top: 74,
-    right: 16,
-    zIndex: 10000,
-    maxWidth: "calc(100vw - 32px)",
-  },
-  toast: {
-    background: "rgba(10, 15, 43, 0.92)",
-    border: "1px solid rgba(255,255,255,0.18)",
-    color: "#eef1ff",
-    padding: "10px 12px",
-    borderRadius: 12,
-    fontWeight: 900,
-    boxShadow: "0 12px 30px rgba(0,0,0,0.32)",
-    backdropFilter: "blur(8px)",
-    WebkitBackdropFilter: "blur(8px)",
-    boxSizing: "border-box",
-    whiteSpace: "nowrap",
   },
 };
