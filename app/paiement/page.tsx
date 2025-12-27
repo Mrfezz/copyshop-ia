@@ -74,6 +74,13 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
+// ✅ petit helper: sauvegarde le paiement en attente (pour revenir après login)
+function savePendingCheckout(payload: any) {
+  try {
+    localStorage.setItem("pendingCheckout", JSON.stringify(payload));
+  } catch {}
+}
+
 export default function PaiementPage() {
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<"cart" | "single">("cart");
@@ -132,7 +139,7 @@ export default function PaiementPage() {
         mapped = [];
       }
 
-      // ✅ Guard spécial recharge
+      // ✅ Guard spécial recharge (optionnel UI)
       const wantsRechargeInit =
         (normalizedKey ? isRechargeKey(normalizedKey) : false) ||
         (!normalizedKey ? mapped.some((x) => isRechargeKey(x.productKey)) : false);
@@ -150,6 +157,14 @@ export default function PaiementPage() {
                 text: "La recharge est réservée aux clients ayant déjà un pack IA (Basic/Premium).",
               });
               setReady(true);
+
+              // on mémorise le paiement pour revenir ici après login
+              const payload =
+                normalizedKey
+                  ? { productKey: normalizedKey }
+                  : { productKeys: mapped.map((x) => x.productKey) };
+              savePendingCheckout(payload);
+
               setTimeout(() => window.location.replace("/compte-client"), 250);
             }
             return;
@@ -162,8 +177,8 @@ export default function PaiementPage() {
             .eq("active", true)
             .in("product_key", ["ia-basic", "ia-premium", "ia-ultime"]);
 
-          // ⚠️ Si ta RLS bloque ce SELECT, le guard UI peut ne pas pouvoir décider.
-          // Le vrai blocage reste garanti côté /api/checkout (si tu envoies le token).
+          // ⚠️ Si RLS bloque ce SELECT, le guard UI peut ne pas pouvoir décider.
+          // Le vrai blocage reste garanti côté /api/checkout.
           if (entErr) {
             console.warn("⚠️ Entitlements non lisibles côté client:", entErr?.message ?? entErr);
           }
@@ -262,43 +277,43 @@ export default function PaiementPage() {
           ? { productKey: singleKey }
           : { productKeys: displayItems.map((it) => it.productKey) };
 
-      // ✅ IMPORTANT: si recharge => on envoie le token Supabase (pour que /api/checkout bloque Ultime etc.)
-      let accessToken: string | null = null;
-      if (wantsRecharge) {
-        const { data } = await supabase.auth.getSession();
-        accessToken = data.session?.access_token ?? null;
+      // ✅ IMPORTANT : TON API /api/checkout exige toujours un token maintenant
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token ?? null;
 
-        if (!accessToken) {
-          window.location.href = "/compte-client";
-          return;
-        }
+      if (!accessToken) {
+        // on mémorise l’achat pour revenir après connexion
+        savePendingCheckout(payload);
+        window.location.href = "/compte-client";
+        return;
       }
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          // ✅ TOUJOURS envoyer le token
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const dataRes = await res.json().catch(() => ({}));
 
       // ✅ si l’API veut rediriger (ultime / pas basic-premium / pas connecté)
       if (!res.ok) {
-        if (data?.redirectTo) {
-          window.location.href = String(data.redirectTo);
+        if (dataRes?.redirectTo) {
+          window.location.href = String(dataRes.redirectTo);
           return;
         }
-        throw new Error(data?.error || "Impossible de créer la session de paiement.");
+        throw new Error(dataRes?.error || "Impossible de créer la session de paiement.");
       }
 
-      if (!data?.url) {
+      if (!dataRes?.url) {
         throw new Error("Stripe n'a pas renvoyé d'URL.");
       }
 
-      window.location.href = data.url;
+      window.location.href = dataRes.url;
     } catch (e: any) {
       setError(e?.message || "Erreur lors du paiement.");
       setLoading(false);
@@ -441,6 +456,13 @@ export default function PaiementPage() {
               ← Retour panier
             </Link>
           </div>
+
+          {/* petit debug visuel (optionnel) */}
+          {wantsRecharge ? (
+            <div style={{ marginTop: 8, color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>
+              (Recharge détectée : vérification pack IA côté serveur)
+            </div>
+          ) : null}
         </article>
       </section>
 
