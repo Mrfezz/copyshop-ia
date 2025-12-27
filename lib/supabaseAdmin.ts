@@ -1,23 +1,31 @@
 // lib/supabaseAdmin.ts
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ côté serveur : préférer SUPABASE_URL (et fallback sur NEXT_PUBLIC au cas où)
 const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !serviceRoleKey) {
+if (!supabaseUrl) {
   throw new Error(
-    "Supabase admin env vars manquantes: SUPABASE_URL (ou NEXT_PUBLIC_SUPABASE_URL) / SUPABASE_SERVICE_ROLE_KEY."
+    "ENV manquante: SUPABASE_URL (ou NEXT_PUBLIC_SUPABASE_URL)."
   );
 }
 
-// ⚠️ Client à utiliser uniquement côté serveur (API routes, webhooks, CRON)
+if (!serviceRoleKey) {
+  throw new Error("ENV manquante: SUPABASE_SERVICE_ROLE_KEY.");
+}
+
+// ⚠️ À utiliser uniquement côté serveur (API routes, webhooks)
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
+  },
+  global: {
+    headers: {
+      "X-Client-Info": "copyshop-ia/server",
+    },
   },
 });

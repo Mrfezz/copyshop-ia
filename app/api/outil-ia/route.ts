@@ -8,7 +8,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 type RequestBody = {
   productUrl?: string;
   imageBase64?: string | null;
-  productKey?: string; // optionnel (envoyé côté client), non obligatoire ici
+  productKey?: string; // optionnel
 };
 
 function jsonError(message: string, status = 400) {
@@ -70,7 +70,8 @@ export async function POST(req: Request) {
       .from("entitlements")
       .select("product_key, credits_total, credits_used, unlimited")
       .eq("email", email)
-      .eq("active", true);
+      .eq("active", true)
+      .in("product_key", ["ia-basic", "ia-premium", "ia-ultime"]);
 
     if (entErr) {
       console.error("DB entitlements error:", entErr);
@@ -84,12 +85,19 @@ export async function POST(req: Request) {
 
     if (!best) return jsonError("Accès refusé : aucun pack actif", 403);
 
-    const creditsRemaining = best.unlimited
-      ? null
-      : Math.max(0, (best.credits_total ?? 0) - (best.credits_used ?? 0));
+    const unlimited = Boolean(best.unlimited);
 
-    if (!best.unlimited && (creditsRemaining ?? 0) <= 0) {
-      return jsonError("Crédits épuisés. Recharge nécessaire.", 403);
+    const creditsUsed = Number(best.credits_used ?? 0);
+    let creditsTotal: number | null = null;
+    let creditsRemaining: number | null = null;
+
+    if (!unlimited) {
+      creditsTotal = Number(best.credits_total ?? 0);
+      creditsRemaining = Math.max(0, creditsTotal - creditsUsed);
+
+      if (creditsRemaining <= 0) {
+        return jsonError("Crédits épuisés. Recharge nécessaire.", 403);
+      }
     }
 
     // 2) prompt différent selon pack
@@ -141,8 +149,8 @@ Renvoie UNIQUEMENT du JSON valide:
       return jsonError("Erreur OpenAI", 502);
     }
 
-    const data = await openaiRes.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const ai = await openaiRes.json();
+    const content = ai?.choices?.[0]?.message?.content;
     if (!content || typeof content !== "string") return jsonError("Réponse OpenAI vide", 500);
 
     let parsed: any;
@@ -152,7 +160,6 @@ Renvoie UNIQUEMENT du JSON valide:
       return jsonError("OpenAI a renvoyé un JSON invalide", 502);
     }
 
-    // petite validation minimale (évite retours bizarres)
     if (
       !parsed ||
       typeof parsed.storeName !== "string" ||
@@ -165,8 +172,10 @@ Renvoie UNIQUEMENT du JSON valide:
     }
 
     // 3) consommer 1 crédit (si pas illimité)
-    if (!best.unlimited) {
-      const nextUsed = (best.credits_used ?? 0) + 1;
+    let creditsRemainingAfter: number | null = null;
+
+    if (!unlimited) {
+      const nextUsed = creditsUsed + 1;
 
       const { error: updErr } = await supabaseAdmin
         .from("entitlements")
@@ -178,16 +187,19 @@ Renvoie UNIQUEMENT du JSON valide:
         .eq("product_key", best.product_key);
 
       if (updErr) {
-        // On n'empêche pas la réponse, mais on log l'erreur
         console.error("❌ credits update error:", updErr);
+        // on ne bloque pas la réponse, mais on log
       }
+
+      creditsRemainingAfter =
+        creditsTotal === null ? null : Math.max(0, creditsTotal - nextUsed);
     }
 
     return NextResponse.json({
       ...parsed,
       meta: {
         pack: best.product_key,
-        creditsRemaining: best.unlimited ? null : Math.max(0, (creditsRemaining ?? 0) - 1),
+        creditsRemaining: unlimited ? null : creditsRemainingAfter,
       },
     });
   } catch (e) {
