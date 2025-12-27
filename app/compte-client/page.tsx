@@ -1,7 +1,7 @@
 "use client";
 
 // app/compte-client/page.tsx
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabaseClient";
@@ -51,6 +51,26 @@ function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   );
 }
 
+/**
+ * ✅ Petite bannière si un achat est en attente (et qu’on va rediriger Stripe)
+ */
+function PendingCheckoutBanner({
+  show,
+  text,
+}: {
+  show: boolean;
+  text: string;
+}) {
+  if (!show) return null;
+
+  return (
+    <div style={styles.pendingBanner}>
+      <div style={styles.pendingTitle}>🧾 Achat en attente</div>
+      <div style={styles.pendingText}>{text}</div>
+    </div>
+  );
+}
+
 export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
@@ -63,6 +83,12 @@ export default function CompteClientPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
+
+  // ✅ état pour afficher que l’achat va repartir vers Stripe
+  const [pendingInfo, setPendingInfo] = useState<string | null>(null);
+
+  // ✅ évite de relancer 50 fois la redirection
+  const pendingLock = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -85,6 +111,86 @@ export default function CompteClientPage() {
     };
   }, []);
 
+  // ✅ IMPORTANT :
+  // Si un achat est stocké dans localStorage (pendingCheckout)
+  // et que l’utilisateur est connecté => on appelle /api/checkout et on redirige vers Stripe.
+  useEffect(() => {
+    if (checking) return;
+    if (!session) return;
+
+    // évite de relancer en boucle
+    if (pendingLock.current) return;
+
+    const pendingRaw =
+      typeof window !== "undefined" ? localStorage.getItem("pendingCheckout") : null;
+
+    if (!pendingRaw) return;
+
+    let payload: any = null;
+    try {
+      payload = JSON.parse(pendingRaw);
+    } catch {
+      // si c’est cassé on nettoie
+      localStorage.removeItem("pendingCheckout");
+      return;
+    }
+
+    // on lock dès qu’on tente
+    pendingLock.current = true;
+
+    // petit texte pour le client
+    const label =
+      payload?.productKey
+        ? `On prépare ton paiement pour : ${payload.productKey}`
+        : Array.isArray(payload?.productKeys)
+        ? `On prépare ton paiement (${payload.productKeys.length} produits)`
+        : "On prépare ton paiement...";
+
+    setPendingInfo(label);
+
+    (async () => {
+      try {
+        const token = session.access_token;
+
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const json = await res.json().catch(() => ({}));
+
+        // si c’est OK => Stripe
+        if (json?.url) {
+          localStorage.removeItem("pendingCheckout");
+          window.location.href = json.url;
+          return;
+        }
+
+        // si bloqué / pas autorisé => on affiche l’erreur et on nettoie
+        if (res.status === 401 || res.status === 403) {
+          setPendingInfo(null);
+          localStorage.removeItem("pendingCheckout");
+          setAuthError(json?.error || "Tu dois être connecté pour payer.");
+          pendingLock.current = false;
+          return;
+        }
+
+        // autre erreur
+        setPendingInfo(null);
+        setAuthError(json?.error || "Erreur paiement. Réessaie.");
+        pendingLock.current = false;
+      } catch (e: any) {
+        setPendingInfo(null);
+        setAuthError(e?.message || "Erreur réseau.");
+        pendingLock.current = false;
+      }
+    })();
+  }, [checking, session]);
+
   const userEmail = session?.user?.email ?? "";
 
   async function handleAuthSubmit(e: React.FormEvent) {
@@ -101,6 +207,8 @@ export default function CompteClientPage() {
         });
         if (error) throw error;
         setAuthMsg("Connecté ✅");
+        // ✅ PAS BESOIN de rediriger ici : l'effet au-dessus fera la redirection vers Stripe
+        // si pendingCheckout existe.
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -132,6 +240,12 @@ export default function CompteClientPage() {
           <p style={styles.sub}>
             Ici tu retrouveras tes achats, recharges et accès à l’outil IA.
           </p>
+
+          {/* ✅ Banner si achat en attente (après login on renvoie Stripe) */}
+          <PendingCheckoutBanner
+            show={!checking && !!pendingInfo}
+            text={pendingInfo || ""}
+          />
 
           {/* ✅ Banner paiement validé (quand on arrive de Stripe) */}
           <Suspense fallback={null}>
@@ -416,6 +530,31 @@ const styles: Record<string, React.CSSProperties> = {
   paymentHint: {
     color: "rgba(255,255,255,0.70)",
     fontWeight: 700,
+  },
+
+  // ✅ banner achat en attente
+  pendingBanner: {
+    marginTop: 14,
+    display: "inline-flex",
+    flexDirection: "column",
+    gap: 4,
+    padding: "10px 14px",
+    borderRadius: 14,
+    background: "rgba(106, 47, 214, 0.12)",
+    border: "1px solid rgba(106, 47, 214, 0.35)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
+    maxWidth: 680,
+    boxSizing: "border-box",
+  },
+  pendingTitle: {
+    fontWeight: 900,
+    color: "#d7c7ff",
+    fontSize: "0.98rem",
+  },
+  pendingText: {
+    color: "rgba(255,255,255,0.85)",
+    fontWeight: 800,
+    fontSize: "0.95rem",
   },
 
   loggedLine: {
