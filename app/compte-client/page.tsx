@@ -1,7 +1,7 @@
 "use client";
 
 // app/compte-client/page.tsx
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabaseClient";
@@ -51,6 +51,29 @@ function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   );
 }
 
+function humanizeAuthError(err: any) {
+  const raw = (err?.message ?? err ?? "").toString();
+  const msg = raw.trim() || "Erreur inconnue.";
+
+  // cas les + fréquents supabase
+  if (/invalid login credentials/i.test(msg)) return "Email ou mot de passe incorrect.";
+  if (/user already registered|already exists/i.test(msg))
+    return "Ce compte existe déjà. Passe sur « Se connecter ».";
+  if (/email not confirmed/i.test(msg))
+    return "Email non confirmé. Vérifie ta boîte mail (ou renvoie un email de confirmation).";
+
+  // fetch / réseau (souvent affiché en FR par Chrome)
+  if (
+    msg === "Échec de la récupération" ||
+    /failed to fetch/i.test(msg) ||
+    /fetch/i.test(msg)
+  ) {
+    return "Impossible de contacter Supabase (réseau / bloqueur / config). Essaie sans AdBlock et vérifie tes variables NEXT_PUBLIC_SUPABASE_URL / ANON_KEY sur Vercel.";
+  }
+
+  return msg;
+}
+
 export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
@@ -64,17 +87,36 @@ export default function CompteClientPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
 
-  // ✅ évite double redirection
-  const redirectedOnce = useRef(false);
+  // ✅ show/hide password
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ✅ forgot password flow
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMsg, setForgotMsg] = useState<string | null>(null);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+
+  // ✅ recovery flow (quand l’utilisateur revient via lien email Supabase)
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoveryMsg, setRecoveryMsg] = useState<string | null>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     let ignore = false;
 
     (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!ignore) {
-        setSession(data.session ?? null);
-        setChecking(false);
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!ignore) {
+          setSession(data.session ?? null);
+          setChecking(false);
+        }
+      } catch {
+        if (!ignore) setChecking(false);
       }
     })();
 
@@ -88,60 +130,31 @@ export default function CompteClientPage() {
     };
   }, []);
 
-  /**
-   * ✅ NOUVEAU : si un achat est "en attente" (pendingCheckout),
-   * alors après connexion on renvoie vers la page /paiement (juste avant Stripe).
-   */
+  // ✅ détecte le retour “type=recovery” (dans le hash)
   useEffect(() => {
-    if (checking) return;
-    if (!session) return;
-    if (redirectedOnce.current) return;
-
-    const pendingRaw =
-      typeof window !== "undefined" ? localStorage.getItem("pendingCheckout") : null;
-
-    if (!pendingRaw) return;
-
-    let payload: any = null;
-    try {
-      payload = JSON.parse(pendingRaw);
-    } catch {
-      localStorage.removeItem("pendingCheckout");
-      return;
+    if (typeof window === "undefined") return;
+    const h = window.location.hash || "";
+    if (h.includes("type=recovery")) {
+      setRecoveryMode(true);
+      setForgotMode(false);
+      setAuthError(null);
+      setAuthMsg(null);
     }
-
-    // ✅ on nettoie pour éviter boucle
-    localStorage.removeItem("pendingCheckout");
-    redirectedOnce.current = true;
-
-    // cas 1 : un seul produit
-    const singleProductKey =
-      payload?.productKey ||
-      (Array.isArray(payload?.productKeys) && payload.productKeys.length === 1
-        ? payload.productKeys[0]
-        : null);
-
-    if (singleProductKey) {
-      window.location.href = `/paiement?product=${encodeURIComponent(singleProductKey)}`;
-      return;
-    }
-
-    // cas 2 : plusieurs produits -> on renvoie vers le panier (plus simple)
-    if (Array.isArray(payload?.productKeys) && payload.productKeys.length > 1) {
-      window.location.href = "/panier";
-      return;
-    }
-
-    // fallback
-    window.location.href = "/paiement";
-  }, [checking, session]);
+  }, []);
 
   const userEmail = session?.user?.email ?? "";
+
+  const origin = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return window.location.origin;
+  }, []);
 
   async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAuthError(null);
     setAuthMsg(null);
+    setForgotError(null);
+    setForgotMsg(null);
     setAuthLoading(true);
 
     try {
@@ -161,9 +174,82 @@ export default function CompteClientPage() {
         setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
       }
     } catch (err: any) {
-      setAuthError(err?.message ?? "Erreur d’auth");
+      const nice = humanizeAuthError(err);
+      setAuthError(nice);
+
+      // petit bonus : si il essaye de s’inscrire alors que le compte existe → on bascule en login
+      if (mode === "signup" && /existe déjà/i.test(nice)) {
+        setMode("login");
+      }
     } finally {
       setAuthLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotError(null);
+    setForgotMsg(null);
+    setAuthError(null);
+    setAuthMsg(null);
+    setForgotLoading(true);
+
+    try {
+      const mail = email.trim();
+      if (!mail) throw new Error("Entre ton email.");
+
+      const { error } = await supabase.auth.resetPasswordForEmail(mail, {
+        redirectTo: `${origin}/compte-client`,
+      });
+
+      if (error) throw error;
+
+      setForgotMsg("✅ Email envoyé. Regarde ta boîte mail (et les spams).");
+    } catch (err: any) {
+      setForgotError(humanizeAuthError(err));
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setRecoveryError(null);
+    setRecoveryMsg(null);
+    setRecoveryLoading(true);
+
+    try {
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error("Choisis un mot de passe (au moins 6 caractères).");
+      }
+      if (newPassword !== newPassword2) {
+        throw new Error("Les deux mots de passe ne correspondent pas.");
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      setRecoveryMsg("✅ Mot de passe mis à jour. Tu peux te connecter.");
+      setRecoveryMode(false);
+
+      // Nettoie l’URL (hash)
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, document.title, "/compte-client");
+      }
+
+      // Optionnel : on te laisse te reconnecter proprement
+      await supabase.auth.signOut();
+      setMode("login");
+      setPassword("");
+      setNewPassword("");
+      setNewPassword2("");
+    } catch (err: any) {
+      setRecoveryError(humanizeAuthError(err));
+    } finally {
+      setRecoveryLoading(false);
     }
   }
 
@@ -209,63 +295,199 @@ export default function CompteClientPage() {
         {!checking && !session && (
           <div style={styles.authWrap}>
             <div style={styles.authCard}>
-              <div style={styles.authTabs}>
-                <button
-                  onClick={() => setMode("login")}
-                  style={{
-                    ...styles.authTab,
-                    ...(mode === "login" ? styles.authTabActive : {}),
-                  }}
-                >
-                  Se connecter
-                </button>
-                <button
-                  onClick={() => setMode("signup")}
-                  style={{
-                    ...styles.authTab,
-                    ...(mode === "signup" ? styles.authTabActive : {}),
-                  }}
-                >
-                  S’inscrire
-                </button>
-              </div>
+              {/* ✅ MODE RECOVERY : reset password */}
+              {recoveryMode ? (
+                <>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 900, fontSize: "1.15rem" }}>
+                      Réinitialiser le mot de passe
+                    </div>
+                    <div style={{ color: COLORS.muted, fontWeight: 700, marginTop: 6 }}>
+                      Choisis un nouveau mot de passe pour ton compte.
+                    </div>
+                  </div>
 
-              <form onSubmit={handleAuthSubmit} style={styles.authForm}>
-                <label style={styles.label}>Email</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="toi@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={styles.input}
-                />
+                  <form onSubmit={handleUpdatePassword} style={styles.authForm}>
+                    <label style={styles.label}>Nouveau mot de passe</label>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      style={styles.input}
+                    />
 
-                <label style={styles.label}>Mot de passe</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={styles.input}
-                />
+                    <label style={styles.label}>Confirmer le mot de passe</label>
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={newPassword2}
+                      onChange={(e) => setNewPassword2(e.target.value)}
+                      style={styles.input}
+                    />
 
-                {authError && <div style={styles.authError}>{authError}</div>}
-                {authMsg && <div style={styles.authMsg}>{authMsg}</div>}
+                    <label style={styles.inlineRow}>
+                      <input
+                        type="checkbox"
+                        checked={showNewPassword}
+                        onChange={(e) => setShowNewPassword(e.target.checked)}
+                      />
+                      <span>Afficher le mot de passe</span>
+                    </label>
 
-                <button disabled={authLoading} style={styles.authBtn} type="submit">
-                  {authLoading
-                    ? "Patiente..."
-                    : mode === "login"
-                    ? "Connexion"
-                    : "Créer mon compte"}
-                </button>
+                    {recoveryError && <div style={styles.authError}>{recoveryError}</div>}
+                    {recoveryMsg && <div style={styles.authMsg}>{recoveryMsg}</div>}
 
-                <p style={styles.smallNote}>
-                  En te connectant, tu accèdes à tes achats et à l’outil IA.
-                </p>
-              </form>
+                    <button disabled={recoveryLoading} style={styles.authBtn} type="submit">
+                      {recoveryLoading ? "Patiente..." : "Mettre à jour"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecoveryMode(false);
+                        setMode("login");
+                        setRecoveryError(null);
+                        setRecoveryMsg(null);
+                        if (typeof window !== "undefined") {
+                          window.history.replaceState({}, document.title, "/compte-client");
+                        }
+                      }}
+                      style={styles.linkBtn}
+                    >
+                      ← Retour connexion
+                    </button>
+                  </form>
+                </>
+              ) : forgotMode ? (
+                <>
+                  {/* ✅ MODE FORGOT */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontWeight: 900, fontSize: "1.15rem" }}>
+                      Mot de passe oublié ?
+                    </div>
+                    <div style={{ color: COLORS.muted, fontWeight: 700, marginTop: 6 }}>
+                      Entre ton email et on t’envoie un lien pour réinitialiser ton mot de passe.
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleForgotPassword} style={styles.authForm}>
+                    <label style={styles.label}>Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="toi@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={styles.input}
+                    />
+
+                    {forgotError && <div style={styles.authError}>{forgotError}</div>}
+                    {forgotMsg && <div style={styles.authMsg}>{forgotMsg}</div>}
+
+                    <button disabled={forgotLoading} style={styles.authBtn} type="submit">
+                      {forgotLoading ? "Envoi..." : "Envoyer le lien"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotMode(false);
+                        setForgotError(null);
+                        setForgotMsg(null);
+                      }}
+                      style={styles.linkBtn}
+                    >
+                      ← Retour connexion
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <div style={styles.authTabs}>
+                    <button
+                      onClick={() => setMode("login")}
+                      style={{
+                        ...styles.authTab,
+                        ...(mode === "login" ? styles.authTabActive : {}),
+                      }}
+                    >
+                      Se connecter
+                    </button>
+                    <button
+                      onClick={() => setMode("signup")}
+                      style={{
+                        ...styles.authTab,
+                        ...(mode === "signup" ? styles.authTabActive : {}),
+                      }}
+                    >
+                      S’inscrire
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAuthSubmit} style={styles.authForm}>
+                    <label style={styles.label}>Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="toi@gmail.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={styles.input}
+                    />
+
+                    <label style={styles.label}>Mot de passe</label>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={styles.input}
+                    />
+
+                    <div style={styles.rowBetween}>
+                      <label style={styles.inlineRow}>
+                        <input
+                          type="checkbox"
+                          checked={showPassword}
+                          onChange={(e) => setShowPassword(e.target.checked)}
+                        />
+                        <span>Afficher le mot de passe</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMode(true);
+                          setAuthError(null);
+                          setAuthMsg(null);
+                        }}
+                        style={styles.linkBtnInline}
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+
+                    {authError && <div style={styles.authError}>{authError}</div>}
+                    {authMsg && <div style={styles.authMsg}>{authMsg}</div>}
+
+                    <button disabled={authLoading} style={styles.authBtn} type="submit">
+                      {authLoading
+                        ? "Patiente..."
+                        : mode === "login"
+                        ? "Connexion"
+                        : "Créer mon compte"}
+                    </button>
+
+                    <p style={styles.smallNote}>
+                      En te connectant, tu accèdes à tes achats et à l’outil IA.
+                    </p>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -698,5 +920,42 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.95rem",
     boxSizing: "border-box",
     maxWidth: "100%",
+  },
+
+  rowBetween: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 2,
+  },
+  inlineRow: {
+    display: "inline-flex",
+    gap: 8,
+    alignItems: "center",
+    color: "rgba(255,255,255,0.78)",
+    fontWeight: 700,
+    fontSize: "0.92rem",
+  },
+  linkBtnInline: {
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    color: "rgba(201,210,255,0.95)",
+    fontWeight: 900,
+    cursor: "pointer",
+    textDecoration: "underline",
+  },
+  linkBtn: {
+    marginTop: 10,
+    background: "transparent",
+    border: "none",
+    padding: 0,
+    color: "rgba(201,210,255,0.95)",
+    fontWeight: 900,
+    cursor: "pointer",
+    textDecoration: "underline",
+    justifySelf: "start",
   },
 };
