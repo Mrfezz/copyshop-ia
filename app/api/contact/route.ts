@@ -10,11 +10,24 @@ type Payload = {
   message?: string;
 };
 
+// ✅ Étape 4 : encodage email client dans un reply-to spécial (b64url)
+function strToB64url(s: string) {
+  return Buffer.from(s, "utf8")
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
 export async function POST(req: Request) {
   try {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     const TO_EMAIL = process.env.CONTACT_TO_EMAIL;
     const FROM_EMAIL = process.env.CONTACT_FROM_EMAIL;
+
+    // ✅ domaine inbound Resend (ex: "uaerkiichi.resend.app" ou ton domaine inbound)
+    const INBOUND_DOMAIN =
+      process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
 
     if (!RESEND_API_KEY) {
       return NextResponse.json(
@@ -72,10 +85,14 @@ export async function POST(req: Request) {
       </div>
     `;
 
+    // ✅ Reply-To spécial : quand tu réponds dans Gmail, Resend reçoit la réponse
+    // et le webhook peut retrouver l'email client via le token.
+    const replyTo = `reply+${strToB64url(email)}@${INBOUND_DOMAIN}`;
+
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,              // ex: "Copyshop IA <onboarding@resend.dev>"
-      to: [TO_EMAIL],                // ex: copyshopp.ia@gmail.com
-      replyTo: email,                // pour répondre direct au client
+      from: FROM_EMAIL, // ex: "Copyshop IA <onboarding@resend.dev>"
+      to: [TO_EMAIL], // ex: "copyshopp.ia@gmail.com"
+      replyTo, // ✅ IMPORTANT : NE PLUS mettre replyTo: email
       subject,
       text,
       html,
