@@ -18,9 +18,11 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
+type MsgDirection = "outbound" | "received" | "inbound";
+
 type Msg = {
   id: string;
-  direction: "outbound" | "inbound";
+  direction: MsgDirection;
   subject: string | null;
   body: string;
   created_at: string;
@@ -41,10 +43,7 @@ function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(d);
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
 
 function formatMoney(amountCents: number | null, currency: string | null): string {
@@ -55,6 +54,13 @@ function formatMoney(amountCents: number | null, currency: string | null): strin
   } catch {
     return `${eur.toFixed(2)} ${currency}`;
   }
+}
+
+function isOutbound(d: MsgDirection) {
+  return d === "outbound";
+}
+function isInbound(d: MsgDirection) {
+  return d !== "outbound"; // received/inbound
 }
 
 export default function MessagesPage() {
@@ -106,11 +112,16 @@ export default function MessagesPage() {
 
   const userEmail = session?.user?.email ?? "";
 
+  const sentCount = useMemo(() => messages.filter((m) => isOutbound(m.direction)).length, [messages]);
+  const receivedCount = useMemo(
+    () => messages.filter((m) => isInbound(m.direction)).length,
+    [messages]
+  );
+
   const filteredMessages = useMemo(() => {
-    if (tab === "sent") return messages.filter((m) => m.direction === "outbound");
-    if (tab === "received") return messages.filter((m) => m.direction === "inbound");
-    // inbox
-    return messages;
+    if (tab === "sent") return messages.filter((m) => isOutbound(m.direction));
+    if (tab === "received") return messages.filter((m) => isInbound(m.direction));
+    return messages; // inbox
   }, [messages, tab]);
 
   async function fetchMessages() {
@@ -140,7 +151,6 @@ export default function MessagesPage() {
     setOrdersError(null);
 
     try {
-      // si tu as déjà /api/me/purchases -> parfait
       const res = await fetch("/api/me/purchases", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
@@ -155,9 +165,7 @@ export default function MessagesPage() {
   }
 
   useEffect(() => {
-    if (!checking && session) {
-      fetchMessages();
-    }
+    if (!checking && session) fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checking, session]);
 
@@ -188,12 +196,11 @@ export default function MessagesPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error ?? "Erreur envoi");
 
-      // on prepend le message dans la liste
       if (json?.message) setMessages((prev) => [json.message as Msg, ...prev]);
 
       setSubject("");
       setBody("");
-      setSendOk("✅ Message envoyé au support. Tu recevras la réponse par email.");
+      setSendOk("✅ Message envoyé au support.");
       setTab("sent");
     } catch (e: any) {
       setMsgError(e?.message ?? "Erreur envoi");
@@ -206,6 +213,8 @@ export default function MessagesPage() {
     await supabase.auth.signOut();
     window.location.href = "/compte-client";
   }
+
+  const isMsgTab = tab === "inbox" || tab === "sent" || tab === "received";
 
   return (
     <main style={styles.page}>
@@ -221,7 +230,7 @@ export default function MessagesPage() {
               <p style={styles.sub}>
                 Écris au support depuis <strong>{userEmail || "ton compte"}</strong>.
                 <br />
-                Les réponses arrivent sur ton email (reply-to automatique).
+                Les réponses peuvent apparaître dans “Reçus” après traitement.
               </p>
             </div>
 
@@ -247,9 +256,9 @@ export default function MessagesPage() {
         )}
 
         {!checking && session && (
-          <div style={styles.layout}>
+          <div className="messages-grid" style={styles.layout}>
             {/* SIDEBAR */}
-            <aside style={styles.sidebar}>
+            <aside className="messages-sidebar" style={styles.sidebar}>
               <button
                 onClick={() => setTab("inbox")}
                 style={{ ...styles.sideBtn, ...(tab === "inbox" ? styles.sideBtnActive : {}) }}
@@ -263,9 +272,7 @@ export default function MessagesPage() {
                 style={{ ...styles.sideBtn, ...(tab === "sent" ? styles.sideBtnActive : {}) }}
               >
                 Envoyés
-                <span style={styles.badge}>
-                  {messages.filter((m) => m.direction === "outbound").length}
-                </span>
+                <span style={styles.badge}>{sentCount}</span>
               </button>
 
               <button
@@ -273,9 +280,7 @@ export default function MessagesPage() {
                 style={{ ...styles.sideBtn, ...(tab === "received" ? styles.sideBtnActive : {}) }}
               >
                 Reçus
-                <span style={styles.badge}>
-                  {messages.filter((m) => m.direction === "inbound").length}
-                </span>
+                <span style={styles.badge}>{receivedCount}</span>
               </button>
 
               <div style={styles.sep} />
@@ -300,153 +305,179 @@ export default function MessagesPage() {
               </a>
             </aside>
 
-            {/* MAIN */}
-            <div style={styles.main}>
-              {/* COMPOSER (sur inbox/sent/received) */}
-              {(tab === "inbox" || tab === "sent" || tab === "received") && (
-                <form onSubmit={sendMessage} style={styles.composer}>
-                  <div style={styles.composerTitle}>Nouveau message</div>
+            {/* COMPOSER (colonne droite, ligne 1) */}
+            {isMsgTab && (
+              <form className="messages-composer" onSubmit={sendMessage} style={styles.composer}>
+                <div style={styles.composerTitle}>Nouveau message</div>
 
-                  <input
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Sujet (optionnel)"
-                    style={styles.input}
-                    maxLength={120}
-                  />
+                <input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Sujet (optionnel)"
+                  style={styles.input}
+                  maxLength={120}
+                />
 
-                  <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="Écris ton message ici..."
-                    style={styles.textarea}
-                    rows={6}
-                  />
+                <textarea
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Écris ton message ici..."
+                  style={styles.textarea}
+                  rows={6}
+                />
 
-                  {sendOk && <div style={styles.okBox}>{sendOk}</div>}
-                  {msgError && <div style={styles.errBox}>{msgError}</div>}
+                {sendOk && <div style={styles.okBox}>{sendOk}</div>}
+                {msgError && <div style={styles.errBox}>{msgError}</div>}
 
-                  <div style={styles.actions}>
-                    <button disabled={sending} type="submit" style={styles.primaryBtn}>
-                      {sending ? "Envoi..." : "Envoyer au support"}
-                    </button>
+                <div style={styles.actions}>
+                  <button disabled={sending} type="submit" style={styles.primaryBtn}>
+                    {sending ? "Envoi..." : "Envoyer au support"}
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => fetchMessages()}
-                      style={styles.secondaryBtn}
-                      disabled={msgLoading}
-                    >
-                      {msgLoading ? "Actualisation..." : "Actualiser"}
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => fetchMessages()}
+                    style={styles.secondaryBtn}
+                    disabled={msgLoading}
+                  >
+                    {msgLoading ? "Actualisation..." : "Actualiser"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* LISTE (colonne droite, ligne 2 / MOBILE: prend toute la largeur) */}
+            {isMsgTab && (
+              <div className="messages-history" style={styles.listWrap}>
+                <div className="messages-list-header" style={styles.listHeader}>
+                  <span style={styles.col1}>Type</span>
+                  <span style={styles.col2}>Sujet / Message</span>
+                  <span style={styles.col3}>Date</span>
+                </div>
+
+                {msgLoading && <div style={styles.loadingInline}>Chargement des messages…</div>}
+
+                {!msgLoading && filteredMessages.length === 0 && (
+                  <div style={styles.empty}>
+                    Aucun message{" "}
+                    {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour le moment.
                   </div>
-                </form>
-              )}
+                )}
 
-              {/* LISTES */}
-              {(tab === "inbox" || tab === "sent" || tab === "received") && (
-                <div style={styles.listWrap}>
-                  <div style={styles.listHeader}>
-                    <span style={styles.col1}>Type</span>
-                    <span style={styles.col2}>Sujet / Message</span>
-                    <span style={styles.col3}>Date</span>
-                  </div>
+                {!msgLoading &&
+                  filteredMessages.map((m) => (
+                    <div key={m.id} className="messages-row" style={styles.row}>
+                      <div style={styles.cell1}>
+                        <span
+                          style={{
+                            ...styles.pill,
+                            ...(isOutbound(m.direction) ? styles.pillOut : styles.pillIn),
+                          }}
+                        >
+                          {isOutbound(m.direction) ? "Envoyé" : "Reçu"}
+                        </span>
+                      </div>
 
-                  {msgLoading && <div style={styles.loadingInline}>Chargement des messages…</div>}
+                      <div style={styles.cell2}>
+                        <div style={styles.subjectLine}>
+                          {m.subject ? (
+                            m.subject
+                          ) : (
+                            <span style={{ color: COLORS.muted }}>Sans sujet</span>
+                          )}
+                        </div>
+                        <div style={styles.snippet}>
+                          {m.body.length > 140 ? m.body.slice(0, 140) + "…" : m.body}
+                        </div>
+                      </div>
 
-                  {!msgLoading && filteredMessages.length === 0 && (
-                    <div style={styles.empty}>
-                      Aucun message {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour
-                      le moment.
+                      <div className="messages-date" style={styles.cell3}>
+                        {formatDate(m.created_at)}
+                      </div>
                     </div>
-                  )}
+                  ))}
+              </div>
+            )}
 
-                  {!msgLoading &&
-                    filteredMessages.map((m) => (
-                      <div key={m.id} style={styles.row}>
-                        <div style={styles.cell1}>
-                          <span
-                            style={{
-                              ...styles.pill,
-                              ...(m.direction === "outbound" ? styles.pillOut : styles.pillIn),
-                            }}
-                          >
-                            {m.direction === "outbound" ? "Envoyé" : "Reçu"}
-                          </span>
-                        </div>
+            {/* COMMANDES */}
+            {tab === "orders" && (
+              <div style={styles.panel}>
+                <div style={styles.panelTitle}>Commandes / achats</div>
 
-                        <div style={styles.cell2}>
-                          <div style={styles.subjectLine}>
-                            {m.subject ? m.subject : <span style={{ color: COLORS.muted }}>Sans sujet</span>}
-                          </div>
-                          <div style={styles.snippet}>
-                            {m.body.length > 140 ? m.body.slice(0, 140) + "…" : m.body}
-                          </div>
-                        </div>
+                {ordersError && <div style={styles.errBox}>{ordersError}</div>}
+                {ordersLoading && <div style={styles.loadingInline}>Chargement des commandes…</div>}
 
-                        <div style={styles.cell3}>{formatDate(m.created_at)}</div>
+                {!ordersLoading && orders.length === 0 && (
+                  <div style={styles.empty}>Aucune commande trouvée pour le moment.</div>
+                )}
+
+                {!ordersLoading && orders.length > 0 && (
+                  <div style={styles.table}>
+                    <div style={styles.tableHead}>
+                      <span>Produit</span>
+                      <span>Statut</span>
+                      <span>Montant</span>
+                      <span>Date</span>
+                    </div>
+
+                    {orders.map((o) => (
+                      <div key={o.id} style={styles.tableRow}>
+                        <span style={styles.mono}>{o.product_key ?? "—"}</span>
+                        <span>{o.status ?? "—"}</span>
+                        <span>{formatMoney(o.amount_total, o.currency)}</span>
+                        <span>{formatDate(o.created_at)}</span>
                       </div>
                     ))}
-                </div>
-              )}
-
-              {/* COMMANDES */}
-              {tab === "orders" && (
-                <div style={styles.panel}>
-                  <div style={styles.panelTitle}>Commandes / achats</div>
-
-                  {ordersError && <div style={styles.errBox}>{ordersError}</div>}
-
-                  {ordersLoading && <div style={styles.loadingInline}>Chargement des commandes…</div>}
-
-                  {!ordersLoading && orders.length === 0 && (
-                    <div style={styles.empty}>Aucune commande trouvée pour le moment.</div>
-                  )}
-
-                  {!ordersLoading && orders.length > 0 && (
-                    <div style={styles.table}>
-                      <div style={styles.tableHead}>
-                        <span>Produit</span>
-                        <span>Statut</span>
-                        <span>Montant</span>
-                        <span>Date</span>
-                      </div>
-
-                      {orders.map((o) => (
-                        <div key={o.id} style={styles.tableRow}>
-                          <span style={styles.mono}>{o.product_key ?? "—"}</span>
-                          <span>{o.status ?? "—"}</span>
-                          <span>{formatMoney(o.amount_total, o.currency)}</span>
-                          <span>{formatDate(o.created_at)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* MES BOUTIQUES (placeholder simple) */}
-              {tab === "shops" && (
-                <div style={styles.panel}>
-                  <div style={styles.panelTitle}>Mes boutiques</div>
-                  <div style={styles.small}>
-                    Ici on affichera tes boutiques générées (ex: liens / fichiers).
-                    <br />
-                    Quand tu veux, on branche ça à Shopify.
                   </div>
+                )}
+              </div>
+            )}
 
-                  <div style={styles.empty}>Aucune boutique enregistrée pour le moment.</div>
+            {/* MES BOUTIQUES */}
+            {tab === "shops" && (
+              <div style={styles.panel}>
+                <div style={styles.panelTitle}>Mes boutiques</div>
+                <div style={styles.small}>
+                  Ici on affichera tes boutiques générées (ex: liens / fichiers).
+                  <br />
+                  Quand tu veux, on branche ça à Shopify.
                 </div>
-              )}
-            </div>
+                <div style={styles.empty}>Aucune boutique enregistrée pour le moment.</div>
+              </div>
+            )}
           </div>
         )}
       </section>
 
+      {/* ✅ Responsive: le bloc du bas passe en pleine largeur (sans empiéter) */}
       <style>{`
-        @media (max-width: 980px) {
-          .layoutResponsive {
+        @media (max-width: 820px) {
+          .messages-grid{
+            grid-template-columns: 1fr 1fr !important;
+            align-items: start !important;
+          }
+          .messages-history{
+            grid-column: 1 / -1 !important;   /* ✅ pleine largeur sous les 2 blocs du haut */
+            width: 100% !important;
+            margin-top: 14px !important;      /* ✅ descend un peu plus bas */
+          }
+          .messages-list-header,
+          .messages-row{
+            grid-template-columns: 90px 1fr 120px !important;
+          }
+          .messages-date{
+            font-size: 0.88rem !important;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .messages-grid{
             grid-template-columns: 1fr !important;
+          }
+          .messages-sidebar,
+          .messages-composer,
+          .messages-history{
+            grid-column: 1 / -1 !important;
           }
         }
       `}</style>
@@ -590,11 +621,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 6px",
   },
 
-  main: {
-    display: "grid",
-    gap: 14,
-  },
-
   composer: {
     background: COLORS.cardBg,
     border: `1px solid ${COLORS.border}`,
@@ -603,6 +629,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
     display: "grid",
     gap: 10,
+    height: "fit-content",
   },
   composerTitle: { fontWeight: 900, fontSize: "1.1rem" },
   input: {
@@ -673,6 +700,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     overflow: "hidden",
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    height: "fit-content",
   },
   listHeader: {
     display: "grid",
@@ -724,6 +752,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: 14,
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    height: "fit-content",
   },
   panelTitle: { fontWeight: 900, fontSize: "1.15rem", marginBottom: 10 },
 
