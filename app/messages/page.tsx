@@ -18,11 +18,10 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-type MsgDirection = "outbound" | "received" | "inbound";
-
 type Msg = {
   id: string;
-  direction: MsgDirection;
+  // ✅ en DB tu as outbound + received (et parfois inbound selon versions)
+  direction: "outbound" | "received" | "inbound";
   subject: string | null;
   body: string;
   created_at: string;
@@ -38,6 +37,8 @@ type Purchase = {
 };
 
 type TabKey = "inbox" | "sent" | "received" | "orders" | "shops";
+
+const PAGE_SIZE = 4;
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -56,11 +57,11 @@ function formatMoney(amountCents: number | null, currency: string | null): strin
   }
 }
 
-function isOutbound(d: MsgDirection) {
-  return d === "outbound";
+function isOutbound(m: Msg) {
+  return m.direction === "outbound";
 }
-function isInbound(d: MsgDirection) {
-  return d !== "outbound"; // received/inbound
+function isInbound(m: Msg) {
+  return m.direction !== "outbound";
 }
 
 export default function MessagesPage() {
@@ -79,6 +80,9 @@ export default function MessagesPage() {
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sendOk, setSendOk] = useState<string | null>(null);
+
+  // pagination
+  const [page, setPage] = useState(0);
 
   // orders
   const [orders, setOrders] = useState<Purchase[]>([]);
@@ -112,17 +116,36 @@ export default function MessagesPage() {
 
   const userEmail = session?.user?.email ?? "";
 
-  const sentCount = useMemo(() => messages.filter((m) => isOutbound(m.direction)).length, [messages]);
-  const receivedCount = useMemo(
-    () => messages.filter((m) => isInbound(m.direction)).length,
-    [messages]
-  );
+  const sentCount = useMemo(() => messages.filter((m) => isOutbound(m)).length, [messages]);
+  const receivedCount = useMemo(() => messages.filter((m) => isInbound(m)).length, [messages]);
+
+  const isMsgTab = tab === "inbox" || tab === "sent" || tab === "received";
 
   const filteredMessages = useMemo(() => {
-    if (tab === "sent") return messages.filter((m) => isOutbound(m.direction));
-    if (tab === "received") return messages.filter((m) => isInbound(m.direction));
+    if (tab === "sent") return messages.filter((m) => isOutbound(m));
+    if (tab === "received") return messages.filter((m) => isInbound(m));
     return messages; // inbox
   }, [messages, tab]);
+
+  const pageCount = useMemo(() => {
+    const total = filteredMessages.length;
+    return Math.max(1, Math.ceil(total / PAGE_SIZE));
+  }, [filteredMessages.length]);
+
+  const pagedMessages = useMemo(() => {
+    const safePage = Math.min(page, pageCount - 1);
+    const start = safePage * PAGE_SIZE;
+    return filteredMessages.slice(start, start + PAGE_SIZE);
+  }, [filteredMessages, page, pageCount]);
+
+  // reset page quand on change de tab ou que les messages changent (évite page vide)
+  useEffect(() => {
+    setPage(0);
+  }, [tab]);
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
 
   async function fetchMessages() {
     if (!session?.access_token) return;
@@ -214,8 +237,6 @@ export default function MessagesPage() {
     window.location.href = "/compte-client";
   }
 
-  const isMsgTab = tab === "inbox" || tab === "sent" || tab === "received";
-
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -229,8 +250,6 @@ export default function MessagesPage() {
               <h1 style={styles.title}>Messagerie</h1>
               <p style={styles.sub}>
                 Écris au support depuis <strong>{userEmail || "ton compte"}</strong>.
-                <br />
-                Les réponses peuvent apparaître dans “Reçus” après traitement.
               </p>
             </div>
 
@@ -256,8 +275,8 @@ export default function MessagesPage() {
         )}
 
         {!checking && session && (
-          <div className="messages-grid" style={styles.layout}>
-            {/* SIDEBAR */}
+          <div className="messages-layout" style={styles.layout}>
+            {/* ✅ Sidebar (garde le visu desktop) */}
             <aside className="messages-sidebar" style={styles.sidebar}>
               <button
                 onClick={() => setTab("inbox")}
@@ -305,7 +324,7 @@ export default function MessagesPage() {
               </a>
             </aside>
 
-            {/* COMPOSER (colonne droite, ligne 1) */}
+            {/* ✅ Bloc du haut à droite (composer / panels) */}
             {isMsgTab && (
               <form className="messages-composer" onSubmit={sendMessage} style={styles.composer}>
                 <div style={styles.composerTitle}>Nouveau message</div>
@@ -346,62 +365,8 @@ export default function MessagesPage() {
               </form>
             )}
 
-            {/* LISTE (colonne droite, ligne 2 / MOBILE: prend toute la largeur) */}
-            {isMsgTab && (
-              <div className="messages-history" style={styles.listWrap}>
-                <div className="messages-list-header" style={styles.listHeader}>
-                  <span style={styles.col1}>Type</span>
-                  <span style={styles.col2}>Sujet / Message</span>
-                  <span style={styles.col3}>Date</span>
-                </div>
-
-                {msgLoading && <div style={styles.loadingInline}>Chargement des messages…</div>}
-
-                {!msgLoading && filteredMessages.length === 0 && (
-                  <div style={styles.empty}>
-                    Aucun message{" "}
-                    {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour le moment.
-                  </div>
-                )}
-
-                {!msgLoading &&
-                  filteredMessages.map((m) => (
-                    <div key={m.id} className="messages-row" style={styles.row}>
-                      <div style={styles.cell1}>
-                        <span
-                          style={{
-                            ...styles.pill,
-                            ...(isOutbound(m.direction) ? styles.pillOut : styles.pillIn),
-                          }}
-                        >
-                          {isOutbound(m.direction) ? "Envoyé" : "Reçu"}
-                        </span>
-                      </div>
-
-                      <div style={styles.cell2}>
-                        <div style={styles.subjectLine}>
-                          {m.subject ? (
-                            m.subject
-                          ) : (
-                            <span style={{ color: COLORS.muted }}>Sans sujet</span>
-                          )}
-                        </div>
-                        <div style={styles.snippet}>
-                          {m.body.length > 140 ? m.body.slice(0, 140) + "…" : m.body}
-                        </div>
-                      </div>
-
-                      <div className="messages-date" style={styles.cell3}>
-                        {formatDate(m.created_at)}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-
-            {/* COMMANDES */}
             {tab === "orders" && (
-              <div style={styles.panel}>
+              <div className="messages-panel" style={styles.panel}>
                 <div style={styles.panelTitle}>Commandes / achats</div>
 
                 {ordersError && <div style={styles.errBox}>{ordersError}</div>}
@@ -433,51 +398,109 @@ export default function MessagesPage() {
               </div>
             )}
 
-            {/* MES BOUTIQUES */}
             {tab === "shops" && (
-              <div style={styles.panel}>
+              <div className="messages-panel" style={styles.panel}>
                 <div style={styles.panelTitle}>Mes boutiques</div>
                 <div style={styles.small}>
                   Ici on affichera tes boutiques générées (ex: liens / fichiers).
-                  <br />
-                  Quand tu veux, on branche ça à Shopify.
                 </div>
                 <div style={styles.empty}>Aucune boutique enregistrée pour le moment.</div>
+              </div>
+            )}
+
+            {/* ✅ IMPORTANT: le bloc "Type / Sujet / Message" devient LARGE sur desktop (comme tu voulais)
+                -> il passe SOUS les 2 blocs du haut, en pleine largeur, sans empiéter */}
+            {isMsgTab && (
+              <div className="messages-history" style={styles.listWrap}>
+                <div style={styles.listHeader}>
+                  <span style={styles.col1}>Type</span>
+                  <span style={styles.col2}>Sujet / Message</span>
+                  <span style={styles.col3}>Date</span>
+                </div>
+
+                {msgLoading && <div style={styles.loadingInline}>Chargement des messages…</div>}
+
+                {!msgLoading && filteredMessages.length === 0 && (
+                  <div style={styles.empty}>
+                    Aucun message {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour
+                    le moment.
+                  </div>
+                )}
+
+                {!msgLoading &&
+                  pagedMessages.map((m) => (
+                    <div key={m.id} style={styles.row}>
+                      <div style={styles.cell1}>
+                        <span
+                          style={{
+                            ...styles.pill,
+                            ...(isOutbound(m) ? styles.pillOut : styles.pillIn),
+                          }}
+                        >
+                          {isOutbound(m) ? "Envoyé" : "Reçu"}
+                        </span>
+                      </div>
+
+                      <div style={styles.cell2}>
+                        <div style={styles.subjectLine}>
+                          {m.subject ? m.subject : <span style={{ color: COLORS.muted }}>Sans sujet</span>}
+                        </div>
+                        <div style={styles.snippet}>
+                          {m.body.length > 140 ? m.body.slice(0, 140) + "…" : m.body}
+                        </div>
+                      </div>
+
+                      <div style={styles.cell3}>{formatDate(m.created_at)}</div>
+                    </div>
+                  ))}
+
+                {/* ✅ Pagination après 4 messages */}
+                {!msgLoading && filteredMessages.length > PAGE_SIZE && (
+                  <div style={styles.pager}>
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                      disabled={page <= 0}
+                      style={{ ...styles.pagerBtn, ...(page <= 0 ? styles.pagerBtnDisabled : {}) }}
+                    >
+                      ← Page précédente
+                    </button>
+
+                    <div style={styles.pagerInfo}>
+                      Page <strong>{Math.min(page + 1, pageCount)}</strong> / {pageCount}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                      disabled={page >= pageCount - 1}
+                      style={{
+                        ...styles.pagerBtn,
+                        ...(page >= pageCount - 1 ? styles.pagerBtnDisabled : {}),
+                      }}
+                    >
+                      Page suivante →
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
       </section>
 
-      {/* ✅ Responsive: le bloc du bas passe en pleine largeur (sans empiéter) */}
+      {/* ✅ Ne touche pas au mobile : juste un empilement propre si besoin */}
       <style>{`
-        @media (max-width: 820px) {
-          .messages-grid{
-            grid-template-columns: 1fr 1fr !important;
-            align-items: start !important;
-          }
-          .messages-history{
-            grid-column: 1 / -1 !important;   /* ✅ pleine largeur sous les 2 blocs du haut */
-            width: 100% !important;
-            margin-top: 14px !important;      /* ✅ descend un peu plus bas */
-          }
-          .messages-list-header,
-          .messages-row{
-            grid-template-columns: 90px 1fr 120px !important;
-          }
-          .messages-date{
-            font-size: 0.88rem !important;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .messages-grid{
+        @media (max-width: 980px) {
+          .messages-layout {
             grid-template-columns: 1fr !important;
           }
-          .messages-sidebar,
-          .messages-composer,
-          .messages-history{
-            grid-column: 1 / -1 !important;
+          .messages-sidebar {
+            position: relative !important;
+            top: auto !important;
+          }
+          .messages-history {
+            margin-top: 14px !important;
           }
         }
       `}</style>
@@ -563,9 +586,11 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 12,
   },
 
+  // ✅ Desktop: 2 colonnes en haut (sidebar + droite), puis le bloc liste SPAN sur 2 colonnes
   layout: {
     display: "grid",
     gridTemplateColumns: "260px 1fr",
+    gridTemplateRows: "auto auto",
     gap: 16,
     alignItems: "start",
   },
@@ -579,6 +604,8 @@ const styles: Record<string, React.CSSProperties> = {
     position: "sticky",
     top: 14,
     height: "fit-content",
+    gridColumn: "1",
+    gridRow: "1",
   },
   sideBtn: {
     width: "100%",
@@ -629,7 +656,8 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
     display: "grid",
     gap: 10,
-    height: "fit-content",
+    gridColumn: "2",
+    gridRow: "1",
   },
   composerTitle: { fontWeight: 900, fontSize: "1.1rem" },
   input: {
@@ -694,13 +722,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.95rem",
   },
 
+  // ✅ le bloc du bas span sur 2 colonnes (desktop + mobile)
   listWrap: {
     background: COLORS.cardBg,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 16,
     overflow: "hidden",
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-    height: "fit-content",
+    gridColumn: "1 / -1",
+    gridRow: "2",
+    marginTop: 0,
   },
   listHeader: {
     display: "grid",
@@ -746,13 +777,42 @@ const styles: Record<string, React.CSSProperties> = {
   empty: { padding: "16px 12px", color: COLORS.muted, fontWeight: 800 },
   loadingInline: { padding: "16px 12px", color: COLORS.muted, fontWeight: 800 },
 
+  pager: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px",
+    borderTop: "1px solid rgba(255,255,255,0.06)",
+    background: "rgba(0,0,0,0.10)",
+    flexWrap: "wrap",
+  },
+  pagerBtn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 900,
+    color: COLORS.text,
+    border: `1px solid ${COLORS.border}`,
+    cursor: "pointer",
+    background: "rgba(255,255,255,0.06)",
+  },
+  pagerBtnDisabled: {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+  pagerInfo: {
+    color: COLORS.muted,
+    fontWeight: 900,
+  },
+
   panel: {
     background: COLORS.cardBg,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 16,
     padding: 14,
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-    height: "fit-content",
+    gridColumn: "2",
+    gridRow: "1",
   },
   panelTitle: { fontWeight: 900, fontSize: "1.15rem", marginBottom: 10 },
 
@@ -780,6 +840,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   mono: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
   small: { color: COLORS.muted, fontWeight: 800, lineHeight: 1.5 },
+
   linkBtn: {
     display: "inline-flex",
     padding: "10px 14px",
