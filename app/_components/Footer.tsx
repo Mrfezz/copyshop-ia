@@ -24,8 +24,11 @@ const LEGAL_LINKS = [
   { label: "Conditions de service", href: "/conditions-de-service" },
   { label: "Politique d’expédition", href: "/politique-expedition" },
   { label: "Conditions de vente", href: "/conditions-de-vente" },
-  { label: "Politique de remboursement", href: "/politique-remboursement" },
-  { label: "Politique de confidentialité", href: "/politique-confidentialite" },
+
+  // ✅ FIX URLS (pour éviter 404)
+  { label: "Politique de remboursement", href: "/politique-de-remboursement" },
+  { label: "Politique de confidentialité", href: "/politique-de-confidentialite" },
+
   { label: "Mentions légales", href: "/mentions-legales" },
 ];
 
@@ -236,7 +239,6 @@ const styles: Record<string, CSSProperties> = {
     padding: "22px 18px",
     textAlign: "center",
 
-    // ✅ FIX: empêche l’input de “déborder” visuellement hors du card arrondi
     overflow: "hidden",
     boxSizing: "border-box",
   },
@@ -260,12 +262,9 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
     alignItems: "center",
 
-    // ✅ FIX: le form ne dépassera jamais le bloc
     width: "100%",
     maxWidth: "100%",
     boxSizing: "border-box",
-
-    // ✅ FIX: petit padding interne = l’input ne touche jamais le bord du card
     paddingInline: 6,
   },
 
@@ -300,14 +299,12 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "nowrap",
   },
 
-  // Desktop columns (3 cards)
   columns: {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 14,
   },
 
-  // Mobile wrapper (hidden by default, shown via CSS)
   mobileWrap: {
     display: "none",
     gap: 14,
