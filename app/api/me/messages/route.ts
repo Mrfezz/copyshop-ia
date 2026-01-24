@@ -23,6 +23,15 @@ async function getEmailFromAuth(req: Request): Promise<string | null> {
   return data?.user?.email ?? null;
 }
 
+// ✅ encode l'email en base64url (safe dans une adresse mail)
+function strToB64url(s: string) {
+  return Buffer.from(s, "utf8")
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
 export async function GET(req: Request) {
   try {
     const email = await getEmailFromAuth(req);
@@ -89,11 +98,16 @@ export async function POST(req: Request) {
       ? `📩 COPYSHOP IA — ${cleanSubject}`
       : `📩 COPYSHOP IA — Nouveau message client`;
 
+    // ✅ IMPORTANT : Reply-To spécial -> quand tu réponds dans Gmail,
+    // la réponse va vers Resend inbound -> webhook -> messages reçus côté client
+    const inboundDomain = (process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app").trim();
+    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
+
     await resend.emails.send({
       from,
       to: [to],
       subject: mailSubject,
-      replyTo: email, // ✅ tu replies au client direct depuis Gmail
+      replyTo, // ✅ NE PLUS mettre replyTo: email
       text: `Client: ${email}\n\n${cleanBody}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">

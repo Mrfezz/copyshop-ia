@@ -1,0 +1,68 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const resend = new Resend(process.env.RESEND_API_KEY!);
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false, autoRefreshToken: false } }
+);
+
+export async function POST(req: Request) {
+  try {
+    // ✅ protège l’endpoint (mets ce secret sur Vercel)
+    const adminToken = req.headers.get("x-admin-token");
+    if (!adminToken || adminToken !== process.env.ADMIN_SUPPORT_TOKEN) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => null);
+    const to = (body?.to ?? "").toString().trim();
+    const subject = (body?.subject ?? "Réponse du support Copyshop IA").toString().trim();
+    const message = (body?.message ?? "").toString();
+
+    if (!to || !message) {
+      return NextResponse.json({ error: "Missing to/message" }, { status: 400 });
+    }
+
+    // ✅ envoi email au client
+    const from = process.env.CONTACT_FROM_EMAIL!; // ex: "Copyshop IA <support@copyshop-ia.com>"
+    const replyTo = process.env.CONTACT_TO_EMAIL || undefined; // ex: copyshopp.ia@gmail.com
+
+    const sendRes = await resend.emails.send({
+      from,
+      to,
+      subject,
+      text: message,
+      replyTo: replyTo ? [replyTo] : undefined,
+    });
+
+    if (sendRes.error) {
+      return NextResponse.json({ error: sendRes.error.message }, { status: 500 });
+    }
+
+    // ✅ log dans la DB pour l’afficher dans "Reçus"
+    // ⚠️ adapte juste le nom de table/colonnes si besoin
+    const { error: dbErr } = await supabaseAdmin.from("messages").insert({
+      email: to,
+      box: "received",        // "received" pour Reçus
+      subject,
+      message,
+      created_at: new Date().toISOString(),
+      provider_id: sendRes.data?.id ?? null,
+    });
+
+    if (dbErr) {
+      return NextResponse.json({ error: dbErr.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, id: sendRes.data?.id ?? null });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+  }
+}
