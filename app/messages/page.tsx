@@ -432,7 +432,7 @@ export default function MessagesPage() {
                   <div style={styles.small}>
                     Ici on affichera tes boutiques générées (ex: liens / fichiers).
                     <br />
-                    Quand tu veux, on branche ça à Supabase Storage + une table “shops”.
+                    Quand tu veux, on branche ça à Shopify.
                   </div>
 
                   <div style={styles.empty}>Aucune boutique enregistrée pour le moment.</div>
