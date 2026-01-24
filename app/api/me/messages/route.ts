@@ -23,13 +23,22 @@ async function getEmailFromAuth(req: Request): Promise<string | null> {
   return data?.user?.email ?? null;
 }
 
-// ✅ encode l'email en base64url (safe dans une adresse mail)
+// ✅ string -> base64url (pour reply+TOKEN@domain)
 function strToB64url(s: string) {
   return Buffer.from(s, "utf8")
     .toString("base64")
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 export async function GET(req: Request) {
@@ -82,11 +91,11 @@ export async function POST(req: Request) {
     if (insErr) return jsonError(insErr.message, 500);
 
     // 2) On envoie l’email au support (Resend)
-    const to = process.env.CONTACT_TO_EMAIL;
-    const from = process.env.CONTACT_FROM_EMAIL;
+    const to = process.env.CONTACT_TO_EMAIL;      // ex: copyshopp.ia@gmail.com
+    const from = process.env.CONTACT_FROM_EMAIL;  // ex: "Copyshop IA <onboarding@resend.dev>"
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
 
     if (!to || !from) {
-      // on laisse quand même le message stocké
       return NextResponse.json({
         ok: true,
         warning: "CONTACT_TO_EMAIL / CONTACT_FROM_EMAIL manquants",
@@ -94,27 +103,25 @@ export async function POST(req: Request) {
       });
     }
 
+    // ✅ LE POINT CLÉ : Reply-To spécial => Gmail répond vers Resend inbound
+    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
+
     const mailSubject = cleanSubject
       ? `📩 COPYSHOP IA — ${cleanSubject}`
       : `📩 COPYSHOP IA — Nouveau message client`;
-
-    // ✅ IMPORTANT : Reply-To spécial -> quand tu réponds dans Gmail,
-    // la réponse va vers Resend inbound -> webhook -> messages reçus côté client
-    const inboundDomain = (process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app").trim();
-    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
 
     await resend.emails.send({
       from,
       to: [to],
       subject: mailSubject,
-      replyTo, // ✅ NE PLUS mettre replyTo: email
+      replyTo, // ✅ IMPORTANT (NE PAS mettre replyTo: email)
       text: `Client: ${email}\n\n${cleanBody}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">
-          <p><strong>Client :</strong> ${email}</p>
-          ${cleanSubject ? `<p><strong>Sujet :</strong> ${cleanSubject}</p>` : ""}
+          <p><strong>Client :</strong> ${escapeHtml(email)}</p>
+          ${cleanSubject ? `<p><strong>Sujet :</strong> ${escapeHtml(cleanSubject)}</p>` : ""}
           <hr />
-          <pre style="white-space:pre-wrap">${cleanBody.replaceAll("<", "&lt;")}</pre>
+          <pre style="white-space:pre-wrap">${escapeHtml(cleanBody)}</pre>
         </div>
       `,
     });
