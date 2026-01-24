@@ -93,6 +93,36 @@ async function resolveEmail(session: Stripe.Checkout.Session) {
   return null;
 }
 
+async function resolveProductTitle(session: Stripe.Checkout.Session): Promise<string> {
+  // 1) metadata (si tu l’envoies depuis /api/checkout)
+  const metaTitle =
+    (session.metadata?.productTitle as string | undefined) ??
+    (session.metadata?.product_title as string | undefined) ??
+    (session.metadata?.productName as string | undefined) ??
+    (session.metadata?.product as string | undefined) ??
+    "";
+
+  if (metaTitle?.trim()) return metaTitle.trim();
+
+  // 2) line_items (le plus fiable)
+  try {
+    const full = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["line_items"],
+    });
+
+    const titles =
+      full.line_items?.data
+        ?.map((it) => (it.description || "").trim())
+        .filter(Boolean) ?? [];
+
+    if (titles.length) return titles.join(" + ");
+  } catch (e) {
+    console.warn("⚠️ Impossible de récupérer line_items", e);
+  }
+
+  return "Achat Copyshop IA";
+}
+
 function packDefaults(productKey: string) {
   if (productKey === "ia-basic") return { credits_total: 5, unlimited: false };
   if (productKey === "ia-premium") return { credits_total: 15, unlimited: false };
@@ -102,26 +132,31 @@ function packDefaults(productKey: string) {
 
 async function upsertPurchase(params: {
   productKey: string;
+  productTitle: string;
   email: string | null;
   session: Stripe.Checkout.Session;
   status: string;
 }) {
-  const { productKey, email, session, status } = params;
+  const { productKey, productTitle, email, session, status } = params;
 
   const stripeCustomerId = typeof session.customer === "string" ? session.customer : null;
+  const stripePaymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
 
+  // ✅ Aligné avec la table: stripe_checkout_session_id / amount / product_title
   const { error } = await supabaseAdmin.from("purchases").upsert(
     {
+      email: email ? email.toLowerCase() : null,
       product_key: productKey,
-      email,
-      stripe_session_id: session.id,
-      stripe_customer_id: stripeCustomerId,
-      amount_total: session.amount_total ?? null,
+      product_title: productTitle,
+      amount: session.amount_total ?? null, // centimes
       currency: session.currency ?? null,
       status,
+      stripe_payment_intent_id: stripePaymentIntentId,
+      stripe_checkout_session_id: session.id,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "stripe_session_id" }
+    { onConflict: "stripe_checkout_session_id" }
   );
 
   if (error) console.error("❌ Supabase upsert purchases:", error);
@@ -200,7 +235,6 @@ async function applyRecharge(params: {
     return;
   }
 
-  // sécurité (normalement basic/premium => unlimited false)
   if (picked.unlimited) {
     console.warn("⚠️ Recharge ignorée car entitlement illimité:", { email, pack: picked.product_key });
     return;
@@ -229,9 +263,11 @@ async function handlePaidSession(session: Stripe.Checkout.Session) {
   const purchaseKey = productKeys.length === 1 ? productKeys[0] : productKeys.join(",");
   const email = await resolveEmail(session);
   const status = mapCheckoutStatus(session);
+  const productTitle = await resolveProductTitle(session);
 
   const stripeCustomerId = await upsertPurchase({
     productKey: purchaseKey,
+    productTitle,
     email,
     session,
     status,
@@ -291,14 +327,11 @@ export async function POST(req: NextRequest) {
     if (event.type === "checkout.session.async_payment_succeeded") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // update status purchase
-      const productKeys = await resolveProductKeys(session);
-      const purchaseKey = productKeys.length === 1 ? productKeys[0] : productKeys.join(",");
-
+      // update status purchase (aligné colonne)
       await supabaseAdmin
         .from("purchases")
-        .update({ status: "paid", product_key: purchaseKey, updated_at: new Date().toISOString() })
-        .eq("stripe_session_id", session.id);
+        .update({ status: "paid", updated_at: new Date().toISOString() })
+        .eq("stripe_checkout_session_id", session.id);
 
       await handlePaidSession(session);
       return ok();
@@ -306,10 +339,12 @@ export async function POST(req: NextRequest) {
 
     if (event.type === "checkout.session.async_payment_failed") {
       const session = event.data.object as Stripe.Checkout.Session;
+
       await supabaseAdmin
         .from("purchases")
         .update({ status: "failed", updated_at: new Date().toISOString() })
-        .eq("stripe_session_id", session.id);
+        .eq("stripe_checkout_session_id", session.id);
+
       return ok();
     }
 
