@@ -11,8 +11,9 @@ export default function Page() {
     >
       <h2>1. Principe</h2>
       <p>
-        Les produits vendus par Copyshop IA étant principalement digitaux (accès/packs/recharges), un remboursement n’est
-        généralement pas possible une fois l’accès activé ou le service commencé, sauf cas particulier.
+        Les produits vendus par Copyshop IA étant principalement digitaux (accès/packs/recharges),
+        un remboursement n’est généralement pas possible une fois l’accès activé ou le service commencé,
+        sauf cas particulier.
       </p>
 
       <h2>2. Cas particuliers</h2>
@@ -23,12 +24,15 @@ export default function Page() {
 
       <h2>3. Comment demander</h2>
       <p>
-        Envoie un message à <strong>copyshopp.ia@gmail.com</strong> avec : email utilisé, date, produit, et description du
-        problème.
+        Envoie un message à <strong>copyshopp.ia@gmail.com</strong> avec : email utilisé, date, produit,
+        et description du problème.
       </p>
 
       <h2>4. Délai</h2>
-      <p>Si le remboursement est validé, il est traité via le moyen de paiement initial (délais variables selon banque).</p>
+      <p>
+        Si le remboursement est validé, il est traité via le moyen de paiement initial
+        (délais variables selon banque).
+      </p>
     </LegalLayout>
   );
 }

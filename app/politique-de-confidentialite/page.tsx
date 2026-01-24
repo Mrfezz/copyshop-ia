@@ -25,8 +25,8 @@ export default function Page() {
 
       <h2>3. Prestataires</h2>
       <p>
-        Certaines données peuvent être traitées via des prestataires techniques (hébergement, email, paiement, base de
-        données) uniquement pour fournir le service.
+        Certaines données peuvent être traitées via des prestataires techniques (hébergement, email, paiement, base de données)
+        uniquement pour fournir le service.
       </p>
 
       <h2>4. Durée de conservation</h2>
