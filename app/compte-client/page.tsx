@@ -22,16 +22,53 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-type PurchaseRow = {
-  id?: string;
+type Purchase = {
+  id: string;
   product_key: string | null;
-  status: string | null;
-  amount_total: number | null; // cents
+  amount_total: number | null;
   currency: string | null;
+  status: string | null;
   created_at: string | null;
   updated_at: string | null;
-  stripe_session_id?: string | null;
+  stripe_session_id: string | null;
 };
+
+function formatDate(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function formatAmount(amountCents?: number | null, currency?: string | null): string {
+  if (amountCents == null) return "—";
+  const cur = (currency || "EUR").toUpperCase();
+  const eur = amountCents / 100;
+  try {
+    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: cur }).format(eur);
+  } catch {
+    return `${eur.toFixed(2)} ${cur}`;
+  }
+}
+
+function humanizeProductKey(key?: string | null): string {
+  const k = (key || "").trim();
+  if (!k) return "—";
+
+  // cas multi-produits "a,b,c"
+  if (k.includes(",")) {
+    return k
+      .split(",")
+      .map((x: string) => humanizeProductKey(x.trim()))
+      .join(" + ");
+  }
+
+  if (k === "ia-basic") return "Pack Basic IA";
+  if (k === "ia-premium") return "Pack Premium IA";
+  if (k === "ia-ultime") return "Pack Ultime IA";
+  if (k === "recharge-ia" || k === "ia-recharge-5") return "Recharge +5 boutiques";
+  return k;
+}
 
 /**
  * ✅ IMPORTANT (fix Vercel)
@@ -62,47 +99,6 @@ function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   );
 }
 
-function formatDateFR(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
-}
-
-function formatAmount(amountCents: number | null | undefined, currency: string | null | undefined) {
-  if (amountCents == null) return "—";
-  const eur = amountCents / 100;
-  const cur = (currency || "eur").toUpperCase();
-  try {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: cur,
-    }).format(eur);
-  } catch {
-    return `${eur.toFixed(2)} ${cur}`;
-  }
-}
-
-function humanizeProductKey(key: string | null | undefined): string {
-  const k = (key ?? "").trim();
-  if (!k) return "—";
-
-  // cas multi-produits stockés en "a,b,c"
-  if (k.includes(",")) {
-    return k
-      .split(",")
-      .map((x: string) => humanizeProductKey(x.trim()))
-      .join(" + ");
-  }
-
-  if (k === "ia-basic") return "Pack Basic IA";
-  if (k === "ia-premium") return "Pack Premium IA";
-  if (k === "ia-ultime") return "Pack Ultime IA";
-  if (k === "recharge-ia" || k === "ia-recharge-5") return "Recharge +5 boutiques";
-
-  return k;
-}
-
 export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
@@ -116,13 +112,13 @@ export default function CompteClientPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
 
-  // ✅ évite double redirection
-  const redirectedOnce = useRef(false);
-
-  // ✅ NOUVEAU : historique achats
-  const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
+  // ✅ achats
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [purchasesLoading, setPurchasesLoading] = useState(false);
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
+
+  // ✅ évite double redirection
+  const redirectedOnce = useRef(false);
 
   useEffect(() => {
     let ignore = false;
@@ -146,8 +142,8 @@ export default function CompteClientPage() {
   }, []);
 
   /**
-   * ✅ NOUVEAU : si un achat est "en attente" (pendingCheckout),
-   * alors après connexion on renvoie vers la page /paiement (juste avant Stripe).
+   * ✅ si un achat est "en attente" (pendingCheckout),
+   * alors après connexion on renvoie vers /paiement.
    */
   useEffect(() => {
     if (checking) return;
@@ -167,11 +163,9 @@ export default function CompteClientPage() {
       return;
     }
 
-    // ✅ on nettoie pour éviter boucle
     localStorage.removeItem("pendingCheckout");
     redirectedOnce.current = true;
 
-    // cas 1 : un seul produit
     const singleProductKey =
       payload?.productKey ||
       (Array.isArray(payload?.productKeys) && payload.productKeys.length === 1
@@ -183,17 +177,15 @@ export default function CompteClientPage() {
       return;
     }
 
-    // cas 2 : plusieurs produits -> on renvoie vers le panier (plus simple)
     if (Array.isArray(payload?.productKeys) && payload.productKeys.length > 1) {
       window.location.href = "/panier";
       return;
     }
 
-    // fallback
     window.location.href = "/paiement";
   }, [checking, session]);
 
-  // ✅ NOUVEAU : charge l’historique achats après connexion
+  // ✅ charger l’historique achats après login
   useEffect(() => {
     if (!session) return;
 
@@ -206,17 +198,18 @@ export default function CompteClientPage() {
         const token = session.access_token;
         const res = await fetch("/api/me/purchases", {
           method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json?.error || "Erreur lors du chargement des achats.");
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || "Erreur chargement achats");
 
-        const rows = (json?.purchases ?? []) as PurchaseRow[];
-        if (!cancelled) setPurchases(rows);
+        const list = Array.isArray(json?.purchases) ? (json.purchases as Purchase[]) : [];
+        if (!cancelled) setPurchases(list);
       } catch (e: any) {
-        if (!cancelled) setPurchasesError(e?.message ?? "Erreur lors du chargement des achats.");
+        if (!cancelled) setPurchasesError(e?.message ?? "Erreur chargement achats");
       } finally {
         if (!cancelled) setPurchasesLoading(false);
       }
@@ -229,10 +222,6 @@ export default function CompteClientPage() {
 
   const userEmail = session?.user?.email ?? "";
 
-  const lastPurchase = purchases?.[0] ?? null;
-  const lastPackLabel = lastPurchase ? humanizeProductKey(lastPurchase.product_key) : "Aucun achat";
-  const lastPackDate = lastPurchase ? formatDateFR(lastPurchase.updated_at || lastPurchase.created_at) : "—";
-
   async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAuthError(null);
@@ -241,17 +230,11 @@ export default function CompteClientPage() {
 
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         setAuthMsg("Connecté ✅");
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
       }
@@ -266,6 +249,8 @@ export default function CompteClientPage() {
     await supabase.auth.signOut();
   }
 
+  const lastPurchase = purchases?.[0] ?? null;
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -279,12 +264,10 @@ export default function CompteClientPage() {
             Ici tu retrouveras tes achats, recharges et accès à l’outil IA.
           </p>
 
-          {/* ✅ Banner paiement validé (quand on arrive de Stripe) */}
           <Suspense fallback={null}>
             <PaymentSuccessBanner hidden={checking || !!session} />
           </Suspense>
 
-          {/* petite ligne "connecté en tant que" */}
           {!checking && session && (
             <div style={styles.loggedLine}>
               Connecté : <strong>{userEmail}</strong>
@@ -295,12 +278,10 @@ export default function CompteClientPage() {
           )}
         </header>
 
-        {/* LOADING session */}
         {checking && (
           <div style={styles.loadingBox}>Chargement de ton espace client...</div>
         )}
 
-        {/* PAS CONNECTÉ → AUTH CARD */}
         {!checking && !session && (
           <div style={styles.authWrap}>
             <div style={styles.authCard}>
@@ -365,7 +346,6 @@ export default function CompteClientPage() {
           </div>
         )}
 
-        {/* CONNECTÉ → CONTENU CLIENT */}
         {!checking && session && (
           <div className="client-grid" style={styles.grid}>
             {/* Achats */}
@@ -373,49 +353,49 @@ export default function CompteClientPage() {
               <h2 style={styles.cardTitle}>Mes achats</h2>
               <p style={styles.cardText}>Historique de tes packs + factures.</p>
 
-              <div style={styles.infoBox}>
-                <div style={styles.infoLine}>
-                  <span style={styles.infoLabel}>Dernier pack :</span>
-                  <span style={styles.infoValue}>
-                    {purchasesLoading ? "Chargement..." : lastPackLabel}
-                  </span>
-                </div>
-                <div style={styles.infoLine}>
-                  <span style={styles.infoLabel}>Date :</span>
-                  <span style={styles.infoValue}>
-                    {purchasesLoading ? "—" : lastPackDate}
-                  </span>
-                </div>
-              </div>
+              {purchasesLoading ? (
+                <div style={styles.smallNote}>Chargement de l’historique...</div>
+              ) : purchasesError ? (
+                <div style={styles.authError}>{purchasesError}</div>
+              ) : purchases.length === 0 ? (
+                <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
+              ) : (
+                <>
+                  <div style={styles.infoBox}>
+                    <div style={styles.infoLine}>
+                      <span style={styles.infoLabel}>Dernier pack :</span>
+                      <span style={styles.infoValue}>{humanizeProductKey(lastPurchase?.product_key)}</span>
+                    </div>
+                    <div style={styles.infoLine}>
+                      <span style={styles.infoLabel}>Date :</span>
+                      <span style={styles.infoValue}>
+                        {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* ✅ NOUVEAU : liste achats */}
-              {purchasesError && <div style={styles.authError}>{purchasesError}</div>}
-
-              {!purchasesLoading && !purchasesError && (
-                <div style={styles.purchaseList}>
-                  {purchases.length === 0 ? (
-                    <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
-                  ) : (
-                    purchases.slice(0, 6).map((p, idx) => (
-                      <div key={(p.id || p.stripe_session_id || idx) as any} style={styles.purchaseRow}>
-                        <div style={styles.purchaseLeft}>
-                          <div style={styles.purchaseName}>{humanizeProductKey(p.product_key)}</div>
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
+                    <ul style={styles.purchaseList}>
+                      {purchases.slice(0, 5).map((p) => (
+                        <li key={p.id} style={styles.purchaseItem}>
+                          <div style={{ fontWeight: 900 }}>
+                            {humanizeProductKey(p.product_key)}
+                          </div>
                           <div style={styles.purchaseMeta}>
-                            {formatDateFR(p.updated_at || p.created_at)}
+                            <span>{formatDate(p.created_at || p.updated_at)}</span>
+                            <span>•</span>
+                            <span>{formatAmount(p.amount_total, p.currency)}</span>
+                            <span>•</span>
+                            <span style={styles.badge}>
+                              {(p.status || "unknown").toUpperCase()}
+                            </span>
                           </div>
-                        </div>
-                        <div style={styles.purchaseRight}>
-                          <div style={styles.purchaseAmount}>
-                            {formatAmount(p.amount_total, p.currency)}
-                          </div>
-                          <div style={styles.purchaseStatus}>
-                            {(p.status || "unknown").toUpperCase()}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
               )}
 
               <a href="/packs-ia" style={styles.buttonAlt}>
@@ -493,7 +473,6 @@ export default function CompteClientPage() {
         )}
       </section>
 
-      {/* responsive */}
       <style>{`
         @media (max-width: 980px) {
           .client-grid {
@@ -720,65 +699,44 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.text,
   },
 
+  purchaseList: {
+    margin: 0,
+    paddingLeft: 16,
+    display: "grid",
+    gap: 8,
+  },
+  purchaseItem: {
+    background: "rgba(255,255,255,0.04)",
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 12,
+    padding: "10px 12px",
+    listStyle: "none",
+  },
+  purchaseMeta: {
+    marginTop: 6,
+    display: "inline-flex",
+    gap: 8,
+    alignItems: "center",
+    color: "rgba(255,255,255,0.75)",
+    fontWeight: 700,
+    fontSize: "0.9rem",
+    flexWrap: "wrap",
+  },
+  badge: {
+    padding: "2px 8px",
+    borderRadius: 999,
+    border: `1px solid ${COLORS.border}`,
+    background: "rgba(255,255,255,0.06)",
+    fontWeight: 900,
+    fontSize: "0.78rem",
+  },
+
   smallNote: {
     marginTop: 4,
     fontSize: "0.9rem",
     color: "rgba(255,255,255,0.7)",
   },
 
-  // ✅ NOUVEAU : styles liste achats
-  purchaseList: {
-    marginTop: 8,
-    display: "grid",
-    gap: 8,
-    width: "100%",
-  },
-  purchaseRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: `1px solid ${COLORS.border}`,
-    background: "rgba(255,255,255,0.04)",
-    boxSizing: "border-box",
-  },
-  purchaseLeft: {
-    display: "grid",
-    gap: 4,
-    minWidth: 0,
-  },
-  purchaseName: {
-    fontWeight: 900,
-    color: COLORS.text,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    maxWidth: 320,
-  },
-  purchaseMeta: {
-    fontSize: "0.85rem",
-    color: "rgba(201,210,255,0.85)",
-    fontWeight: 700,
-  },
-  purchaseRight: {
-    display: "grid",
-    gap: 4,
-    textAlign: "right",
-    flexShrink: 0,
-  },
-  purchaseAmount: {
-    fontWeight: 900,
-    color: COLORS.text,
-  },
-  purchaseStatus: {
-    fontSize: "0.82rem",
-    fontWeight: 900,
-    color: "rgba(201,210,255,0.9)",
-  },
-
-  /* AUTH */
   authWrap: {
     display: "grid",
     placeItems: "center",

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // ⚠️ clé privée (Vercel only)
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, // clé privée (serveur)
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
@@ -16,7 +19,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Vérifie le token et récupère l’utilisateur
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
     const email = userRes?.user?.email ?? null;
 
@@ -24,10 +26,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 🔥 Historique depuis entitlements (à défaut d’une table "orders")
     const { data, error } = await supabaseAdmin
-      .from("entitlements")
-      .select("product_key, active, created_at")
+      .from("purchases")
+      .select("id, product_key, amount_total, currency, status, created_at, updated_at, stripe_session_id")
       .eq("email", email)
       .order("created_at", { ascending: false });
 
@@ -35,11 +36,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ entitlements: data ?? [] });
+    return NextResponse.json({ purchases: data ?? [] });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message ?? "Server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
   }
 }
