@@ -18,9 +18,12 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
+// ✅ 3 messages par page (comme tu as demandé)
+const PAGE_SIZE = 3;
+
 type Msg = {
   id: string;
-  // ✅ en DB tu as outbound + received (et parfois inbound selon versions)
+  // en DB tu as "outbound" et "received" (et parfois "inbound" selon versions)
   direction: "outbound" | "received" | "inbound";
   subject: string | null;
   body: string;
@@ -38,13 +41,21 @@ type Purchase = {
 
 type TabKey = "inbox" | "sent" | "received" | "orders" | "shops";
 
-const PAGE_SIZE = 4;
+function isOutbound(m: Msg) {
+  return m.direction === "outbound";
+}
+function isInbound(m: Msg) {
+  return m.direction !== "outbound";
+}
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(d);
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(d);
 }
 
 function formatMoney(amountCents: number | null, currency: string | null): string {
@@ -55,13 +66,6 @@ function formatMoney(amountCents: number | null, currency: string | null): strin
   } catch {
     return `${eur.toFixed(2)} ${currency}`;
   }
-}
-
-function isOutbound(m: Msg) {
-  return m.direction === "outbound";
-}
-function isInbound(m: Msg) {
-  return m.direction !== "outbound";
 }
 
 export default function MessagesPage() {
@@ -116,10 +120,10 @@ export default function MessagesPage() {
 
   const userEmail = session?.user?.email ?? "";
 
+  const isMsgTab = tab === "inbox" || tab === "sent" || tab === "received";
+
   const sentCount = useMemo(() => messages.filter((m) => isOutbound(m)).length, [messages]);
   const receivedCount = useMemo(() => messages.filter((m) => isInbound(m)).length, [messages]);
-
-  const isMsgTab = tab === "inbox" || tab === "sent" || tab === "received";
 
   const filteredMessages = useMemo(() => {
     if (tab === "sent") return messages.filter((m) => isOutbound(m));
@@ -138,7 +142,7 @@ export default function MessagesPage() {
     return filteredMessages.slice(start, start + PAGE_SIZE);
   }, [filteredMessages, page, pageCount]);
 
-  // reset page quand on change de tab ou que les messages changent (évite page vide)
+  // reset page quand tab change
   useEffect(() => {
     setPage(0);
   }, [tab]);
@@ -275,9 +279,9 @@ export default function MessagesPage() {
         )}
 
         {!checking && session && (
-          <div className="messages-layout" style={styles.layout}>
-            {/* ✅ Sidebar (garde le visu desktop) */}
-            <aside className="messages-sidebar" style={styles.sidebar}>
+          <div className="m-layout" style={styles.layout}>
+            {/* SIDEBAR (desktop inchangé) */}
+            <aside className="m-sidebar" style={styles.sidebar}>
               <button
                 onClick={() => setTab("inbox")}
                 style={{ ...styles.sideBtn, ...(tab === "inbox" ? styles.sideBtnActive : {}) }}
@@ -324,9 +328,9 @@ export default function MessagesPage() {
               </a>
             </aside>
 
-            {/* ✅ Bloc du haut à droite (composer / panels) */}
+            {/* BLOC DROIT HAUT (desktop inchangé) */}
             {isMsgTab && (
-              <form className="messages-composer" onSubmit={sendMessage} style={styles.composer}>
+              <form className="m-topRight" onSubmit={sendMessage} style={styles.composer}>
                 <div style={styles.composerTitle}>Nouveau message</div>
 
                 <input
@@ -366,7 +370,7 @@ export default function MessagesPage() {
             )}
 
             {tab === "orders" && (
-              <div className="messages-panel" style={styles.panel}>
+              <div className="m-topRight" style={styles.panel}>
                 <div style={styles.panelTitle}>Commandes / achats</div>
 
                 {ordersError && <div style={styles.errBox}>{ordersError}</div>}
@@ -399,38 +403,35 @@ export default function MessagesPage() {
             )}
 
             {tab === "shops" && (
-              <div className="messages-panel" style={styles.panel}>
+              <div className="m-topRight" style={styles.panel}>
                 <div style={styles.panelTitle}>Mes boutiques</div>
-                <div style={styles.small}>
-                  Ici on affichera tes boutiques générées (ex: liens / fichiers).
-                </div>
+                <div style={styles.small}>Ici on affichera tes boutiques générées (ex: liens / fichiers).</div>
                 <div style={styles.empty}>Aucune boutique enregistrée pour le moment.</div>
               </div>
             )}
 
-            {/* ✅ IMPORTANT: le bloc "Type / Sujet / Message" devient LARGE sur desktop (comme tu voulais)
-                -> il passe SOUS les 2 blocs du haut, en pleine largeur, sans empiéter */}
+            {/* ✅ BLOC HISTORIQUE (desktop: colonne droite comme avant) */}
             {isMsgTab && (
-              <div className="messages-history" style={styles.listWrap}>
-                <div style={styles.listHeader}>
-                  <span style={styles.col1}>Type</span>
-                  <span style={styles.col2}>Sujet / Message</span>
-                  <span style={styles.col3}>Date</span>
+              <div className="m-history" style={styles.listWrap}>
+                <div className="msg-list-head" style={styles.listHeader}>
+                  <span>Type</span>
+                  <span>Sujet / Message</span>
+                  <span className="msg-date">Date</span>
                 </div>
 
                 {msgLoading && <div style={styles.loadingInline}>Chargement des messages…</div>}
 
                 {!msgLoading && filteredMessages.length === 0 && (
                   <div style={styles.empty}>
-                    Aucun message {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour
-                    le moment.
+                    Aucun message {tab === "sent" ? "envoyé" : tab === "received" ? "reçu" : ""} pour le
+                    moment.
                   </div>
                 )}
 
                 {!msgLoading &&
                   pagedMessages.map((m) => (
-                    <div key={m.id} style={styles.row}>
-                      <div style={styles.cell1}>
+                    <div key={m.id} className="msg-row" style={styles.row}>
+                      <div>
                         <span
                           style={{
                             ...styles.pill,
@@ -448,13 +449,20 @@ export default function MessagesPage() {
                         <div style={styles.snippet}>
                           {m.body.length > 140 ? m.body.slice(0, 140) + "…" : m.body}
                         </div>
+
+                        {/* ✅ Date inline (visible mobile seulement) */}
+                        <div className="msg-date-inline" style={styles.dateInline}>
+                          {formatDate(m.created_at)}
+                        </div>
                       </div>
 
-                      <div style={styles.cell3}>{formatDate(m.created_at)}</div>
+                      <div className="msg-date" style={styles.cell3}>
+                        {formatDate(m.created_at)}
+                      </div>
                     </div>
                   ))}
 
-                {/* ✅ Pagination après 4 messages */}
+                {/* ✅ Pagination après 3 messages */}
                 {!msgLoading && filteredMessages.length > PAGE_SIZE && (
                   <div style={styles.pager}>
                     <button
@@ -489,20 +497,45 @@ export default function MessagesPage() {
         )}
       </section>
 
-      {/* ✅ Ne touche pas au mobile : juste un empilement propre si besoin */}
+      {/* ✅ IMPORTANT : on ne touche PAS le desktop.
+          ✅ On applique le “bloc du bas pleine largeur” uniquement en mobile. */}
       <style>{`
         @media (max-width: 980px) {
-          .messages-layout {
-            grid-template-columns: 1fr !important;
+          .m-layout{
+            /* 2 blocs en haut côte à côte (comme ton mobile actuel),
+               puis l'historique pleine largeur en dessous */
+            grid-template-columns: 1fr 1fr !important;
+            grid-template-rows: auto auto !important;
           }
-          .messages-sidebar {
+          .m-sidebar{
             position: relative !important;
             top: auto !important;
+            grid-column: 1 !important;
+            grid-row: 1 !important;
           }
-          .messages-history {
-            margin-top: 14px !important;
+          .m-topRight{
+            grid-column: 2 !important;
+            grid-row: 1 !important;
+          }
+          .m-history{
+            grid-column: 1 / -1 !important; /* ✅ pleine largeur sous les 2 blocs */
+            grid-row: 2 !important;
+          }
+
+          /* Mobile: on masque la colonne "Date" et on la met en dessous dans la cellule */
+          .msg-date{ display:none !important; }
+          .msg-date-inline{ display:block !important; }
+
+          .msg-list-head{
+            grid-template-columns: 120px 1fr !important;
+          }
+          .msg-row{
+            grid-template-columns: 120px 1fr !important;
           }
         }
+
+        /* Desktop: date inline cachée */
+        .msg-date-inline{ display:none; }
       `}</style>
     </main>
   );
@@ -586,7 +619,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 12,
   },
 
-  // ✅ Desktop: 2 colonnes en haut (sidebar + droite), puis le bloc liste SPAN sur 2 colonnes
+  // ✅ Desktop inchangé : sidebar gauche / contenu droite
   layout: {
     display: "grid",
     gridTemplateColumns: "260px 1fr",
@@ -605,7 +638,7 @@ const styles: Record<string, React.CSSProperties> = {
     top: 14,
     height: "fit-content",
     gridColumn: "1",
-    gridRow: "1",
+    gridRow: "1 / span 2",
   },
   sideBtn: {
     width: "100%",
@@ -722,16 +755,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.95rem",
   },
 
-  // ✅ le bloc du bas span sur 2 colonnes (desktop + mobile)
+  // ✅ Desktop : historique dans la colonne droite, sous le composer
   listWrap: {
     background: COLORS.cardBg,
     border: `1px solid ${COLORS.border}`,
     borderRadius: 16,
     overflow: "hidden",
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-    gridColumn: "1 / -1",
+    gridColumn: "2",
     gridRow: "2",
-    marginTop: 0,
   },
   listHeader: {
     display: "grid",
@@ -743,9 +775,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: COLORS.muted,
   },
-  col1: {},
-  col2: {},
-  col3: { textAlign: "right" },
 
   row: {
     display: "grid",
@@ -755,9 +784,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: "1px solid rgba(255,255,255,0.06)",
     alignItems: "center",
   },
-  cell1: {},
   cell2: { minWidth: 0 },
   cell3: { textAlign: "right", color: COLORS.muted, fontWeight: 800 },
+  dateInline: {
+    marginTop: 8,
+    color: "rgba(201,210,255,0.85)",
+    fontWeight: 800,
+    fontSize: "0.92rem",
+  },
 
   subjectLine: { fontWeight: 900, marginBottom: 4 },
   snippet: { color: "rgba(255,255,255,0.75)", fontWeight: 700, fontSize: "0.95rem" },
@@ -800,10 +834,7 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.5,
     cursor: "not-allowed",
   },
-  pagerInfo: {
-    color: COLORS.muted,
-    fontWeight: 900,
-  },
+  pagerInfo: { color: COLORS.muted, fontWeight: 900 },
 
   panel: {
     background: COLORS.cardBg,
@@ -838,7 +869,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: "1px solid rgba(255,255,255,0.06)",
     fontWeight: 800,
   },
-  mono: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" },
+  mono: {
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  },
   small: { color: COLORS.muted, fontWeight: 800, lineHeight: 1.5 },
 
   linkBtn: {
