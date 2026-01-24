@@ -7,8 +7,6 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /** b64url -> string */
 function b64urlToStr(token: string) {
   let t = token.replace(/-/g, "+").replace(/_/g, "/");
@@ -17,9 +15,8 @@ function b64urlToStr(token: string) {
 }
 
 /**
- * On cherche une adresse du style:
- * reply+<TOKEN>@xxx.resend.app
- * où <TOKEN> = base64url(emailClient)
+ * Cherche reply+<TOKEN>@xxx
+ * où TOKEN = base64url(emailClient)
  */
 function extractUserEmailFromTo(to: any): string | null {
   const list: string[] = [];
@@ -30,13 +27,15 @@ function extractUserEmailFromTo(to: any): string | null {
     for (const item of to) {
       if (typeof item === "string") list.push(item);
       else if (item?.email) list.push(String(item.email));
+      else if (item?.address) list.push(String(item.address));
     }
   }
 
   if (to?.email) list.push(String(to.email));
+  if (to?.address) list.push(String(to.address));
 
   for (const addr of list) {
-    const m = addr.match(/^reply\+([^@]+)@/i);
+    const m = String(addr).match(/^reply\+([^@]+)@/i);
     if (!m) continue;
     try {
       const email = b64urlToStr(m[1]).trim();
@@ -50,14 +49,24 @@ function extractUserEmailFromTo(to: any): string | null {
 export async function POST(req: NextRequest) {
   try {
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    const apiKey = process.env.RESEND_API_KEY;
+
     if (!webhookSecret) {
       return NextResponse.json(
         { error: "RESEND_WEBHOOK_SECRET manquant" },
         { status: 500 }
       );
     }
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "RESEND_API_KEY manquant" },
+        { status: 500 }
+      );
+    }
 
-    // ⚠️ Important: garder le RAW body pour la vérif signature
+    const resend = new Resend(apiKey);
+
+    // ⚠️ IMPORTANT : RAW body pour la signature
     const payload = await req.text();
 
     const id = req.headers.get("svix-id");
@@ -65,17 +74,20 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("svix-signature");
 
     if (!id || !timestamp || !signature) {
-      return NextResponse.json({ error: "Missing svix headers" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing svix headers" },
+        { status: 400 }
+      );
     }
 
-    // ✅ Cast en any pour éviter "result is unknown" (TS)
+    // Vérif signature
     const result: any = resend.webhooks.verify({
       payload,
       headers: { id, timestamp, signature },
       webhookSecret,
     });
 
-    // Si ce n’est pas un email reçu → on ignore
+    // Pas un email reçu -> OK
     if (!result || result.type !== "email.received") {
       return NextResponse.json({ ok: true });
     }
@@ -85,39 +97,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignored: "no-email-id" });
     }
 
-    // On récupère le contenu complet de l’email reçu
+    // Récupère le contenu complet
     const { data: email, error } = await resend.emails.receiving.get(emailId);
     if (error) throw new Error(error.message);
 
-    // On retrouve l’email client depuis le champ "to" (reply+TOKEN@...)
+    // Email client depuis "to" (reply+TOKEN@...)
     const userEmail =
       extractUserEmailFromTo((email as any)?.to) ||
       extractUserEmailFromTo(result?.data?.to);
 
     if (!userEmail) {
+      console.log("inbound ignored: no-user-email", {
+        to_email: (email as any)?.to,
+        to_event: result?.data?.to,
+      });
       return NextResponse.json({ ok: true, ignored: "no-user-email" });
     }
 
-    const subject = (email as any)?.subject ?? result?.data?.subject ?? "(sans sujet)";
+    const subject =
+      (email as any)?.subject ?? result?.data?.subject ?? "(sans sujet)";
 
     const bodyText = (email as any)?.text || "";
     const bodyHtml = (email as any)?.html || "";
     const body = bodyText || bodyHtml || "";
 
-    // ✅ IMPORTANT: on insère bien dans la colonne "body" (pas "message")
+    // ✅ INSERT : colonne "body" (aligné avec /api/me/messages GET/POST)
     const { error: dbErr } = await supabaseAdmin.from("messages").insert({
       email: userEmail,
       direction: "received",
       subject,
-      body, // ✅ CHANGÉ ICI
+      body,
       created_at: new Date().toISOString(),
     });
 
     if (dbErr) throw new Error(dbErr.message);
 
+    console.log("✅ inbound saved", { userEmail, subject });
+
     return NextResponse.json({ received: true });
   } catch (e: any) {
     console.error("Inbound webhook error:", e?.message ?? e);
-    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message ?? "Server error" },
+      { status: 500 }
+    );
   }
 }
