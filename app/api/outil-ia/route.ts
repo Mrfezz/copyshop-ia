@@ -1,9 +1,9 @@
 // app/api/outil-ia/route.ts
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type RequestBody = {
   productUrl?: string;
@@ -11,8 +11,8 @@ type RequestBody = {
   productKey?: string; // optionnel
 };
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function jsonError(message: string, status = 400, extra?: Record<string, any>) {
+  return NextResponse.json({ error: message, ...(extra ?? {}) }, { status });
 }
 
 function getBearerToken(req: Request) {
@@ -43,14 +43,8 @@ function isLikelyUrl(v: string) {
 
 export async function POST(req: Request) {
   try {
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-    if (!OPENAI_API_KEY) {
-      return jsonError(
-        "OPENAI_API_KEY manquante (Vercel > Settings > Environment Variables)",
-        500
-      );
+    if (!process.env.OPENAI_API_KEY) {
+      return jsonError("OPENAI_API_KEY manquante", 500);
     }
 
     const token = getBearerToken(req);
@@ -100,7 +94,6 @@ export async function POST(req: Request) {
     if (!unlimited) {
       creditsTotal = Number(best.credits_total ?? 0);
       creditsRemaining = Math.max(0, creditsTotal - creditsUsed);
-
       if (creditsRemaining <= 0) {
         return jsonError("Crédits épuisés. Recharge nécessaire.", 403);
       }
@@ -133,14 +126,16 @@ Renvoie UNIQUEMENT du JSON valide:
 }
 `.trim();
 
+    const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
     const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
+        model,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: "Assistant e-commerce / Shopify." },
@@ -149,9 +144,8 @@ Renvoie UNIQUEMENT du JSON valide:
       }),
     });
 
-    // ✅ LIRE LE BODY UNE SEULE FOIS + RENVoyer la vraie erreur
+    // 🔥 On lit UNE SEULE FOIS la réponse OpenAI (et on la parse si possible)
     const raw = await openaiRes.text();
-
     let openaiJson: any = null;
     try {
       openaiJson = raw ? JSON.parse(raw) : null;
@@ -159,41 +153,50 @@ Renvoie UNIQUEMENT du JSON valide:
       openaiJson = null;
     }
 
+    // ✅ ICI: si OpenAI refuse, on renvoie le vrai détail au front
     if (!openaiRes.ok) {
-      const details =
-        openaiJson?.error?.message ||
-        openaiJson?.error ||
-        raw?.slice(0, 1200) ||
-        `HTTP ${openaiRes.status}`;
+      const requestId =
+        openaiRes.headers.get("x-request-id") ||
+        openaiRes.headers.get("openai-request-id") ||
+        null;
 
-      console.error("[OPENAI] ERROR", {
+      const msg =
+        openaiJson?.error?.message ||
+        raw ||
+        "OpenAI request failed (no message)";
+
+      const type = openaiJson?.error?.type || null;
+      const code = openaiJson?.error?.code || null;
+
+      console.error("OpenAI refused:", {
         status: openaiRes.status,
-        details,
+        requestId,
+        type,
+        code,
+        msg,
       });
 
-      return NextResponse.json(
-        {
-          error: "OpenAI a refusé la requête",
-          openai_status: openaiRes.status,
-          openai_details: details,
-        },
-        { status: 502 }
-      );
+      return jsonError("OpenAI a refusé la requête", 502, {
+        openai_status: openaiRes.status,
+        openai_message: msg,
+        openai_type: type,
+        openai_code: code,
+        openai_request_id: requestId,
+        model,
+      });
     }
 
     const ai = openaiJson;
     const content = ai?.choices?.[0]?.message?.content;
-
     if (!content || typeof content !== "string") {
-      console.error("[OPENAI] Empty/invalid content:", ai);
-      return jsonError("Réponse OpenAI vide", 500);
+      return jsonError("Réponse OpenAI vide", 500, { model });
     }
 
     let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
-      return jsonError("OpenAI a renvoyé un JSON invalide", 502);
+      return jsonError("OpenAI a renvoyé un JSON invalide", 502, { model, content_preview: content.slice(0, 200) });
     }
 
     if (
@@ -204,7 +207,7 @@ Renvoie UNIQUEMENT du JSON valide:
       !Array.isArray(parsed.productPageBlocks) ||
       typeof parsed.brandTone !== "string"
     ) {
-      return jsonError("OpenAI a renvoyé un format inattendu", 502);
+      return jsonError("OpenAI a renvoyé un format inattendu", 502, { model, parsed });
     }
 
     // 3) consommer 1 crédit (si pas illimité)
@@ -222,10 +225,7 @@ Renvoie UNIQUEMENT du JSON valide:
         .eq("email", email)
         .eq("product_key", best.product_key);
 
-      if (updErr) {
-        console.error("❌ credits update error:", updErr);
-        // on ne bloque pas la réponse, mais on log
-      }
+      if (updErr) console.error("❌ credits update error:", updErr);
 
       creditsRemainingAfter = creditsTotal === null ? null : Math.max(0, creditsTotal - nextUsed);
     }
@@ -235,10 +235,11 @@ Renvoie UNIQUEMENT du JSON valide:
       meta: {
         pack: best.product_key,
         creditsRemaining: unlimited ? null : creditsRemainingAfter,
+        model,
       },
     });
   } catch (e: any) {
-    console.error("API outil-ia error:", e?.message ?? e);
-    return jsonError(e?.message ?? "Erreur serveur", 500);
+    console.error("outil-ia server error:", e?.message ?? e);
+    return jsonError("Erreur serveur", 500);
   }
 }
