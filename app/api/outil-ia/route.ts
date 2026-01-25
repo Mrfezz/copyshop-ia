@@ -4,11 +4,13 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import * as dns from "dns/promises";
+import * as net from "net";
 
 type RequestBody = {
   productUrl?: string;
   imageBase64?: string | null;
-  productKey?: string; // optionnel
+  productKey?: string; // optionnel (on n’en dépend pas)
 };
 
 function jsonError(message: string, status = 400, extra?: Record<string, any>) {
@@ -34,11 +36,270 @@ function safeTrim(v: unknown) {
 
 function isLikelyUrl(v: string) {
   try {
-    new URL(v);
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** --- SSRF guard (simple mais utile) --- */
+function isPrivateIp(ip: string) {
+  // IPv4 private ranges + loopback + link-local
+  if (net.isIP(ip) === 4) {
+    const parts = ip.split(".").map((x) => Number(x));
+    const [a, b] = parts;
+
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 0) return true;
+
+    return false;
+  }
+
+  // IPv6: loopback, link-local, unique local
+  if (net.isIP(ip) === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1") return true;
+    if (lower.startsWith("fe80:")) return true; // link-local
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique local
+    return false;
+  }
+
+  return true;
+}
+
+async function isSafeToFetchUrl(urlStr: string) {
+  try {
+    const u = new URL(urlStr);
+
+    // bloque localhost direct
+    const host = u.hostname.toLowerCase();
+    if (host === "localhost" || host.endsWith(".localhost")) return false;
+
+    // résolution DNS -> IP publique
+    const res = await dns.lookup(host, { all: true });
+    if (!res || res.length === 0) return false;
+
+    for (const r of res) {
+      if (isPrivateIp(r.address)) return false;
+    }
+
     return true;
   } catch {
     return false;
   }
+}
+
+type ScrapedProduct = {
+  title?: string | null;
+  description?: string | null;
+  images?: string[];
+  price?: string | null;
+  currency?: string | null;
+  ogImage?: string | null;
+};
+
+function uniq(arr: string[]) {
+  return Array.from(new Set(arr.filter(Boolean)));
+}
+
+function decodeHtmlEntities(s: string) {
+  return s
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#039;", "'")
+    .replaceAll("&#39;", "'");
+}
+
+function pickMeta(html: string, key: string) {
+  // meta property="og:title" content="..."
+  const re1 = new RegExp(
+    `<meta[^>]+property=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const re2 = new RegExp(
+    `<meta[^>]+name=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
+    "i"
+  );
+  const m = html.match(re1) || html.match(re2);
+  return m?.[1] ? decodeHtmlEntities(m[1]).trim() : null;
+}
+
+function extractLdJson(html: string): any[] {
+  // récupère les <script type="application/ld+json">...</script>
+  const out: any[] = [];
+  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[1]?.trim();
+    if (!raw) continue;
+
+    // parfois il y a des caractères bizarres, on tente parse
+    try {
+      const json = JSON.parse(raw);
+      out.push(json);
+    } catch {
+      // ignore
+    }
+  }
+  return out;
+}
+
+function findProductInLd(ld: any): any | null {
+  if (!ld) return null;
+
+  // cas tableau
+  if (Array.isArray(ld)) {
+    for (const item of ld) {
+      const found = findProductInLd(item);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // cas objet avec @graph
+  if (ld && typeof ld === "object") {
+    if (Array.isArray(ld["@graph"])) {
+      for (const g of ld["@graph"]) {
+        const found = findProductInLd(g);
+        if (found) return found;
+      }
+    }
+
+    const t = ld["@type"];
+    if (t === "Product" || (Array.isArray(t) && t.includes("Product"))) {
+      return ld;
+    }
+  }
+
+  return null;
+}
+
+async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
+  // par défaut rien
+  const empty: ScrapedProduct = { images: [] };
+
+  // sécurité SSRF
+  const safe = await isSafeToFetchUrl(urlStr);
+  if (!safe) return empty;
+
+  // fetch HTML avec timeout + limite
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 9000);
+
+  try {
+    const res = await fetch(urlStr, {
+      method: "GET",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; CopyshopIA/1.0; +https://copyshop-ia.com)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: ctrl.signal,
+      redirect: "follow",
+    });
+
+    if (!res.ok) return empty;
+
+    const ct = res.headers.get("content-type") || "";
+    if (!ct.toLowerCase().includes("text/html")) return empty;
+
+    // limite 1.2MB
+    const text = await res.text();
+    const html = text.slice(0, 1_200_000);
+
+    const ogTitle = pickMeta(html, "og:title");
+    const ogDesc = pickMeta(html, "og:description") || pickMeta(html, "description");
+    const ogImage = pickMeta(html, "og:image") || pickMeta(html, "twitter:image");
+
+    // JSON-LD
+    const ldBlocks = extractLdJson(html);
+    let productObj: any | null = null;
+    for (const ld of ldBlocks) {
+      const found = findProductInLd(ld);
+      if (found) {
+        productObj = found;
+        break;
+      }
+    }
+
+    const title = (productObj?.name as string) || ogTitle || null;
+    const description =
+      (productObj?.description as string) ||
+      ogDesc ||
+      null;
+
+    // images: JSON-LD "image" peut être string ou array
+    const ldImagesRaw = productObj?.image;
+    const ldImages =
+      typeof ldImagesRaw === "string"
+        ? [ldImagesRaw]
+        : Array.isArray(ldImagesRaw)
+        ? ldImagesRaw
+        : [];
+
+    const images = uniq([...(ldImages as string[]), ...(ogImage ? [ogImage] : [])]);
+
+    // price/offers
+    let price: string | null = null;
+    let currency: string | null = null;
+
+    const offers = productObj?.offers;
+    const pickOffer = Array.isArray(offers) ? offers[0] : offers;
+
+    if (pickOffer) {
+      if (typeof pickOffer?.price === "string" || typeof pickOffer?.price === "number") {
+        price = String(pickOffer.price);
+      }
+      if (typeof pickOffer?.priceCurrency === "string") {
+        currency = pickOffer.priceCurrency;
+      }
+    }
+
+    return {
+      title: title ? decodeHtmlEntities(title).trim() : null,
+      description: description ? decodeHtmlEntities(description).trim() : null,
+      images,
+      price,
+      currency,
+      ogImage: ogImage ? decodeHtmlEntities(ogImage).trim() : null,
+    };
+  } catch {
+    return empty;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function packHintFor(bestKey: string) {
+  if (bestKey === "ia-basic") {
+    return `PACK BASIC:
+- contenu simple mais complet
+- 4 sections homepage détaillées max
+- FAQ 4 questions
+- bullets 6 max
+- ton clair, direct, vendeur`;
+  }
+  if (bestKey === "ia-premium") {
+    return `PACK PREMIUM:
+- contenu plus persuasif (USP + objections)
+- 6 sections homepage détaillées
+- FAQ 6 questions
+- bullets 8
+- ajoute mini "social proof" + garanties`;
+  }
+  return `PACK ULTIME:
+- ultra complet + très vendeur
+- 8 sections homepage détaillées
+- FAQ 8 questions
+- bullets 10
+- ajoute: storytelling marque + garanties + upsell/cross-sell + bundle + hooks pub`;
 }
 
 export async function POST(req: Request) {
@@ -63,7 +324,7 @@ export async function POST(req: Request) {
 
     const productUrl = safeTrim(body.productUrl);
     if (!productUrl) return jsonError("productUrl est requis", 400);
-    if (!isLikelyUrl(productUrl)) return jsonError("productUrl invalide", 400);
+    if (!isLikelyUrl(productUrl)) return jsonError("productUrl invalide (http/https uniquement)", 400);
 
     // 1) récupérer meilleur pack actif
     const { data: ents, error: entErr } = await supabaseAdmin
@@ -86,8 +347,8 @@ export async function POST(req: Request) {
     if (!best) return jsonError("Accès refusé : aucun pack actif", 403);
 
     const unlimited = Boolean(best.unlimited);
-
     const creditsUsed = Number(best.credits_used ?? 0);
+
     let creditsTotal: number | null = null;
     let creditsRemaining: number | null = null;
 
@@ -99,31 +360,96 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2) prompt différent selon pack
-    const packHint =
-      best.product_key === "ia-basic"
-        ? "Pack BASIC: réponse simple et efficace."
-        : best.product_key === "ia-premium"
-        ? "Pack PREMIUM: ajoute angles marketing + objections + USP."
-        : "Pack ULTIME: ultra détaillé + variations + structure complète.";
+    // 2) on scrape le fournisseur (titre/desc/images)
+    const scraped = await scrapeProduct(productUrl);
+    const productImages = uniq(scraped.images ?? []);
+    const heroImage = productImages[0] ?? null;
+
+    const packHint = packHintFor(best.product_key);
+
+    /**
+     * ✅ NOUVELLE SORTIE: prêt à vendre + images
+     * - On garde aussi homepageSections + productPageBlocks pour compat UI existante
+     */
+    const schema = `
+Renvoie UNIQUEMENT du JSON VALIDE (pas de texte autour), avec EXACTEMENT ces clés (et types) :
+
+{
+  "storeName": string,
+  "tagline": string,
+  "brandTone": string,
+
+  "homepageSections": string[], 
+  "productPageBlocks": string[],
+
+  "homepageSectionsDetailed": [
+    {
+      "title": string,
+      "text": string,
+      "ctaText": string,
+      "ctaLink": string,
+      "imageUrl": string | null,
+      "imageAlt": string
+    }
+  ],
+
+  "productTitle": string,
+  "priceHint": string | null,
+  "productDescription": string,
+  "bullets": string[],
+
+  "faq": [{ "q": string, "a": string }],
+
+  "shippingInfo": {
+    "processingTime": string,
+    "deliveryTime": string,
+    "tracking": string,
+    "notes": string
+  },
+
+  "refundPolicySummary": string,
+
+  "seo": {
+    "metaTitle": string,
+    "metaDescription": string
+  },
+
+  "assets": {
+    "productImages": string[],
+    "heroImageUrl": string | null,
+    "logoPrompt": string,
+    "heroImagePrompt": string
+  }
+}
+`.trim();
 
     const prompt = `
 ${packHint}
 
-Tu es un expert en copywriting e-commerce.
-Génère une proposition de boutique Shopify pour ce produit.
+Tu es un expert e-commerce Shopify (copywriting + structure conversion).
+Ta mission: générer une boutique "prête à vendre" en FRANÇAIS.
 
-Données fournies :
-- Lien produit : ${productUrl}
+Produit (données fournisseur):
+- productUrl: ${productUrl}
+- titre détecté: ${scraped.title ?? "inconnu"}
+- description détectée: ${scraped.description ? scraped.description.slice(0, 400) : "inconnue"}
+- prix détecté: ${scraped.price ? `${scraped.price} ${scraped.currency ?? ""}` : "inconnu"}
+- images détectées (URLs): ${productImages.length ? productImages.join(", ") : "aucune"}
 
-Renvoie UNIQUEMENT du JSON valide:
-{
-  "storeName": "Nom de la boutique",
-  "tagline": "Slogan court orienté bénéfice",
-  "homepageSections": ["...", "..."],
-  "productPageBlocks": ["...", "..."],
-  "brandTone": "2-3 phrases"
-}
+Règles:
+- Le JSON doit être exploitable DIRECT (sans texte autour).
+- "homepageSectionsDetailed" doit contenir des textes vendeurs + CTA concrets.
+- "productDescription" = longue description persuasive (structure: bénéfices -> détails -> usage -> garantie).
+- "bullets" = avantages clairs, orientés bénéfices (pas des généralités).
+- "faq" = réponses rassurantes (livraison, retour, qualité, SAV).
+- "shippingInfo" et "refundPolicySummary" doivent être simples et réalistes (sans mentionner de lois spécifiques).
+- "assets.productImages" = reprend les URLs détectées si possible (sinon []),
+  et "assets.heroImageUrl" = 1ère image si dispo.
+- Si aucune image détectée: mets heroImageUrl=null et donne des prompts de qualité dans logoPrompt/heroImagePrompt.
+- "homepageSections" et "productPageBlocks" = version courte (compat).
+- Ton pro, moderne, conversion.
+
+${schema}
 `.trim();
 
     const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
@@ -138,13 +464,14 @@ Renvoie UNIQUEMENT du JSON valide:
         model,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "Assistant e-commerce / Shopify." },
+          { role: "system", content: "Assistant e-commerce / Shopify. Réponds en JSON strict." },
           { role: "user", content: prompt },
         ],
+        temperature: best.product_key === "ia-basic" ? 0.6 : 0.75,
       }),
     });
 
-    // 🔥 On lit UNE SEULE FOIS la réponse OpenAI (et on la parse si possible)
+    // lire UNE SEULE FOIS la réponse OpenAI
     const raw = await openaiRes.text();
     let openaiJson: any = null;
     try {
@@ -153,7 +480,6 @@ Renvoie UNIQUEMENT du JSON valide:
       openaiJson = null;
     }
 
-    // ✅ ICI: si OpenAI refuse, on renvoie le vrai détail au front
     if (!openaiRes.ok) {
       const requestId =
         openaiRes.headers.get("x-request-id") ||
@@ -196,18 +522,51 @@ Renvoie UNIQUEMENT du JSON valide:
     try {
       parsed = JSON.parse(content);
     } catch {
-      return jsonError("OpenAI a renvoyé un JSON invalide", 502, { model, content_preview: content.slice(0, 200) });
+      return jsonError("OpenAI a renvoyé un JSON invalide", 502, {
+        model,
+        content_preview: content.slice(0, 200),
+      });
     }
 
-    if (
-      !parsed ||
-      typeof parsed.storeName !== "string" ||
-      typeof parsed.tagline !== "string" ||
-      !Array.isArray(parsed.homepageSections) ||
-      !Array.isArray(parsed.productPageBlocks) ||
-      typeof parsed.brandTone !== "string"
-    ) {
+    // ✅ validation minimum du nouveau format
+    const ok =
+      parsed &&
+      typeof parsed.storeName === "string" &&
+      typeof parsed.tagline === "string" &&
+      typeof parsed.brandTone === "string" &&
+      Array.isArray(parsed.homepageSectionsDetailed) &&
+      typeof parsed.productTitle === "string" &&
+      typeof parsed.productDescription === "string" &&
+      Array.isArray(parsed.bullets) &&
+      Array.isArray(parsed.faq) &&
+      parsed.shippingInfo &&
+      typeof parsed.shippingInfo.processingTime === "string" &&
+      typeof parsed.shippingInfo.deliveryTime === "string" &&
+      typeof parsed.shippingInfo.tracking === "string" &&
+      typeof parsed.shippingInfo.notes === "string" &&
+      typeof parsed.refundPolicySummary === "string" &&
+      parsed.assets &&
+      Array.isArray(parsed.assets.productImages);
+
+    if (!ok) {
       return jsonError("OpenAI a renvoyé un format inattendu", 502, { model, parsed });
+    }
+
+    // ✅ si OpenAI n’a pas repris les images, on force avec ce qu’on a scrapé
+    parsed.assets.productImages = Array.isArray(parsed.assets.productImages)
+      ? uniq([...parsed.assets.productImages, ...productImages])
+      : productImages;
+
+    if (!parsed.assets.heroImageUrl) {
+      parsed.assets.heroImageUrl = heroImage;
+    }
+
+    if (!parsed.productTitle || parsed.productTitle === "Produit") {
+      parsed.productTitle = scraped.title ?? parsed.productTitle;
+    }
+
+    if (!parsed.priceHint && scraped.price) {
+      parsed.priceHint = `${scraped.price}${scraped.currency ? ` ${scraped.currency}` : ""}`;
     }
 
     // 3) consommer 1 crédit (si pas illimité)
@@ -236,6 +595,14 @@ Renvoie UNIQUEMENT du JSON valide:
         pack: best.product_key,
         creditsRemaining: unlimited ? null : creditsRemainingAfter,
         model,
+        source: {
+          productUrl,
+          scraped: {
+            title: scraped.title ?? null,
+            hasImages: productImages.length > 0,
+            imagesCount: productImages.length,
+          },
+        },
       },
     });
   } catch (e: any) {
