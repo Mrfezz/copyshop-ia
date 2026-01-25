@@ -69,25 +69,24 @@ function isPrivateIp(ip: string) {
     return false;
   }
 
+  // inconnu => on bloque par sécurité
   return true;
 }
 
 async function isSafeToFetchUrl(urlStr: string) {
   try {
     const u = new URL(urlStr);
-
-    // bloque localhost direct
     const host = u.hostname.toLowerCase();
+
     if (host === "localhost" || host.endsWith(".localhost")) return false;
 
-    // résolution DNS -> IP publique
+    // DNS lookup -> toutes les IP doivent être publiques
     const res = await dns.lookup(host, { all: true });
     if (!res || res.length === 0) return false;
 
     for (const r of res) {
       if (isPrivateIp(r.address)) return false;
     }
-
     return true;
   } catch {
     return false;
@@ -118,7 +117,6 @@ function decodeHtmlEntities(s: string) {
 }
 
 function pickMeta(html: string, key: string) {
-  // meta property="og:title" content="..."
   const re1 = new RegExp(
     `<meta[^>]+property=["']${key}["'][^>]*content=["']([^"']+)["'][^>]*>`,
     "i"
@@ -132,18 +130,15 @@ function pickMeta(html: string, key: string) {
 }
 
 function extractLdJson(html: string): any[] {
-  // récupère les <script type="application/ld+json">...</script>
   const out: any[] = [];
-  const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  const re =
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     const raw = m[1]?.trim();
     if (!raw) continue;
-
-    // parfois il y a des caractères bizarres, on tente parse
     try {
-      const json = JSON.parse(raw);
-      out.push(json);
+      out.push(JSON.parse(raw));
     } catch {
       // ignore
     }
@@ -154,7 +149,6 @@ function extractLdJson(html: string): any[] {
 function findProductInLd(ld: any): any | null {
   if (!ld) return null;
 
-  // cas tableau
   if (Array.isArray(ld)) {
     for (const item of ld) {
       const found = findProductInLd(item);
@@ -163,7 +157,6 @@ function findProductInLd(ld: any): any | null {
     return null;
   }
 
-  // cas objet avec @graph
   if (ld && typeof ld === "object") {
     if (Array.isArray(ld["@graph"])) {
       for (const g of ld["@graph"]) {
@@ -182,14 +175,11 @@ function findProductInLd(ld: any): any | null {
 }
 
 async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
-  // par défaut rien
   const empty: ScrapedProduct = { images: [] };
 
-  // sécurité SSRF
   const safe = await isSafeToFetchUrl(urlStr);
   if (!safe) return empty;
 
-  // fetch HTML avec timeout + limite
   const ctrl = new AbortController();
   const timeout = setTimeout(() => ctrl.abort(), 9000);
 
@@ -210,15 +200,14 @@ async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
     const ct = res.headers.get("content-type") || "";
     if (!ct.toLowerCase().includes("text/html")) return empty;
 
-    // limite 1.2MB
     const text = await res.text();
-    const html = text.slice(0, 1_200_000);
+    const html = text.slice(0, 1_200_000); // limite
 
     const ogTitle = pickMeta(html, "og:title");
-    const ogDesc = pickMeta(html, "og:description") || pickMeta(html, "description");
+    const ogDesc =
+      pickMeta(html, "og:description") || pickMeta(html, "description");
     const ogImage = pickMeta(html, "og:image") || pickMeta(html, "twitter:image");
 
-    // JSON-LD
     const ldBlocks = extractLdJson(html);
     let productObj: any | null = null;
     for (const ld of ldBlocks) {
@@ -230,12 +219,8 @@ async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
     }
 
     const title = (productObj?.name as string) || ogTitle || null;
-    const description =
-      (productObj?.description as string) ||
-      ogDesc ||
-      null;
+    const description = (productObj?.description as string) || ogDesc || null;
 
-    // images: JSON-LD "image" peut être string ou array
     const ldImagesRaw = productObj?.image;
     const ldImages =
       typeof ldImagesRaw === "string"
@@ -246,7 +231,6 @@ async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
 
     const images = uniq([...(ldImages as string[]), ...(ogImage ? [ogImage] : [])]);
 
-    // price/offers
     let price: string | null = null;
     let currency: string | null = null;
 
@@ -313,7 +297,9 @@ export async function POST(req: Request) {
 
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
     const email = userData?.user?.email ?? null;
-    if (userErr || !email) return jsonError("Session invalide", 401);
+    const userId = userData?.user?.id ?? null;
+
+    if (userErr || !email || !userId) return jsonError("Session invalide", 401);
 
     let body: RequestBody;
     try {
@@ -324,7 +310,9 @@ export async function POST(req: Request) {
 
     const productUrl = safeTrim(body.productUrl);
     if (!productUrl) return jsonError("productUrl est requis", 400);
-    if (!isLikelyUrl(productUrl)) return jsonError("productUrl invalide (http/https uniquement)", 400);
+    if (!isLikelyUrl(productUrl)) {
+      return jsonError("productUrl invalide (http/https uniquement)", 400);
+    }
 
     // 1) récupérer meilleur pack actif
     const { data: ents, error: entErr } = await supabaseAdmin
@@ -350,27 +338,22 @@ export async function POST(req: Request) {
     const creditsUsed = Number(best.credits_used ?? 0);
 
     let creditsTotal: number | null = null;
-    let creditsRemaining: number | null = null;
 
     if (!unlimited) {
       creditsTotal = Number(best.credits_total ?? 0);
-      creditsRemaining = Math.max(0, creditsTotal - creditsUsed);
+      const creditsRemaining = Math.max(0, creditsTotal - creditsUsed);
       if (creditsRemaining <= 0) {
         return jsonError("Crédits épuisés. Recharge nécessaire.", 403);
       }
     }
 
-    // 2) on scrape le fournisseur (titre/desc/images)
+    // 2) scrape fournisseur (titre/desc/images)
     const scraped = await scrapeProduct(productUrl);
     const productImages = uniq(scraped.images ?? []);
     const heroImage = productImages[0] ?? null;
 
     const packHint = packHintFor(best.product_key);
 
-    /**
-     * ✅ NOUVELLE SORTIE: prêt à vendre + images
-     * - On garde aussi homepageSections + productPageBlocks pour compat UI existante
-     */
     const schema = `
 Renvoie UNIQUEMENT du JSON VALIDE (pas de texte autour), avec EXACTEMENT ces clés (et types) :
 
@@ -379,7 +362,7 @@ Renvoie UNIQUEMENT du JSON VALIDE (pas de texte autour), avec EXACTEMENT ces cl�
   "tagline": string,
   "brandTone": string,
 
-  "homepageSections": string[], 
+  "homepageSections": string[],
   "productPageBlocks": string[],
 
   "homepageSectionsDetailed": [
@@ -423,6 +406,10 @@ Renvoie UNIQUEMENT du JSON VALIDE (pas de texte autour), avec EXACTEMENT ces cl�
 }
 `.trim();
 
+    const imagesForPrompt = productImages.length
+      ? productImages.slice(0, 20).join(", ")
+      : "aucune";
+
     const prompt = `
 ${packHint}
 
@@ -434,20 +421,19 @@ Produit (données fournisseur):
 - titre détecté: ${scraped.title ?? "inconnu"}
 - description détectée: ${scraped.description ? scraped.description.slice(0, 400) : "inconnue"}
 - prix détecté: ${scraped.price ? `${scraped.price} ${scraped.currency ?? ""}` : "inconnu"}
-- images détectées (URLs): ${productImages.length ? productImages.join(", ") : "aucune"}
+- images détectées (URLs): ${imagesForPrompt}
 
 Règles:
 - Le JSON doit être exploitable DIRECT (sans texte autour).
-- "homepageSectionsDetailed" doit contenir des textes vendeurs + CTA concrets.
-- "productDescription" = longue description persuasive (structure: bénéfices -> détails -> usage -> garantie).
-- "bullets" = avantages clairs, orientés bénéfices (pas des généralités).
+- "homepageSectionsDetailed" = textes vendeurs + CTA concrets.
+- "productDescription" = longue description persuasive (bénéfices -> détails -> usage -> garantie).
+- "bullets" = avantages orientés bénéfices (pas des généralités).
 - "faq" = réponses rassurantes (livraison, retour, qualité, SAV).
-- "shippingInfo" et "refundPolicySummary" doivent être simples et réalistes (sans mentionner de lois spécifiques).
+- "shippingInfo" et "refundPolicySummary" simples et réalistes.
 - "assets.productImages" = reprend les URLs détectées si possible (sinon []),
-  et "assets.heroImageUrl" = 1ère image si dispo.
-- Si aucune image détectée: mets heroImageUrl=null et donne des prompts de qualité dans logoPrompt/heroImagePrompt.
-- "homepageSections" et "productPageBlocks" = version courte (compat).
-- Ton pro, moderne, conversion.
+  "assets.heroImageUrl" = 1ère image si dispo.
+- Si aucune image détectée: heroImageUrl=null et prompts très bons.
+- "homepageSections" et "productPageBlocks" = version courte (compat UI existante).
 
 ${schema}
 `.trim();
@@ -486,11 +472,7 @@ ${schema}
         openaiRes.headers.get("openai-request-id") ||
         null;
 
-      const msg =
-        openaiJson?.error?.message ||
-        raw ||
-        "OpenAI request failed (no message)";
-
+      const msg = openaiJson?.error?.message || raw || "OpenAI request failed (no message)";
       const type = openaiJson?.error?.type || null;
       const code = openaiJson?.error?.code || null;
 
@@ -512,8 +494,7 @@ ${schema}
       });
     }
 
-    const ai = openaiJson;
-    const content = ai?.choices?.[0]?.message?.content;
+    const content = openaiJson?.choices?.[0]?.message?.content;
     if (!content || typeof content !== "string") {
       return jsonError("Réponse OpenAI vide", 500, { model });
     }
@@ -528,7 +509,7 @@ ${schema}
       });
     }
 
-    // ✅ validation minimum du nouveau format
+    // validation minimum du format "prêt à vendre"
     const ok =
       parsed &&
       typeof parsed.storeName === "string" &&
@@ -552,14 +533,12 @@ ${schema}
       return jsonError("OpenAI a renvoyé un format inattendu", 502, { model, parsed });
     }
 
-    // ✅ si OpenAI n’a pas repris les images, on force avec ce qu’on a scrapé
+    // force images scrapées si besoin
     parsed.assets.productImages = Array.isArray(parsed.assets.productImages)
       ? uniq([...parsed.assets.productImages, ...productImages])
       : productImages;
 
-    if (!parsed.assets.heroImageUrl) {
-      parsed.assets.heroImageUrl = heroImage;
-    }
+    if (!parsed.assets.heroImageUrl) parsed.assets.heroImageUrl = heroImage;
 
     if (!parsed.productTitle || parsed.productTitle === "Produit") {
       parsed.productTitle = scraped.title ?? parsed.productTitle;
@@ -586,7 +565,55 @@ ${schema}
 
       if (updErr) console.error("❌ credits update error:", updErr);
 
-      creditsRemainingAfter = creditsTotal === null ? null : Math.max(0, creditsTotal - nextUsed);
+      creditsRemainingAfter =
+        creditsTotal === null ? null : Math.max(0, creditsTotal - nextUsed);
+    }
+
+    // 4) sauvegarder la génération dans Supabase (Mes boutiques)
+    const payloadToStore = {
+      ...parsed,
+      meta: {
+        pack: best.product_key,
+        model,
+        source: {
+          productUrl,
+          scraped: {
+            title: scraped.title ?? null,
+            hasImages: productImages.length > 0,
+            imagesCount: productImages.length,
+          },
+        },
+      },
+    };
+
+    let savedShopId: string | null = null;
+    let savedCreatedAt: string | null = null;
+    let saveError: string | null = null;
+
+    try {
+      const { data: saved, error: saveErr } = await supabaseAdmin
+        .from("generated_shops")
+        .insert({
+          user_id: userId,
+          email,
+          product_url: productUrl,
+          pack: best.product_key,
+          store_name: parsed?.storeName ?? null,
+          payload: payloadToStore,
+        })
+        .select("id, created_at")
+        .single();
+
+      if (saveErr) {
+        console.error("❌ save generated_shops error:", saveErr);
+        saveError = saveErr.message;
+      } else {
+        savedShopId = saved?.id ?? null;
+        savedCreatedAt = saved?.created_at ?? null;
+      }
+    } catch (e: any) {
+      console.error("❌ save generated_shops exception:", e?.message ?? e);
+      saveError = e?.message ?? "save exception";
     }
 
     return NextResponse.json({
@@ -595,6 +622,9 @@ ${schema}
         pack: best.product_key,
         creditsRemaining: unlimited ? null : creditsRemainingAfter,
         model,
+        savedShopId,
+        savedCreatedAt,
+        saveError,
         source: {
           productUrl,
           scraped: {
