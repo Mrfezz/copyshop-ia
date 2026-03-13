@@ -46,7 +46,7 @@ function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
   if (packKey === "ia-premium") return { label: "PREMIUM", color: BRAND_GRADIENT };
   if (packKey === "ia-basic") return { label: "BASIC", color: BRAND_GRADIENT };
-  return null; // ✅ pas de badge “pack requis”
+  return null;
 }
 
 function formatCredits(pack: MePackResponse | null) {
@@ -55,6 +55,10 @@ function formatCredits(pack: MePackResponse | null) {
   const total = pack.quota ?? 0;
   const remaining = pack.creditsRemaining ?? 0;
   return `${remaining} / ${total}`;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export default function OutilIAPage() {
@@ -72,12 +76,14 @@ export default function OutilIAPage() {
   const [imageName, setImageName] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingSuccess, setLoadingSuccess] = useState(false);
+
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const badge = useMemo(() => badgeForPack(pack?.packKey ?? null), [pack?.packKey]);
 
-  // ✅ Titre/Subtitle propres même pendant le chargement
   const headerTitle = useMemo(() => {
     if (pack?.packKey) return pack.title;
     return "Génère tes boutiques Shopify grâce à l’IA";
@@ -87,6 +93,37 @@ export default function OutilIAPage() {
     if (pack?.packKey) return pack.subtitle;
     return "Colle un lien produit et lance la génération.";
   }, [pack?.packKey, pack?.subtitle]);
+
+  useEffect(() => {
+    if (!loading) return;
+
+    const interval = window.setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 100) return 100;
+        if (prev >= 95) return 95;
+
+        const step =
+          prev < 25 ? 4 :
+          prev < 50 ? 3 :
+          prev < 75 ? 2 : 1;
+
+        return Math.min(95, prev + step);
+      });
+    }, 120);
+
+    return () => window.clearInterval(interval);
+  }, [loading]);
+
+  useEffect(() => {
+    if (!loadingSuccess) return;
+
+    const timeout = window.setTimeout(() => {
+      setLoadingSuccess(false);
+      setLoadingProgress(0);
+    }, 1800);
+
+    return () => window.clearTimeout(timeout);
+  }, [loadingSuccess]);
 
   async function fetchMePack(token: string) {
     setPackLoading(true);
@@ -121,7 +158,6 @@ export default function OutilIAPage() {
 
         if (!mounted) return;
 
-        // ✅ pas connecté => pas accès à /outil-ia
         if (!session?.access_token) {
           setAuthToken(null);
           setUserEmail(null);
@@ -136,7 +172,6 @@ export default function OutilIAPage() {
 
         const p = await fetchMePack(session.access_token);
 
-        // ✅ connecté mais pas de pack actif => pas accès à /outil-ia
         if (!p?.packKey) {
           setLoadingPage(false);
           router.replace("/packs-ia");
@@ -202,6 +237,8 @@ export default function OutilIAPage() {
     e.preventDefault();
     setErrorMsg(null);
     setResult(null);
+    setLoadingSuccess(false);
+    setLoadingProgress(0);
 
     if (!authToken) {
       setErrorMsg("Tu dois être connecté pour utiliser l’outil.");
@@ -219,7 +256,10 @@ export default function OutilIAPage() {
       return;
     }
 
+    let success = false;
+
     setLoading(true);
+    setLoadingProgress(1);
 
     try {
       const res = await fetch("/api/outil-ia", {
@@ -252,22 +292,32 @@ export default function OutilIAPage() {
       setResult(data);
 
       await fetchMePack(authToken);
+
+      setLoadingProgress(100);
+      setLoadingSuccess(true);
+      success = true;
+
+      await sleep(1000);
     } catch (err) {
       console.error(err);
       setErrorMsg("Erreur réseau pendant l'appel à l’IA.");
     } finally {
       setLoading(false);
+
+      if (!success) {
+        setLoadingProgress(0);
+        setLoadingSuccess(false);
+      }
     }
   }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-    router.replace("/compte-client"); // ✅ redirection immédiate après clic
+    router.replace("/compte-client");
   }
 
   const showCredits = !!pack?.packKey && !packLoading;
 
-  // ✅ pendant la vérif + redirections => on évite le flash
   if (loadingPage || packLoading) {
     return (
       <main style={styles.page}>
@@ -286,7 +336,6 @@ export default function OutilIAPage() {
       <div style={styles.bgDots} />
 
       <section style={styles.container}>
-        {/* HEADER */}
         <header style={styles.header}>
           <div style={{ display: "grid", gap: 10 }}>
             <p style={styles.kicker}>OUTIL IA • BOUTIQUES SHOPIFY</p>
@@ -294,7 +343,6 @@ export default function OutilIAPage() {
             <div style={styles.titleRow}>
               <h1 style={styles.title}>{headerTitle}</h1>
 
-              {/* ✅ badge seulement si pack actif */}
               {badge && (
                 <span style={{ ...styles.packBadge, background: badge.color }}>
                   {badge.label}
@@ -304,7 +352,6 @@ export default function OutilIAPage() {
 
             <p style={styles.sub}>{headerSubtitle}</p>
 
-            {/* mini barre état */}
             <div style={styles.statusRow}>
               <div style={styles.statusPill}>
                 {authToken ? `✅ Connecté : ${userEmail ?? "—"}` : "❌ Non connecté"}
@@ -333,9 +380,7 @@ export default function OutilIAPage() {
           </div>
         </header>
 
-        {/* GRID */}
         <section style={styles.grid} data-grid="outil">
-          {/* LEFT INFO */}
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Comment ça marche</h2>
 
@@ -355,7 +400,6 @@ export default function OutilIAPage() {
             </ul>
           </div>
 
-          {/* RIGHT FORM */}
           <form onSubmit={handleGenerate} style={styles.card}>
             <h2 style={styles.cardTitle}>Envoyer à l’IA</h2>
 
@@ -393,8 +437,32 @@ export default function OutilIAPage() {
 
               {errorMsg && <div style={styles.errorBox}>{errorMsg}</div>}
 
-              <button type="submit" disabled={loading || !authToken} style={styles.primaryBtn}>
-                {loading ? "Génération en cours…" : "Générer ma boutique"}
+              <button
+                type="submit"
+                disabled={loading || loadingSuccess || !authToken}
+                style={{
+                  ...styles.primaryBtn,
+                  ...(loading ? styles.primaryBtnLoading : {}),
+                  ...(loadingSuccess ? styles.primaryBtnSuccess : {}),
+                  ...((loading || loadingSuccess || !authToken) ? styles.primaryBtnDisabled : {}),
+                }}
+              >
+                {loadingSuccess ? (
+                  <span style={styles.buttonContent}>
+                    <span>Chargement réussi ✅</span>
+                  </span>
+                ) : loading ? (
+                  <span style={styles.buttonContent}>
+                    <span>Chargement {loadingProgress}%</span>
+                    <span style={styles.dotsWrap}>
+                      <span className="loading-dot" style={{ animationDelay: "0s" }}>.</span>
+                      <span className="loading-dot" style={{ animationDelay: "0.2s" }}>.</span>
+                      <span className="loading-dot" style={{ animationDelay: "0.4s" }}>.</span>
+                    </span>
+                  </span>
+                ) : (
+                  "Générer ma boutique"
+                )}
               </button>
 
               {!authToken && <div style={styles.helper}>Connecte-toi pour utiliser l’outil.</div>}
@@ -402,7 +470,6 @@ export default function OutilIAPage() {
           </form>
         </section>
 
-        {/* RESULT */}
         {result && (
           <section style={{ ...styles.card, marginTop: 18 }}>
             <div style={styles.resultHeader}>
@@ -472,8 +539,27 @@ export default function OutilIAPage() {
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
+
         @media (max-width: 980px) {
           section[data-grid="outil"] { grid-template-columns: 1fr !important; }
+        }
+
+        .loading-dot {
+          display: inline-block;
+          opacity: 0.25;
+          animation: loadingBlink 1.1s infinite ease-in-out;
+          transform: translateY(0);
+        }
+
+        @keyframes loadingBlink {
+          0%, 80%, 100% {
+            opacity: 0.25;
+            transform: translateY(0);
+          }
+          40% {
+            opacity: 1;
+            transform: translateY(-2px);
+          }
         }
       `}</style>
     </main>
@@ -727,6 +813,32 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
     opacity: 1,
     boxSizing: "border-box",
+    transition: "all 0.25s ease",
+  },
+  primaryBtnLoading: {
+    filter: "saturate(1.05)",
+  },
+  primaryBtnSuccess: {
+    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
+    border: "1px solid rgba(187,247,208,0.45)",
+    boxShadow: "0 12px 26px rgba(34,197,94,0.25)",
+  },
+  primaryBtnDisabled: {
+    cursor: "not-allowed",
+  },
+  buttonContent: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    width: "100%",
+  },
+  dotsWrap: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 1,
+    minWidth: 16,
   },
 
   resultHeader: {
