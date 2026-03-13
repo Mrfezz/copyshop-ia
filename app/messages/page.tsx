@@ -78,12 +78,10 @@ function formatMoney(amountCents: number | null, currency: string | null): strin
 }
 
 async function copyText(text: string) {
-  // ✅ Clipboard API
   try {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
-    // ✅ fallback vieux navigateurs
     try {
       const ta = document.createElement("textarea");
       ta.value = text;
@@ -121,26 +119,21 @@ export default function MessagesPage() {
 
   const [tab, setTab] = useState<TabKey>("inbox");
 
-  // messages
   const [messages, setMessages] = useState<Msg[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgError, setMsgError] = useState<string | null>(null);
 
-  // composer
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sendOk, setSendOk] = useState<string | null>(null);
 
-  // pagination
   const [page, setPage] = useState(0);
 
-  // orders
   const [orders, setOrders] = useState<Purchase[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  // shops
   const [shops, setShops] = useState<Shop[]>([]);
   const [shopsLoading, setShopsLoading] = useState(false);
   const [shopsError, setShopsError] = useState<string | null>(null);
@@ -180,7 +173,7 @@ export default function MessagesPage() {
   const filteredMessages = useMemo(() => {
     if (tab === "sent") return messages.filter((m) => isOutbound(m));
     if (tab === "received") return messages.filter((m) => isInbound(m));
-    return messages; // inbox
+    return messages;
   }, [messages, tab]);
 
   const pageCount = useMemo(() => {
@@ -319,7 +312,7 @@ export default function MessagesPage() {
       <div style={styles.bgGradient} />
       <div style={styles.bgDots} />
 
-      <section style={styles.container}>
+      <section className="m-container" style={styles.container}>
         <header style={styles.header}>
           <div style={styles.topRow}>
             <div>
@@ -353,7 +346,6 @@ export default function MessagesPage() {
 
         {!checking && session && (
           <div className="m-layout" style={styles.layout}>
-            {/* SIDEBAR */}
             <aside className="m-sidebar" style={styles.sidebar}>
               <button
                 onClick={() => setTab("inbox")}
@@ -402,7 +394,6 @@ export default function MessagesPage() {
               </a>
             </aside>
 
-            {/* BLOC DROIT HAUT */}
             {isMsgTab && (
               <form className="m-topRight" onSubmit={sendMessage} style={styles.composer}>
                 <div style={styles.composerTitle}>Nouveau message</div>
@@ -572,7 +563,6 @@ export default function MessagesPage() {
               </div>
             )}
 
-            {/* HISTORIQUE messages */}
             {isMsgTab && (
               <div className="m-history" style={styles.listWrap}>
                 <div className="msg-list-head" style={styles.listHeader}>
@@ -658,9 +648,15 @@ export default function MessagesPage() {
 
       <style>{`
         @media (max-width: 980px) {
+          .m-container{
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+          }
+
           .m-layout{
             grid-template-columns: 1fr !important;
             grid-template-rows: auto auto auto !important;
+            width: 100% !important;
           }
 
           .m-sidebar{
@@ -669,18 +665,30 @@ export default function MessagesPage() {
             grid-column: 1 / -1 !important;
             grid-row: 1 !important;
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            justify-self: center !important;
           }
 
           .m-topRight{
             grid-column: 1 / -1 !important;
             grid-row: 2 !important;
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            justify-self: center !important;
           }
 
           .m-history{
             grid-column: 1 / -1 !important;
             grid-row: 3 !important;
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            justify-self: center !important;
           }
 
           .msg-date{ display:none !important; }
@@ -1042,7 +1050,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
   },
 
-  // shops UI
   shopsList: { display: "grid", gap: 12, marginTop: 14 },
   shopCard: {
     border: `1px solid ${COLORS.border}`,
@@ -1063,7 +1070,13 @@ const styles: Record<string, React.CSSProperties> = {
     background: "rgba(0,0,0,0.25)",
   },
   shopMeta: { color: COLORS.muted, fontWeight: 800, fontSize: "0.92rem" },
-  shopLink: { display: "inline-block", marginTop: 8, color: "rgba(201,210,255,0.95)", fontWeight: 900, textDecoration: "underline" },
+  shopLink: {
+    display: "inline-block",
+    marginTop: 8,
+    color: "rgba(201,210,255,0.95)",
+    fontWeight: 900,
+    textDecoration: "underline",
+  },
   shopActions: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 },
   shopIdLine: { marginTop: 10, color: "rgba(201,210,255,0.85)", fontWeight: 800, fontSize: "0.9rem" },
 };
