@@ -37,10 +37,19 @@ function formatDate(iso?: string | null): string {
   return d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 }
 
-function formatAmount(amountCents?: number | null, currency?: string | null): string {
-  if (amountCents == null) return "—";
+function formatAmount(
+  amountCents?: number | null,
+  currency?: string | null,
+  productKey?: string | null
+): string {
+  if (amountCents == null) {
+    if (productKey === "ia-ultime") return "149,99 €";
+    return "Montant non disponible";
+  }
+
   const cur = (currency || "EUR").toUpperCase();
   const eur = amountCents / 100;
+
   try {
     return new Intl.NumberFormat("fr-FR", { style: "currency", currency: cur }).format(eur);
   } catch {
@@ -216,7 +225,7 @@ export default function HistoriqueCommandesPage() {
                         <div style={styles.metaLine}>
                           <span style={styles.metaLabel}>Montant :</span>
                           <span style={styles.metaValue}>
-                            {formatAmount(p.amount_total, p.currency)}
+                            {formatAmount(p.amount_total, p.currency, p.product_key)}
                           </span>
                         </div>
 
@@ -225,11 +234,6 @@ export default function HistoriqueCommandesPage() {
                           <span style={styles.metaValue}>
                             {humanizeProductKey(p.product_key)}
                           </span>
-                        </div>
-
-                        <div style={styles.metaLine}>
-                          <span style={styles.metaLabel}>Session :</span>
-                          <span style={styles.metaValue}>{p.stripe_session_id || "—"}</span>
                         </div>
                       </div>
                     </article>

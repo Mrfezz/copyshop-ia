@@ -40,8 +40,16 @@ function formatDate(iso?: string | null): string {
   return d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 }
 
-function formatAmount(amountCents?: number | null, currency?: string | null): string {
-  if (amountCents == null) return "—";
+function formatAmount(
+  amountCents?: number | null,
+  currency?: string | null,
+  productKey?: string | null
+): string {
+  if (amountCents == null) {
+    if (productKey === "ia-ultime") return "149,99 €";
+    return "Montant non disponible";
+  }
+
   const cur = (currency || "EUR").toUpperCase();
   const eur = amountCents / 100;
   try {
@@ -350,7 +358,7 @@ export default function CompteClientPage() {
                           <div style={styles.purchaseMeta}>
                             <span>{formatDate(p.created_at || p.updated_at)}</span>
                             <span>•</span>
-                            <span>{formatAmount(p.amount_total, p.currency)}</span>
+                            <span>{formatAmount(p.amount_total, p.currency, p.product_key)}</span>
                             <span>•</span>
                             <span style={styles.badge}>
                               {(p.status || "unknown").toUpperCase()}
