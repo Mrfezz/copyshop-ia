@@ -55,7 +55,6 @@ function humanizeProductKey(key?: string | null): string {
   const k = (key || "").trim();
   if (!k) return "—";
 
-  // cas multi-produits "a,b,c"
   if (k.includes(",")) {
     return k
       .split(",")
@@ -70,10 +69,6 @@ function humanizeProductKey(key?: string | null): string {
   return k;
 }
 
-/**
- * ✅ IMPORTANT (fix Vercel)
- * useSearchParams() DOIT être dans un composant rendu sous <Suspense>.
- */
 function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   const searchParams = useSearchParams();
 
@@ -103,7 +98,6 @@ export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // auth UI
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -112,12 +106,10 @@ export default function CompteClientPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMsg, setAuthMsg] = useState<string | null>(null);
 
-  // ✅ achats
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [purchasesLoading, setPurchasesLoading] = useState(false);
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
 
-  // ✅ évite double redirection
   const redirectedOnce = useRef(false);
 
   useEffect(() => {
@@ -141,10 +133,6 @@ export default function CompteClientPage() {
     };
   }, []);
 
-  /**
-   * ✅ si un achat est "en attente" (pendingCheckout),
-   * alors après connexion on renvoie vers /paiement.
-   */
   useEffect(() => {
     if (checking) return;
     if (!session) return;
@@ -185,7 +173,6 @@ export default function CompteClientPage() {
     window.location.href = "/paiement";
   }, [checking, session]);
 
-  // ✅ charger l’historique achats après login
   useEffect(() => {
     if (!session) return;
 
@@ -207,7 +194,14 @@ export default function CompteClientPage() {
         if (!res.ok) throw new Error(json?.error || "Erreur chargement achats");
 
         const list = Array.isArray(json?.purchases) ? (json.purchases as Purchase[]) : [];
-        if (!cancelled) setPurchases(list);
+
+        const sorted = [...list].sort((a, b) => {
+          const da = new Date(a.created_at || a.updated_at || 0).getTime();
+          const db = new Date(b.created_at || b.updated_at || 0).getTime();
+          return db - da;
+        });
+
+        if (!cancelled) setPurchases(sorted);
       } catch (e: any) {
         if (!cancelled) setPurchasesError(e?.message ?? "Erreur chargement achats");
       } finally {
@@ -221,34 +215,6 @@ export default function CompteClientPage() {
   }, [session]);
 
   const userEmail = session?.user?.email ?? "";
-
-  async function handleAuthSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthMsg(null);
-    setAuthLoading(true);
-
-    try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        setAuthMsg("Connecté ✅");
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
-      }
-    } catch (err: any) {
-      setAuthError(err?.message ?? "Erreur d’auth");
-    } finally {
-      setAuthLoading(false);
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-  }
-
   const lastPurchase = purchases?.[0] ?? null;
 
   return (
@@ -348,7 +314,6 @@ export default function CompteClientPage() {
 
         {!checking && session && (
           <div className="client-grid" style={styles.grid}>
-            {/* Achats */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Mes achats</h2>
               <p style={styles.cardText}>Historique de tes packs + factures.</p>
@@ -403,7 +368,6 @@ export default function CompteClientPage() {
               </a>
             </article>
 
-            {/* Panier */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Panier</h2>
               <p style={styles.cardText}>
@@ -414,7 +378,6 @@ export default function CompteClientPage() {
               </a>
             </article>
 
-            {/* Messagerie */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Messagerie</h2>
               <p style={styles.cardText}>Accède à tes messages avec le support.</p>
@@ -424,7 +387,6 @@ export default function CompteClientPage() {
               <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
             </article>
 
-            {/* Accès outil IA */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Accès outil IA</h2>
               <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
@@ -438,7 +400,6 @@ export default function CompteClientPage() {
               </div>
             </article>
 
-            {/* Recharges */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Recharges</h2>
               <p style={styles.cardText}>
@@ -451,7 +412,6 @@ export default function CompteClientPage() {
               </a>
             </article>
 
-            {/* Support */}
             <article style={styles.card}>
               <h2 style={styles.cardTitle}>Support</h2>
               <p style={styles.cardText}>
@@ -482,6 +442,33 @@ export default function CompteClientPage() {
       `}</style>
     </main>
   );
+
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthMsg(null);
+    setAuthLoading(true);
+
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setAuthMsg("Connecté ✅");
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
+      }
+    } catch (err: any) {
+      setAuthError(err?.message ?? "Erreur d’auth");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
 }
 
 const styles: Record<string, React.CSSProperties> = {
