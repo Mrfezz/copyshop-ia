@@ -1,4 +1,3 @@
-// app/api/me/messages/route.ts
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -8,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function jsonError(message: string, status = 400, extra?: Record<string, any>) {
+  return NextResponse.json({ error: message, ...(extra ?? {}) }, { status });
 }
 
 async function getEmailFromAuth(req: Request): Promise<string | null> {
@@ -21,15 +20,6 @@ async function getEmailFromAuth(req: Request): Promise<string | null> {
   if (error) return null;
 
   return data?.user?.email ?? null;
-}
-
-// ✅ string -> base64url (pour reply+TOKEN@domain)
-function strToB64url(s: string) {
-  return Buffer.from(s, "utf8")
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
 }
 
 function escapeHtml(s: string) {
@@ -76,7 +66,6 @@ export async function POST(req: Request) {
 
     if (!cleanBody) return jsonError("Message vide.");
 
-    // 1) On stocke dans Supabase (Envoyé)
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from("messages")
       .insert({
@@ -90,44 +79,49 @@ export async function POST(req: Request) {
 
     if (insErr) return jsonError(insErr.message, 500);
 
-    // 2) On envoie l’email au support (Resend)
-    const to = process.env.CONTACT_TO_EMAIL;      // ex: copyshopp.ia@gmail.com
-    const from = process.env.CONTACT_FROM_EMAIL;  // ex: "Copyshop IA <onboarding@resend.dev>"
-    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
+    const to = process.env.CONTACT_TO_EMAIL || "copyshop-ia@gmail.com";
+    const from = process.env.CONTACT_FROM_EMAIL || "Copyshop IA <onboarding@resend.dev>";
 
-    if (!to || !from) {
-      return NextResponse.json({
-        ok: true,
-        warning: "CONTACT_TO_EMAIL / CONTACT_FROM_EMAIL manquants",
-        message: inserted,
-      });
+    if (!process.env.RESEND_API_KEY) {
+      return jsonError("RESEND_API_KEY manquante", 500, { message: inserted });
     }
-
-    // ✅ LE POINT CLÉ : Reply-To spécial => Gmail répond vers Resend inbound
-    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
 
     const mailSubject = cleanSubject
       ? `📩 COPYSHOP IA — ${cleanSubject}`
       : `📩 COPYSHOP IA — Nouveau message client`;
 
-    await resend.emails.send({
+    const { data: resendData, error: resendError } = await resend.emails.send({
       from,
       to: [to],
       subject: mailSubject,
-      replyTo, // ✅ IMPORTANT (NE PAS mettre replyTo: email)
+      replyTo: email,
       text: `Client: ${email}\n\n${cleanBody}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">
           <p><strong>Client :</strong> ${escapeHtml(email)}</p>
           ${cleanSubject ? `<p><strong>Sujet :</strong> ${escapeHtml(cleanSubject)}</p>` : ""}
           <hr />
-          <pre style="white-space:pre-wrap">${escapeHtml(cleanBody)}</pre>
+          <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(cleanBody)}</pre>
         </div>
       `,
     });
 
-    return NextResponse.json({ ok: true, message: inserted });
+    if (resendError) {
+      console.error("❌ Resend send error:", resendError);
+      return jsonError("Email non envoyé au support", 502, {
+        resendError,
+        message: inserted,
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: inserted,
+      emailSent: true,
+      resendId: resendData?.id ?? null,
+    });
   } catch (e: any) {
+    console.error("❌ /api/me/messages POST error:", e);
     return jsonError(e?.message ?? "Server error", 500);
   }
 }
