@@ -363,8 +363,8 @@ export default function CompteClientPage() {
                 </>
               )}
 
-              <a href="/packs-ia" style={styles.buttonAlt}>
-                Voir les packs
+              <a href="/historique-commandes" style={styles.buttonAlt}>
+                Voir l’historique complet
               </a>
             </article>
 
