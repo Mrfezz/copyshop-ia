@@ -1,7 +1,14 @@
-// app/outil-ia/page.tsx
 "use client";
 
-import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+// app/outil-ia/page.tsx
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -32,7 +39,7 @@ const COLORS = {
   text: "#eef1ff",
   muted: "#c9d2ff",
   panel: "rgba(10, 15, 43, 0.85)",
-  panelSoft: "rgba(13, 18, 50, 0.90)",
+  panelSoft: "rgba(13, 18, 50, 0.9)",
   panelBorder: "rgba(150, 170, 255, 0.18)",
   navy: "#0b0f2a",
   violet: "#6a2fd6",
@@ -43,9 +50,18 @@ const COLORS = {
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`;
 
 function badgeForPack(packKey: MePackResponse["packKey"]) {
-  if (packKey === "ia-ultime") return { label: "ULTIME", color: "linear-gradient(90deg, #22c55e, #a3e635)" };
-  if (packKey === "ia-premium") return { label: "PREMIUM", color: BRAND_GRADIENT };
-  if (packKey === "ia-basic") return { label: "BASIC", color: BRAND_GRADIENT };
+  if (packKey === "ia-ultime") {
+    return {
+      label: "ULTIME",
+      color: "linear-gradient(90deg, #22c55e, #a3e635)",
+    };
+  }
+  if (packKey === "ia-premium") {
+    return { label: "PREMIUM", color: BRAND_GRADIENT };
+  }
+  if (packKey === "ia-basic") {
+    return { label: "BASIC", color: BRAND_GRADIENT };
+  }
   return null;
 }
 
@@ -79,6 +95,9 @@ export default function OutilIAPage() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingSuccess, setLoadingSuccess] = useState(false);
 
+  const progressRef = useRef(0);
+  const progressTimerRef = useRef<number | null>(null);
+
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -94,33 +113,65 @@ export default function OutilIAPage() {
     return "Colle un lien produit et lance la génération.";
   }, [pack?.packKey, pack?.subtitle]);
 
-  useEffect(() => {
-    if (!loading) return;
+  function setProgress(value: number) {
+    progressRef.current = value;
+    setLoadingProgress(value);
+  }
 
-    const interval = window.setInterval(() => {
-      setLoadingProgress((prev) => {
-        if (prev >= 100) return 100;
-        if (prev >= 95) return 95;
+  function stopProgressTimer() {
+    if (progressTimerRef.current !== null) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }
 
-        const step =
-          prev < 25 ? 4 :
-          prev < 50 ? 3 :
-          prev < 75 ? 2 : 1;
+  function startProgressTimer() {
+    stopProgressTimer();
+    setProgress(1);
 
-        return Math.min(95, prev + step);
-      });
+    progressTimerRef.current = window.setInterval(() => {
+      const current = progressRef.current;
+
+      if (current >= 94) return;
+
+      let next = current + 1;
+
+      if (current < 20) next = current + 4;
+      else if (current < 40) next = current + 3;
+      else if (current < 65) next = current + 2;
+      else next = current + 1;
+
+      if (next > 94) next = 94;
+      setProgress(next);
     }, 120);
+  }
 
-    return () => window.clearInterval(interval);
-  }, [loading]);
+  async function animateProgressTo100() {
+    stopProgressTimer();
+
+    let current = progressRef.current;
+    if (current < 95) current = 95;
+
+    while (current < 100) {
+      current += 1;
+      setProgress(current);
+      await sleep(18);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      stopProgressTimer();
+    };
+  }, []);
 
   useEffect(() => {
     if (!loadingSuccess) return;
 
     const timeout = window.setTimeout(() => {
       setLoadingSuccess(false);
-      setLoadingProgress(0);
-    }, 1800);
+      setProgress(0);
+    }, 1400);
 
     return () => window.clearTimeout(timeout);
   }, [loadingSuccess]);
@@ -238,7 +289,7 @@ export default function OutilIAPage() {
     setErrorMsg(null);
     setResult(null);
     setLoadingSuccess(false);
-    setLoadingProgress(0);
+    setProgress(0);
 
     if (!authToken) {
       setErrorMsg("Tu dois être connecté pour utiliser l’outil.");
@@ -259,7 +310,7 @@ export default function OutilIAPage() {
     let success = false;
 
     setLoading(true);
-    setLoadingProgress(1);
+    startProgressTimer();
 
     try {
       const res = await fetch("/api/outil-ia", {
@@ -279,6 +330,9 @@ export default function OutilIAPage() {
         const t = await res.text();
         console.error("❌ /api/outil-ia error:", t);
 
+        stopProgressTimer();
+        setProgress(0);
+
         try {
           const j = JSON.parse(t);
           setErrorMsg(j?.error ?? "Erreur lors de la génération.");
@@ -292,20 +346,22 @@ export default function OutilIAPage() {
       setResult(data);
 
       await fetchMePack(authToken);
+      await animateProgressTo100();
 
-      setLoadingProgress(100);
       setLoadingSuccess(true);
       success = true;
 
-      await sleep(1000);
+      await sleep(900);
     } catch (err) {
       console.error(err);
+      stopProgressTimer();
+      setProgress(0);
       setErrorMsg("Erreur réseau pendant l'appel à l’IA.");
     } finally {
+      stopProgressTimer();
       setLoading(false);
 
       if (!success) {
-        setLoadingProgress(0);
         setLoadingSuccess(false);
       }
     }
@@ -439,30 +495,14 @@ export default function OutilIAPage() {
 
               <button
                 type="submit"
-                disabled={loading || loadingSuccess || !authToken}
+                disabled={loading || !authToken}
                 style={{
                   ...styles.primaryBtn,
                   ...(loading ? styles.primaryBtnLoading : {}),
                   ...(loadingSuccess ? styles.primaryBtnSuccess : {}),
-                  ...((loading || loadingSuccess || !authToken) ? styles.primaryBtnDisabled : {}),
                 }}
               >
-                {loadingSuccess ? (
-                  <span style={styles.buttonContent}>
-                    <span>Chargement réussi ✅</span>
-                  </span>
-                ) : loading ? (
-                  <span style={styles.buttonContent}>
-                    <span>Chargement {loadingProgress}%</span>
-                    <span style={styles.dotsWrap}>
-                      <span className="loading-dot" style={{ animationDelay: "0s" }}>.</span>
-                      <span className="loading-dot" style={{ animationDelay: "0.2s" }}>.</span>
-                      <span className="loading-dot" style={{ animationDelay: "0.4s" }}>.</span>
-                    </span>
-                  </span>
-                ) : (
-                  "Générer ma boutique"
-                )}
+                {loading ? `Chargement ${loadingProgress}%` : loadingSuccess ? "Chargement réussi ✅" : "Générer ma boutique"}
               </button>
 
               {!authToken && <div style={styles.helper}>Connecte-toi pour utiliser l’outil.</div>}
@@ -541,24 +581,8 @@ export default function OutilIAPage() {
         *, *::before, *::after { box-sizing: border-box; }
 
         @media (max-width: 980px) {
-          section[data-grid="outil"] { grid-template-columns: 1fr !important; }
-        }
-
-        .loading-dot {
-          display: inline-block;
-          opacity: 0.25;
-          animation: loadingBlink 1.1s infinite ease-in-out;
-          transform: translateY(0);
-        }
-
-        @keyframes loadingBlink {
-          0%, 80%, 100% {
-            opacity: 0.25;
-            transform: translateY(0);
-          }
-          40% {
-            opacity: 1;
-            transform: translateY(-2px);
+          section[data-grid="outil"] {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>
@@ -813,32 +837,15 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
     opacity: 1,
     boxSizing: "border-box",
-    transition: "all 0.25s ease",
+    transition: "all 0.2s ease",
   },
   primaryBtnLoading: {
-    filter: "saturate(1.05)",
+    opacity: 0.95,
+    transform: "translateY(-1px)",
   },
   primaryBtnSuccess: {
     background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
-    border: "1px solid rgba(187,247,208,0.45)",
-    boxShadow: "0 12px 26px rgba(34,197,94,0.25)",
-  },
-  primaryBtnDisabled: {
-    cursor: "not-allowed",
-  },
-  buttonContent: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    flexWrap: "wrap",
-    width: "100%",
-  },
-  dotsWrap: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 1,
-    minWidth: 16,
+    border: "1px solid rgba(187,247,208,0.4)",
   },
 
   resultHeader: {
