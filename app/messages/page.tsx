@@ -659,22 +659,28 @@ export default function MessagesPage() {
       <style>{`
         @media (max-width: 980px) {
           .m-layout{
-            grid-template-columns: 1fr 1fr !important;
-            grid-template-rows: auto auto !important;
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto auto auto !important;
           }
+
           .m-sidebar{
             position: relative !important;
             top: auto !important;
-            grid-column: 1 !important;
+            grid-column: 1 / -1 !important;
             grid-row: 1 !important;
+            width: 100% !important;
           }
+
           .m-topRight{
-            grid-column: 2 !important;
-            grid-row: 1 !important;
-          }
-          .m-history{
             grid-column: 1 / -1 !important;
             grid-row: 2 !important;
+            width: 100% !important;
+          }
+
+          .m-history{
+            grid-column: 1 / -1 !important;
+            grid-row: 3 !important;
+            width: 100% !important;
           }
 
           .msg-date{ display:none !important; }
@@ -683,6 +689,7 @@ export default function MessagesPage() {
           .msg-list-head{
             grid-template-columns: 120px 1fr !important;
           }
+
           .msg-row{
             grid-template-columns: 120px 1fr !important;
           }
