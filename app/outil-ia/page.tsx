@@ -53,7 +53,7 @@ function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") {
     return {
       label: "ULTIME",
-      color: "linear-gradient(90deg, #22c55e, #a3e635)",
+      color: BRAND_GRADIENT,
     };
   }
   if (packKey === "ia-premium") {
