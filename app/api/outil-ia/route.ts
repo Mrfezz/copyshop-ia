@@ -224,6 +224,7 @@ async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
 
     const ldBlocks = extractLdJson(html);
     let productObj: any | null = null;
+
     for (const ld of ldBlocks) {
       const found = findProductInLd(ld);
       if (found) {
@@ -284,6 +285,7 @@ function packHintFor(bestKey: string) {
 - bullets 6 max
 - ton clair, direct, vendeur`;
   }
+
   if (bestKey === "ia-premium") {
     return `PACK PREMIUM:
 - contenu plus persuasif (USP + objections)
@@ -292,6 +294,7 @@ function packHintFor(bestKey: string) {
 - bullets 8
 - ajoute mini "social proof" + garanties`;
   }
+
   return `PACK ULTIME:
 - ultra complet + très vendeur
 - 8 sections homepage détaillées
@@ -375,10 +378,22 @@ function buildShopifyDescriptionHtml(parsed: any, productUrl: string) {
 
     parts.push("<h3>Livraison</h3>");
     parts.push("<ul>");
-    if (processingTime) parts.push(`<li><strong>Préparation :</strong> ${escapeHtml(processingTime)}</li>`);
-    if (deliveryTime) parts.push(`<li><strong>Livraison :</strong> ${escapeHtml(deliveryTime)}</li>`);
-    if (tracking) parts.push(`<li><strong>Suivi :</strong> ${escapeHtml(tracking)}</li>`);
-    if (notes) parts.push(`<li><strong>Infos :</strong> ${escapeHtml(notes)}</li>`);
+    if (processingTime) {
+      parts.push(
+        `<li><strong>Préparation :</strong> ${escapeHtml(processingTime)}</li>`
+      );
+    }
+    if (deliveryTime) {
+      parts.push(
+        `<li><strong>Livraison :</strong> ${escapeHtml(deliveryTime)}</li>`
+      );
+    }
+    if (tracking) {
+      parts.push(`<li><strong>Suivi :</strong> ${escapeHtml(tracking)}</li>`);
+    }
+    if (notes) {
+      parts.push(`<li><strong>Infos :</strong> ${escapeHtml(notes)}</li>`);
+    }
     parts.push("</ul>");
   }
 
@@ -397,7 +412,7 @@ function buildShopifyDescriptionHtml(parsed: any, productUrl: string) {
 
       parts.push("<p>");
       if (q) parts.push(`<strong>${escapeHtml(q)}</strong><br />`);
-      if (a) parts.push(`${escapeHtml(a)}`);
+      if (a) parts.push(escapeHtml(a));
       parts.push("</p>");
     }
   }
@@ -412,6 +427,13 @@ function buildShopifyDescriptionHtml(parsed: any, productUrl: string) {
   }
 
   return parts.join("");
+}
+
+function buildShopifyAdminProductUrl(
+  legacyResourceId: string | number | null | undefined
+) {
+  if (!SHOP || !legacyResourceId) return null;
+  return `https://${SHOP}.myshopify.com/admin/products/${legacyResourceId}`;
 }
 
 async function createShopifyDraftProduct(params: {
@@ -452,6 +474,7 @@ async function createShopifyDraftProduct(params: {
                   handle
                   status
                   onlineStorePreviewUrl
+                  legacyResourceId
                 }
                 userErrors {
                   field
@@ -499,9 +522,17 @@ async function createShopifyDraftProduct(params: {
       };
     }
 
+    const product = result?.product ?? null;
+    const adminUrl = buildShopifyAdminProductUrl(product?.legacyResourceId);
+
     return {
       ok: true,
-      product: result?.product ?? null,
+      product: product
+        ? {
+            ...product,
+            adminUrl,
+          }
+        : null,
     };
   } catch (e: any) {
     return {
@@ -553,7 +584,9 @@ export async function POST(req: Request) {
 
     const best =
       (ents ?? [])
-        .filter((e: any) => typeof e?.product_key === "string" && rankPack(e.product_key) > 0)
+        .filter(
+          (e: any) => typeof e?.product_key === "string" && rankPack(e.product_key) > 0
+        )
         .sort((a: any, b: any) => rankPack(b.product_key) - rankPack(a.product_key))[0] ?? null;
 
     if (!best) return jsonError("Accès refusé : aucun pack actif", 403);
@@ -642,8 +675,12 @@ Ta mission: générer une boutique "prête à vendre" en FRANÇAIS.
 Produit (données fournisseur):
 - productUrl: ${productUrl}
 - titre détecté: ${scraped.title ?? "inconnu"}
-- description détectée: ${scraped.description ? scraped.description.slice(0, 400) : "inconnue"}
-- prix détecté: ${scraped.price ? `${scraped.price} ${scraped.currency ?? ""}` : "inconnu"}
+- description détectée: ${
+      scraped.description ? scraped.description.slice(0, 400) : "inconnue"
+    }
+- prix détecté: ${
+      scraped.price ? `${scraped.price} ${scraped.currency ?? ""}` : "inconnu"
+    }
 - images détectées (URLs): ${imagesForPrompt}
 
 Règles:
@@ -673,7 +710,10 @@ ${schema}
         model,
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "Assistant e-commerce / Shopify. Réponds en JSON strict." },
+          {
+            role: "system",
+            content: "Assistant e-commerce / Shopify. Réponds en JSON strict.",
+          },
           { role: "user", content: prompt },
         ],
         temperature: best.product_key === "ia-basic" ? 0.6 : 0.75,
@@ -682,6 +722,7 @@ ${schema}
 
     const raw = await openaiRes.text();
     let openaiJson: any = null;
+
     try {
       openaiJson = raw ? JSON.parse(raw) : null;
     } catch {

@@ -30,6 +30,21 @@ type GeneratedBoutique = {
   homepageSections: string[];
   productPageBlocks: string[];
   brandTone: string;
+  meta?: {
+    shopify?: {
+      ok?: boolean;
+      error?: string;
+      product?: {
+        id?: string;
+        title?: string;
+        handle?: string;
+        status?: string;
+        onlineStorePreviewUrl?: string | null;
+        legacyResourceId?: string | number | null;
+        adminUrl?: string | null;
+      } | null;
+    };
+  };
 };
 
 const COLORS = {
@@ -373,6 +388,7 @@ export default function OutilIAPage() {
   }
 
   const showCredits = !!pack?.packKey && !packLoading;
+  const shopifyAdminUrl = result?.meta?.shopify?.product?.adminUrl ?? null;
 
   if (loadingPage || packLoading) {
     return (
@@ -520,13 +536,26 @@ export default function OutilIAPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                style={styles.secondaryBtn}
-                onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
-              >
-                Copier le JSON
-              </button>
+              <div style={styles.resultActions}>
+                <button
+                  type="button"
+                  style={styles.secondaryBtn}
+                  onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
+                >
+                  Copier le JSON
+                </button>
+
+                {shopifyAdminUrl && (
+                  <a
+                    href={shopifyAdminUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.shopifyBtn}
+                  >
+                    Voir sur Shopify
+                  </a>
+                )}
+              </div>
             </div>
 
             <div style={styles.resultGrid}>
@@ -856,6 +885,12 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: "wrap",
     marginBottom: 14,
   },
+  resultActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
   resultGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -879,6 +914,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.15rem",
     fontWeight: 950,
     color: COLORS.text,
+  },
+  shopifyBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 14px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "#ffffff",
+    textDecoration: "none",
+    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
+    border: "1px solid rgba(187,247,208,0.35)",
+    boxShadow: "0 10px 24px rgba(34,197,94,0.22)",
+    whiteSpace: "nowrap",
   },
 
   bottomBand: {
