@@ -500,6 +500,7 @@ export default function MessagesPage() {
                       const pack = s.pack || s.payload?.meta?.pack || "—";
                       const createdAt = s.created_at;
                       const productUrl = s.product_url;
+                      const shopifyAdminUrl = s.payload?.meta?.shopify?.product?.adminUrl || null;
 
                       return (
                         <div key={s.id} style={styles.shopCard}>
@@ -550,6 +551,17 @@ export default function MessagesPage() {
                             >
                               Télécharger JSON
                             </button>
+
+                            {shopifyAdminUrl && (
+                              <a
+                                href={shopifyAdminUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={styles.shopifyBtn}
+                              >
+                                Voir sur Shopify
+                              </a>
+                            )}
                           </div>
 
                           <div style={styles.shopIdLine}>
@@ -1078,5 +1090,18 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "underline",
   },
   shopActions: { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 },
+  shopifyBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "12px 14px",
+    borderRadius: 12,
+    fontWeight: 900,
+    color: "#ffffff",
+    textDecoration: "none",
+    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
+    border: "1px solid rgba(187,247,208,0.35)",
+    boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+  },
   shopIdLine: { marginTop: 10, color: "rgba(201,210,255,0.85)", fontWeight: 800, fontSize: "0.9rem" },
 };
