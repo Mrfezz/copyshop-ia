@@ -10,8 +10,13 @@ import * as net from "net";
 type RequestBody = {
   productUrl?: string;
   imageBase64?: string | null;
-  productKey?: string; // optionnel (on n’en dépend pas)
+  productKey?: string;
 };
+
+const SHOP = process.env.SHOPIFY_SHOP;
+const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
+const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
+const SHOPIFY_API_VERSION = "2026-01";
 
 function jsonError(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ error: message, ...(extra ?? {}) }, { status });
@@ -34,6 +39,10 @@ function safeTrim(v: unknown) {
   return typeof v === "string" ? v.trim() : "";
 }
 
+function cleanText(v: unknown) {
+  return typeof v === "string" ? v.trim() : "";
+}
+
 function isLikelyUrl(v: string) {
   try {
     const u = new URL(v);
@@ -43,9 +52,17 @@ function isLikelyUrl(v: string) {
   }
 }
 
-/** --- SSRF guard (simple mais utile) --- */
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/** --- SSRF guard --- */
 function isPrivateIp(ip: string) {
-  // IPv4 private ranges + loopback + link-local
   if (net.isIP(ip) === 4) {
     const parts = ip.split(".").map((x) => Number(x));
     const [a, b] = parts;
@@ -60,16 +77,14 @@ function isPrivateIp(ip: string) {
     return false;
   }
 
-  // IPv6: loopback, link-local, unique local
   if (net.isIP(ip) === 6) {
     const lower = ip.toLowerCase();
     if (lower === "::1") return true;
-    if (lower.startsWith("fe80:")) return true; // link-local
-    if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // unique local
+    if (lower.startsWith("fe80:")) return true;
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
     return false;
   }
 
-  // inconnu => on bloque par sécurité
   return true;
 }
 
@@ -80,7 +95,6 @@ async function isSafeToFetchUrl(urlStr: string) {
 
     if (host === "localhost" || host.endsWith(".localhost")) return false;
 
-    // DNS lookup -> toutes les IP doivent être publiques
     const res = await dns.lookup(host, { all: true });
     if (!res || res.length === 0) return false;
 
@@ -201,7 +215,7 @@ async function scrapeProduct(urlStr: string): Promise<ScrapedProduct> {
     if (!ct.toLowerCase().includes("text/html")) return empty;
 
     const text = await res.text();
-    const html = text.slice(0, 1_200_000); // limite
+    const html = text.slice(0, 1_200_000);
 
     const ogTitle = pickMeta(html, "og:title");
     const ogDesc =
@@ -286,6 +300,217 @@ function packHintFor(bestKey: string) {
 - ajoute: storytelling marque + garanties + upsell/cross-sell + bundle + hooks pub`;
 }
 
+async function getShopifyAccessToken() {
+  if (!SHOP || !SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
+    throw new Error("Variables Shopify manquantes");
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: SHOPIFY_API_KEY,
+    client_secret: SHOPIFY_API_SECRET,
+  });
+
+  const response = await fetch(
+    `https://${SHOP}.myshopify.com/admin/oauth/access_token`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+      cache: "no-store",
+    }
+  );
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Token request failed (${response.status}): ${text}`);
+  }
+
+  const json = JSON.parse(text);
+
+  if (!json?.access_token) {
+    throw new Error("Aucun access_token Shopify");
+  }
+
+  return json.access_token as string;
+}
+
+function getFinalShopifyTitle(parsed: any) {
+  const productTitle = cleanText(parsed?.productTitle);
+  const storeName = cleanText(parsed?.storeName);
+
+  if (!productTitle || productTitle.toLowerCase() === "produit inconnu") {
+    return storeName || "Produit Copyshop IA";
+  }
+
+  return productTitle;
+}
+
+function buildShopifyDescriptionHtml(parsed: any, productUrl: string) {
+  const parts: string[] = [];
+
+  const productDescription = cleanText(parsed?.productDescription);
+  if (productDescription) {
+    parts.push(`<p>${escapeHtml(productDescription)}</p>`);
+  }
+
+  if (Array.isArray(parsed?.bullets) && parsed.bullets.length > 0) {
+    parts.push("<h3>Points forts</h3>");
+    parts.push("<ul>");
+    for (const item of parsed.bullets) {
+      const text = cleanText(item);
+      if (text) parts.push(`<li>${escapeHtml(text)}</li>`);
+    }
+    parts.push("</ul>");
+  }
+
+  if (parsed?.shippingInfo) {
+    const processingTime = cleanText(parsed.shippingInfo.processingTime);
+    const deliveryTime = cleanText(parsed.shippingInfo.deliveryTime);
+    const tracking = cleanText(parsed.shippingInfo.tracking);
+    const notes = cleanText(parsed.shippingInfo.notes);
+
+    parts.push("<h3>Livraison</h3>");
+    parts.push("<ul>");
+    if (processingTime) parts.push(`<li><strong>Préparation :</strong> ${escapeHtml(processingTime)}</li>`);
+    if (deliveryTime) parts.push(`<li><strong>Livraison :</strong> ${escapeHtml(deliveryTime)}</li>`);
+    if (tracking) parts.push(`<li><strong>Suivi :</strong> ${escapeHtml(tracking)}</li>`);
+    if (notes) parts.push(`<li><strong>Infos :</strong> ${escapeHtml(notes)}</li>`);
+    parts.push("</ul>");
+  }
+
+  const refund = cleanText(parsed?.refundPolicySummary);
+  if (refund) {
+    parts.push("<h3>Retour / remboursement</h3>");
+    parts.push(`<p>${escapeHtml(refund)}</p>`);
+  }
+
+  if (Array.isArray(parsed?.faq) && parsed.faq.length > 0) {
+    parts.push("<h3>FAQ</h3>");
+    for (const item of parsed.faq) {
+      const q = cleanText(item?.q);
+      const a = cleanText(item?.a);
+      if (!q && !a) continue;
+
+      parts.push("<p>");
+      if (q) parts.push(`<strong>${escapeHtml(q)}</strong><br />`);
+      if (a) parts.push(`${escapeHtml(a)}`);
+      parts.push("</p>");
+    }
+  }
+
+  if (productUrl) {
+    parts.push("<h3>Source produit</h3>");
+    parts.push(
+      `<p><a href="${escapeHtml(productUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(
+        productUrl
+      )}</a></p>`
+    );
+  }
+
+  return parts.join("");
+}
+
+async function createShopifyDraftProduct(params: {
+  parsed: any;
+  productUrl: string;
+  packKey: string;
+}) {
+  try {
+    if (!SHOP || !SHOPIFY_API_KEY || !SHOPIFY_API_SECRET) {
+      return {
+        ok: false,
+        error: "Variables Shopify absentes",
+      };
+    }
+
+    const { parsed, productUrl, packKey } = params;
+    const accessToken = await getShopifyAccessToken();
+
+    const finalTitle = getFinalShopifyTitle(parsed);
+    const descriptionHtml = buildShopifyDescriptionHtml(parsed, productUrl);
+    const vendor = cleanText(parsed?.storeName) || "Copyshop IA";
+
+    const graphqlResponse = await fetch(
+      `https://${SHOP}.myshopify.com/admin/api/${SHOPIFY_API_VERSION}/graphql.json`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": accessToken,
+        },
+        body: JSON.stringify({
+          query: `
+            mutation productCreate($product: ProductCreateInput!) {
+              productCreate(product: $product) {
+                product {
+                  id
+                  title
+                  handle
+                  status
+                  onlineStorePreviewUrl
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `,
+          variables: {
+            product: {
+              title: finalTitle,
+              descriptionHtml,
+              productType: "Copyshop IA",
+              vendor,
+              status: "DRAFT",
+              tags: [
+                "copyshop-ia",
+                packKey ? `pack:${packKey}` : "",
+                productUrl ? "source:aliexpress" : "",
+              ].filter(Boolean),
+            },
+          },
+        }),
+        cache: "no-store",
+      }
+    );
+
+    const graphqlText = await graphqlResponse.text();
+
+    if (!graphqlResponse.ok) {
+      return {
+        ok: false,
+        error: `GraphQL failed (${graphqlResponse.status}): ${graphqlText}`,
+      };
+    }
+
+    const graphqlJson = JSON.parse(graphqlText);
+    const result = graphqlJson?.data?.productCreate;
+
+    if (result?.userErrors?.length) {
+      return {
+        ok: false,
+        error: "Shopify userErrors",
+        userErrors: result.userErrors,
+      };
+    }
+
+    return {
+      ok: true,
+      product: result?.product ?? null,
+    };
+  } catch (e: any) {
+    return {
+      ok: false,
+      error: e?.message ?? "Erreur Shopify",
+    };
+  }
+}
+
 export async function POST(req: Request) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -314,7 +539,6 @@ export async function POST(req: Request) {
       return jsonError("productUrl invalide (http/https uniquement)", 400);
     }
 
-    // 1) récupérer meilleur pack actif
     const { data: ents, error: entErr } = await supabaseAdmin
       .from("entitlements")
       .select("product_key, credits_total, credits_used, unlimited")
@@ -347,7 +571,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2) scrape fournisseur (titre/desc/images)
     const scraped = await scrapeProduct(productUrl);
     const productImages = uniq(scraped.images ?? []);
     const heroImage = productImages[0] ?? null;
@@ -457,7 +680,6 @@ ${schema}
       }),
     });
 
-    // lire UNE SEULE FOIS la réponse OpenAI
     const raw = await openaiRes.text();
     let openaiJson: any = null;
     try {
@@ -509,7 +731,6 @@ ${schema}
       });
     }
 
-    // validation minimum du format "prêt à vendre"
     const ok =
       parsed &&
       typeof parsed.storeName === "string" &&
@@ -533,7 +754,6 @@ ${schema}
       return jsonError("OpenAI a renvoyé un format inattendu", 502, { model, parsed });
     }
 
-    // force images scrapées si besoin
     parsed.assets.productImages = Array.isArray(parsed.assets.productImages)
       ? uniq([...parsed.assets.productImages, ...productImages])
       : productImages;
@@ -548,7 +768,6 @@ ${schema}
       parsed.priceHint = `${scraped.price}${scraped.currency ? ` ${scraped.currency}` : ""}`;
     }
 
-    // 3) consommer 1 crédit (si pas illimité)
     let creditsRemainingAfter: number | null = null;
 
     if (!unlimited) {
@@ -569,12 +788,27 @@ ${schema}
         creditsTotal === null ? null : Math.max(0, creditsTotal - nextUsed);
     }
 
-    // 4) sauvegarder la génération dans Supabase (Mes boutiques)
+    let shopifyResult: any = null;
+
+    try {
+      shopifyResult = await createShopifyDraftProduct({
+        parsed,
+        productUrl,
+        packKey: best.product_key,
+      });
+    } catch (e: any) {
+      shopifyResult = {
+        ok: false,
+        error: e?.message ?? "Erreur création Shopify",
+      };
+    }
+
     const payloadToStore = {
       ...parsed,
       meta: {
         pack: best.product_key,
         model,
+        shopify: shopifyResult,
         source: {
           productUrl,
           scraped: {
@@ -625,6 +859,7 @@ ${schema}
         savedShopId,
         savedCreatedAt,
         saveError,
+        shopify: shopifyResult,
         source: {
           productUrl,
           scraped: {

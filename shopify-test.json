@@ -1,0 +1,166 @@
+{
+  "faq": [
+    {
+      "a": "La livraison prend généralement entre 3 à 7 jours ouvrables.",
+      "q": "Quels sont les délais de livraison ?"
+    },
+    {
+      "a": "Oui, vous pouvez retourner un produit dans les 30 jours suivant votre achat.",
+      "q": "Puis-je retourner un produit ?"
+    },
+    {
+      "a": "Vous pouvez nous contacter via notre page de contact ou par email.",
+      "q": "Comment puis-je contacter le service client ?"
+    },
+    {
+      "a": "Oui, tous nos produits sont garantis de haute qualité.",
+      "q": "La qualité des produits est-elle garantie ?"
+    },
+    {
+      "a": "Oui, vous recevrez un numéro de suivi dès que votre commande est expédiée.",
+      "q": "Offrez-vous un suivi de commande ?"
+    },
+    {
+      "a": "Oui, contactez-nous pour discuter des tarifs de gros.",
+      "q": "Proposez-vous des réductions pour les commandes en gros ?"
+    },
+    {
+      "a": "Nous acceptons les cartes de crédit, PayPal et d'autres méthodes de paiement sécurisées.",
+      "q": "Quels modes de paiement acceptez-vous ?"
+    },
+    {
+      "a": "Nos produits sont fabriqués dans des installations certifiées respectant les normes de qualité.",
+      "q": "Où sont vos produits fabriqués ?"
+    }
+  ],
+  "seo": {
+    "metaTitle": "Votre Boutique Chic - Élégance à Prix Abordable",
+    "metaDescription": "Découvrez une sélection de produits élégants et de qualité à des prix abordables. Livraison rapide et service client exceptionnel."
+  },
+  "meta": {
+    "pack": "ia-ultime",
+    "model": "gpt-4o-mini",
+    "source": {
+      "scraped": {
+        "title": null,
+        "hasImages": false,
+        "imagesCount": 0
+      },
+      "productUrl": "https://fr.aliexpress.com/item/1005007551204933.html?spm=a2g0o.productlist.main.13.470a325fqixyQj&algo_pvid=33d39a3e-bef4-4622-a32c-d7480bd16105&algo_exp_id=33d39a3e-bef4-4622-a32c-d7480bd16105-12&pdp_ext_f=%7B%22order%22%3A%2215929%22%2C%22spu_best_type%22%3A%22price%22%2C%22eval%22%3A%221%22%2C%22fromPage%22%3A%22search%22%7D&pdp_npi=6%40dis%21EUR%211.93%211.93%21%21%2114.90%2114.90%21%40211b819117734461192614461e8f45%2112000041261326791%21sea%21FR%216128087323%21X%211%210%21n_tag%3A-29911%3Bd%3A657157c3%3Bm03_new_user%3A-29895&curPageLogUid=pcib7MAKopDS&utparam-url=scene%3Asearch%7Cquery_from%3A%7Cx_object_id%3A1005007551204933%7C_p_origin_prod%3A"
+    }
+  },
+  "assets": {
+    "logoPrompt": "Création d'un logo élégant et moderne pour représenter notre boutique.",
+    "heroImageUrl": null,
+    "productImages": [],
+    "heroImagePrompt": "Image inspirante qui évoque le style et la qualité des produits que nous offrons."
+  },
+  "bullets": [
+    "Matériaux de haute qualité pour une durabilité maximale",
+    "Design élégant et moderne qui attire l'œil",
+    "Facile à utiliser, idéal pour un usage quotidien",
+    "Garantie de satisfaction client à 100%",
+    "Livraison rapide et sécurisée",
+    "Compatible avec divers accessoires",
+    "Écologique et respectueux de l'environnement",
+    "Facile à entretenir et à nettoyer",
+    "Options de personnalisation disponibles",
+    "Parfait pour offrir ou se faire plaisir"
+  ],
+  "tagline": "Élégance et qualité à votre portée",
+  "brandTone": "Chaleureux et engageant",
+  "priceHint": null,
+  "storeName": "Votre Boutique Chic",
+  "productTitle": "Produit Inconnu",
+  "shippingInfo": {
+    "notes": "Les délais peuvent varier selon l'emplacement.",
+    "tracking": "Suivi disponible dès expédition",
+    "deliveryTime": "3 à 7 jours",
+    "processingTime": "1 à 2 jours"
+  },
+  "homepageSections": [
+    "Nos Best-Sellers",
+    "Nouveautés",
+    "Promotions",
+    "Avis Clients",
+    "À propos de Nous",
+    "Contact",
+    "Blog",
+    "FAQ"
+  ],
+  "productPageBlocks": [
+    "Détails du Produit",
+    "Caractéristiques",
+    "Avis Clients",
+    "Question Fréquemment Posées",
+    "Produits Associés"
+  ],
+  "productDescription": "Découvrez notre produit phare qui allie style et fonctionnalité. Avec des matériaux de haute qualité, il est conçu pour durer et répondre à tous vos besoins quotidiens. Facile à utiliser, il vous apportera confort et satisfaction à chaque utilisation. Nous garantissons la qualité de nos produits et offrons un service après-vente réactif pour toute question ou problème que vous pourriez rencontrer.",
+  "refundPolicySummary": "Nous offrons une garantie de remboursement de 30 jours si vous n'êtes pas satisfait de votre achat.",
+  "homepageSectionsDetailed": [
+    {
+      "text": "Explorez notre sélection de produits qui ont séduit des milliers de clients. Ne manquez pas les incontournables qui allient style et fonctionnalité.",
+      "title": "Découvrez Nos Best-Sellers",
+      "ctaLink": "/best-sellers",
+      "ctaText": "Voir les Best-Sellers",
+      "imageAlt": "Best-Sellers",
+      "imageUrl": null
+    },
+    {
+      "text": "Restez à la pointe de la mode avec nos dernières arrivées. Chaque produit est soigneusement sélectionné pour sa qualité et son design.",
+      "title": "Nouveautés",
+      "ctaLink": "/nouveautes",
+      "ctaText": "Découvrir les Nouveautés",
+      "imageAlt": "Nouveautés",
+      "imageUrl": null
+    },
+    {
+      "text": "Profitez de réductions incroyables sur une sélection de produits. Ne ratez pas ces offres limitées !",
+      "title": "Promotions Exceptionnelles",
+      "ctaLink": "/promotions",
+      "ctaText": "Voir les Promotions",
+      "imageAlt": "Promotions",
+      "imageUrl": null
+    },
+    {
+      "text": "Lisez les témoignages de nos clients satisfaits. Votre confiance est notre priorité.",
+      "title": "Avis Clients",
+      "ctaLink": "/avis",
+      "ctaText": "Lire les Avis",
+      "imageAlt": "Avis Clients",
+      "imageUrl": null
+    },
+    {
+      "text": "Découvrez notre histoire et notre mission. Nous nous engageons à vous offrir le meilleur.",
+      "title": "À propos de Nous",
+      "ctaLink": "/a-propos",
+      "ctaText": "En Savoir Plus",
+      "imageAlt": "À propos de Nous",
+      "imageUrl": null
+    },
+    {
+      "text": "Avez-vous des questions ? Notre équipe est prête à vous aider.",
+      "title": "Contactez-Nous",
+      "ctaLink": "/contact",
+      "ctaText": "Nous Contacter",
+      "imageAlt": "Contact",
+      "imageUrl": null
+    },
+    {
+      "text": "Suivez notre blog pour des conseils de mode, des astuces et les dernières tendances.",
+      "title": "Blog",
+      "ctaLink": "/blog",
+      "ctaText": "Lire le Blog",
+      "imageAlt": "Blog",
+      "imageUrl": null
+    },
+    {
+      "text": "Trouvez les réponses à vos questions les plus fréquentes sur nos produits et services.",
+      "title": "FAQ",
+      "ctaLink": "/faq",
+      "ctaText": "Voir la FAQ",
+      "imageAlt": "FAQ",
+      "imageUrl": null
+    }
+  ]
+}
