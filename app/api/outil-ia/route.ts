@@ -9,6 +9,7 @@ import {
   buildThemeAiUserPrompt,
   THEME_AI_SYSTEM_PROMPT,
 } from "@/lib/theme-ai-prompt";
+import { buildThemeFilesFromThemeAi } from "@/lib/theme-ai-to-theme";
 import * as dns from "dns/promises";
 import * as net from "net";
 
@@ -695,9 +696,11 @@ export async function POST(req: Request) {
     }
 
     const uiPreview = buildThemePreviewForUi(themeAi);
+    const themeFiles = buildThemeFilesFromThemeAi(themeAi);
 
     const payloadToStore = {
       themeAi,
+      themeFiles,
       uiPreview,
       meta: {
         pack: best.product_key,
@@ -746,6 +749,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ...uiPreview,
       themeAi,
+      themeFiles,
       meta: {
         pack: best.product_key,
         creditsRemaining: unlimited ? null : creditsRemainingAfter,
