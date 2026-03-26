@@ -20,6 +20,8 @@ const COLORS = {
 
 // ✅ 3 messages par page
 const PAGE_SIZE = 3;
+// ✅ 4 boutiques par page
+const SHOPS_PAGE_SIZE = 4;
 
 type Msg = {
   id: string;
@@ -127,6 +129,7 @@ export default function MessagesPage() {
   const [shopsError, setShopsError] = useState<string | null>(null);
   const [shopsOk, setShopsOk] = useState<string | null>(null);
   const [downloadingZipId, setDownloadingZipId] = useState<string | null>(null);
+  const [shopsPage, setShopsPage] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -176,13 +179,28 @@ export default function MessagesPage() {
     return filteredMessages.slice(start, start + PAGE_SIZE);
   }, [filteredMessages, page, pageCount]);
 
+  const shopsPageCount = useMemo(() => {
+    return Math.max(1, Math.ceil(shops.length / SHOPS_PAGE_SIZE));
+  }, [shops.length]);
+
+  const pagedShops = useMemo(() => {
+    const safePage = Math.min(shopsPage, shopsPageCount - 1);
+    const start = safePage * SHOPS_PAGE_SIZE;
+    return shops.slice(start, start + SHOPS_PAGE_SIZE);
+  }, [shops, shopsPage, shopsPageCount]);
+
   useEffect(() => {
     setPage(0);
+    setShopsPage(0);
   }, [tab]);
 
   useEffect(() => {
     setPage((p) => Math.min(p, Math.max(0, pageCount - 1)));
   }, [pageCount]);
+
+  useEffect(() => {
+    setShopsPage((p) => Math.min(p, Math.max(0, shopsPageCount - 1)));
+  }, [shopsPageCount]);
 
   async function fetchMessages() {
     if (!session?.access_token) return;
@@ -326,7 +344,9 @@ export default function MessagesPage() {
       }
 
       const blob = await res.blob();
-      const baseName = safeFileName(shop.store_name || shop.payload?.themeAi?.brand?.storeName || "theme-copyshop") || "theme-copyshop";
+      const baseName =
+        safeFileName(shop.store_name || shop.payload?.themeAi?.brand?.storeName || "theme-copyshop") ||
+        "theme-copyshop";
       const filename = `${baseName}-${shop.id}.zip`;
 
       const url = URL.createObjectURL(blob);
@@ -539,80 +559,118 @@ export default function MessagesPage() {
                 )}
 
                 {!shopsLoading && shops.length > 0 && (
-                  <div style={styles.shopsList}>
-                    {shops.map((s) => {
-                      const storeName = s.store_name || s.payload?.storeName || s.payload?.themeAi?.brand?.storeName || "Boutique sans nom";
-                      const pack = s.pack || s.payload?.meta?.pack || "—";
-                      const createdAt = s.created_at;
-                      const productUrl = s.product_url;
-                      const shopifyAdminUrl = s.payload?.meta?.shopify?.product?.adminUrl || null;
-                      const isDownloading = downloadingZipId === s.id;
+                  <>
+                    <div style={styles.shopsList}>
+                      {pagedShops.map((s) => {
+                        const storeName =
+                          s.store_name ||
+                          s.payload?.storeName ||
+                          s.payload?.themeAi?.brand?.storeName ||
+                          "Boutique sans nom";
+                        const pack = s.pack || s.payload?.meta?.pack || "—";
+                        const createdAt = s.created_at;
+                        const productUrl = s.product_url;
+                        const shopifyAdminUrl = s.payload?.meta?.shopify?.product?.adminUrl || null;
+                        const isDownloading = downloadingZipId === s.id;
 
-                      return (
-                        <div key={s.id} style={styles.shopCard}>
-                          <div style={styles.shopTop}>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={styles.shopName}>{storeName}</div>
-                              <div style={styles.shopMetaLine}>
-                                <span style={styles.shopPill}>{pack}</span>
-                                <span style={styles.shopMeta}>{formatDate(createdAt)}</span>
+                        return (
+                          <div key={s.id} style={styles.shopCard}>
+                            <div style={styles.shopTop}>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={styles.shopName}>{storeName}</div>
+                                <div style={styles.shopMetaLine}>
+                                  <span style={styles.shopPill}>{pack}</span>
+                                  <span style={styles.shopMeta}>{formatDate(createdAt)}</span>
+                                </div>
+                                {productUrl && (
+                                  <a
+                                    href={productUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={styles.shopLink}
+                                    title={productUrl}
+                                  >
+                                    Voir le lien produit
+                                  </a>
+                                )}
                               </div>
-                              {productUrl && (
+                            </div>
+
+                            <div style={styles.shopActions}>
+                              <button
+                                type="button"
+                                style={styles.primaryBtn}
+                                onClick={() => downloadThemeZip(s)}
+                                disabled={isDownloading}
+                              >
+                                {isDownloading ? "Téléchargement..." : "Télécharger le thème ZIP"}
+                              </button>
+
+                              <button
+                                type="button"
+                                style={styles.secondaryBtn}
+                                onClick={() => {
+                                  const filename = `${safeFileName(storeName) || "boutique"}_${s.id}.json`;
+                                  downloadJson(filename, s.payload ?? {});
+                                  setShopsOk("✅ Fichier JSON téléchargé.");
+                                  setTimeout(() => setShopsOk(null), 2500);
+                                }}
+                              >
+                                Télécharger JSON
+                              </button>
+
+                              {shopifyAdminUrl && (
                                 <a
-                                  href={productUrl}
+                                  href={shopifyAdminUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  style={styles.shopLink}
-                                  title={productUrl}
+                                  style={styles.shopifyBtn}
                                 >
-                                  Voir le lien produit
+                                  Voir sur Shopify
                                 </a>
                               )}
                             </div>
+
+                            <div style={styles.shopIdLine}>
+                              ID: <span style={styles.mono}>{s.id}</span>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
 
-                          <div style={styles.shopActions}>
-                            <button
-                              type="button"
-                              style={styles.primaryBtn}
-                              onClick={() => downloadThemeZip(s)}
-                              disabled={isDownloading}
-                            >
-                              {isDownloading ? "Téléchargement..." : "Télécharger le thème ZIP"}
-                            </button>
+                    {shops.length > SHOPS_PAGE_SIZE && (
+                      <div style={styles.pager}>
+                        <button
+                          type="button"
+                          onClick={() => setShopsPage((p) => Math.max(0, p - 1))}
+                          disabled={shopsPage <= 0}
+                          style={{
+                            ...styles.pagerBtn,
+                            ...(shopsPage <= 0 ? styles.pagerBtnDisabled : {}),
+                          }}
+                        >
+                          ← Page précédente
+                        </button>
 
-                            <button
-                              type="button"
-                              style={styles.secondaryBtn}
-                              onClick={() => {
-                                const filename = `${safeFileName(storeName) || "boutique"}_${s.id}.json`;
-                                downloadJson(filename, s.payload ?? {});
-                                setShopsOk("✅ Fichier JSON téléchargé.");
-                                setTimeout(() => setShopsOk(null), 2500);
-                              }}
-                            >
-                              Télécharger JSON
-                            </button>
-
-                            {shopifyAdminUrl && (
-                              <a
-                                href={shopifyAdminUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={styles.shopifyBtn}
-                              >
-                                Voir sur Shopify
-                              </a>
-                            )}
-                          </div>
-
-                          <div style={styles.shopIdLine}>
-                            ID: <span style={styles.mono}>{s.id}</span>
-                          </div>
+                        <div style={styles.pagerInfo}>
+                          Page <strong>{Math.min(shopsPage + 1, shopsPageCount)}</strong> / {shopsPageCount}
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setShopsPage((p) => Math.min(shopsPageCount - 1, p + 1))}
+                          disabled={shopsPage >= shopsPageCount - 1}
+                          style={{
+                            ...styles.pagerBtn,
+                            ...(shopsPage >= shopsPageCount - 1 ? styles.pagerBtnDisabled : {}),
+                          }}
+                        >
+                          Page suivante →
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

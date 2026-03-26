@@ -45,6 +45,13 @@ type GeneratedBoutique = {
   };
 };
 
+type StoredOutilIaState = {
+  result: GeneratedBoutique | null;
+  productUrl: string;
+  imageName: string | null;
+  zipMsg: string | null;
+};
+
 const COLORS = {
   bgTop: "#0b1026",
   bgMid: "#0f1635",
@@ -61,6 +68,7 @@ const COLORS = {
 };
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`;
+const STORAGE_KEY = "copyshopia-outil-ia-state";
 
 function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") {
@@ -100,6 +108,36 @@ function safeFileName(value: string) {
     .toLowerCase();
 }
 
+function saveOutilIaState(data: StoredOutilIaState) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+}
+
+function readOutilIaState(): StoredOutilIaState | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as StoredOutilIaState;
+  } catch {
+    return null;
+  }
+}
+
+function clearOutilIaState() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function OutilIAPage() {
   const router = useRouter();
 
@@ -121,6 +159,7 @@ export default function OutilIAPage() {
 
   const progressRef = useRef(0);
   const progressTimerRef = useRef<number | null>(null);
+  const hasRestoredRef = useRef(false);
 
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -191,15 +230,31 @@ export default function OutilIAPage() {
   }, []);
 
   useEffect(() => {
-    if (!loadingSuccess) return;
+    if (hasRestoredRef.current) return;
+    const saved = readOutilIaState();
+    if (!saved) {
+      hasRestoredRef.current = true;
+      return;
+    }
 
-    const timeout = window.setTimeout(() => {
-      setLoadingSuccess(false);
-      setProgress(0);
-    }, 1400);
+    if (saved.result) setResult(saved.result);
+    if (saved.productUrl) setProductUrl(saved.productUrl);
+    if (saved.imageName) setImageName(saved.imageName);
+    if (saved.zipMsg) setZipMsg(saved.zipMsg);
 
-    return () => window.clearTimeout(timeout);
-  }, [loadingSuccess]);
+    hasRestoredRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hasRestoredRef.current) return;
+
+    saveOutilIaState({
+      result,
+      productUrl,
+      imageName,
+      zipMsg,
+    });
+  }, [result, productUrl, imageName, zipMsg]);
 
   async function fetchMePack(token: string) {
     setPackLoading(true);
@@ -239,6 +294,7 @@ export default function OutilIAPage() {
           setUserEmail(null);
           setPack(null);
           setLoadingPage(false);
+          clearOutilIaState();
           router.replace("/compte-client");
           return;
         }
@@ -250,6 +306,7 @@ export default function OutilIAPage() {
 
         if (!p?.packKey) {
           setLoadingPage(false);
+          clearOutilIaState();
           router.replace("/packs-ia");
           return;
         }
@@ -265,12 +322,13 @@ export default function OutilIAPage() {
 
       setAuthToken(token);
       setUserEmail(session?.user?.email ?? null);
-      setResult(null);
       setErrorMsg(null);
-      setZipMsg(null);
 
       if (event === "SIGNED_OUT") {
         setPack(null);
+        setResult(null);
+        setZipMsg(null);
+        clearOutilIaState();
         router.replace("/compte-client");
         return;
       }
@@ -278,11 +336,17 @@ export default function OutilIAPage() {
       if (token) {
         const p = await fetchMePack(token);
         if (!p?.packKey) {
+          setResult(null);
+          setZipMsg(null);
+          clearOutilIaState();
           router.replace("/packs-ia");
           return;
         }
       } else {
         setPack(null);
+        setResult(null);
+        setZipMsg(null);
+        clearOutilIaState();
         router.replace("/compte-client");
         return;
       }
@@ -458,6 +522,7 @@ export default function OutilIAPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    clearOutilIaState();
     router.replace("/compte-client");
   }
 
