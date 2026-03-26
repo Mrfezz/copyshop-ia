@@ -31,18 +31,16 @@ type GeneratedBoutique = {
   productPageBlocks: string[];
   brandTone: string;
   meta?: {
-    shopify?: {
-      ok?: boolean;
-      error?: string;
-      product?: {
-        id?: string;
-        title?: string;
-        handle?: string;
-        status?: string;
-        onlineStorePreviewUrl?: string | null;
-        legacyResourceId?: string | number | null;
-        adminUrl?: string | null;
-      } | null;
+    savedShopId?: string | null;
+    savedCreatedAt?: string | null;
+    saveError?: string | null;
+    source?: {
+      productUrl?: string;
+      scraped?: {
+        title?: string | null;
+        hasImages?: boolean;
+        imagesCount?: number;
+      };
     };
   };
 };
@@ -92,6 +90,16 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function safeFileName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+}
+
 export default function OutilIAPage() {
   const router = useRouter();
 
@@ -109,12 +117,14 @@ export default function OutilIAPage() {
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingSuccess, setLoadingSuccess] = useState(false);
+  const [zipDownloading, setZipDownloading] = useState(false);
 
   const progressRef = useRef(0);
   const progressTimerRef = useRef<number | null>(null);
 
   const [result, setResult] = useState<GeneratedBoutique | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [zipMsg, setZipMsg] = useState<string | null>(null);
 
   const badge = useMemo(() => badgeForPack(pack?.packKey ?? null), [pack?.packKey]);
 
@@ -257,6 +267,7 @@ export default function OutilIAPage() {
       setUserEmail(session?.user?.email ?? null);
       setResult(null);
       setErrorMsg(null);
+      setZipMsg(null);
 
       if (event === "SIGNED_OUT") {
         setPack(null);
@@ -303,6 +314,7 @@ export default function OutilIAPage() {
     e.preventDefault();
     setErrorMsg(null);
     setResult(null);
+    setZipMsg(null);
     setLoadingSuccess(false);
     setProgress(0);
 
@@ -382,13 +394,75 @@ export default function OutilIAPage() {
     }
   }
 
+  async function handleDownloadZip() {
+    if (!authToken) {
+      setZipMsg("Session invalide. Reconnecte-toi puis réessaie.");
+      return;
+    }
+
+    const savedShopId = result?.meta?.savedShopId;
+    if (!savedShopId) {
+      setZipMsg("Aucun identifiant de boutique trouvé pour exporter le thème.");
+      return;
+    }
+
+    setZipDownloading(true);
+    setZipMsg(null);
+
+    try {
+      const res = await fetch("/api/theme-export", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          savedShopId,
+        }),
+      });
+
+      if (!res.ok) {
+        let message = "Erreur export ZIP";
+        try {
+          const json = await res.json();
+          message = json?.error ?? message;
+        } catch {
+          const text = await res.text();
+          if (text) message = text;
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const filename = `${
+        safeFileName(result?.storeName || "theme-copyshop") || "theme-copyshop"
+      }-${savedShopId}.zip`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setZipMsg("✅ Thème ZIP téléchargé.");
+      setTimeout(() => setZipMsg(null), 2500);
+    } catch (e: any) {
+      setZipMsg(e?.message ?? "Erreur téléchargement ZIP");
+    } finally {
+      setZipDownloading(false);
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     router.replace("/compte-client");
   }
 
   const showCredits = !!pack?.packKey && !packLoading;
-  const shopifyAdminUrl = result?.meta?.shopify?.product?.adminUrl ?? null;
+  const savedShopId = result?.meta?.savedShopId ?? null;
 
   if (loadingPage || packLoading) {
     return (
@@ -518,7 +592,11 @@ export default function OutilIAPage() {
                   ...(loadingSuccess ? styles.primaryBtnSuccess : {}),
                 }}
               >
-                {loading ? `Chargement ${loadingProgress}%` : loadingSuccess ? "Chargement réussi ✅" : "Générer ma boutique"}
+                {loading
+                  ? `Chargement ${loadingProgress}%`
+                  : loadingSuccess
+                  ? "Chargement réussi ✅"
+                  : "Générer ma boutique"}
               </button>
 
               {!authToken && <div style={styles.helper}>Connecte-toi pour utiliser l’outil.</div>}
@@ -532,31 +610,42 @@ export default function OutilIAPage() {
               <div>
                 <h2 style={{ ...styles.cardTitle, marginBottom: 6 }}>Résultat</h2>
                 <div style={{ color: COLORS.muted }}>
-                  Copie/colle directement dans Shopify (ou délègue la mise en place).
+                  Ta boutique a bien été générée. Tu peux maintenant télécharger directement le thème ZIP.
                 </div>
+                {savedShopId && (
+                  <div style={styles.savedInfo}>
+                    ID boutique : <span style={styles.savedId}>{savedShopId}</span>
+                  </div>
+                )}
               </div>
 
               <div style={styles.resultActions}>
                 <button
                   type="button"
-                  style={styles.secondaryBtn}
-                  onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
+                  style={styles.primaryBtnSmall}
+                  onClick={handleDownloadZip}
+                  disabled={zipDownloading || !savedShopId}
                 >
-                  Copier le JSON
+                  {zipDownloading ? "Téléchargement..." : "Télécharger le thème ZIP"}
                 </button>
 
-                {shopifyAdminUrl && (
-                  <a
-                    href={shopifyAdminUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={styles.shopifyBtn}
-                  >
-                    Voir sur Shopify
-                  </a>
-                )}
+                <Link href="/messages" style={styles.secondaryBtn as any}>
+                  Voir mes boutiques
+                </Link>
               </div>
             </div>
+
+            {zipMsg && (
+              <div
+                style={
+                  zipMsg.startsWith("✅")
+                    ? styles.successBox
+                    : styles.errorBox
+                }
+              >
+                {zipMsg}
+              </div>
+            )}
 
             <div style={styles.resultGrid}>
               <div style={styles.resultCard}>
@@ -602,7 +691,7 @@ export default function OutilIAPage() {
         )}
 
         <div style={styles.bottomBand}>
-          🧩 N&apos;oublie pas d&apos;activer ton abbonement shopify apres avoir générer ta boutique
+          🧩 N&apos;oublie pas d&apos;importer ton thème ZIP dans Shopify après la génération de ta boutique
         </div>
       </section>
 
@@ -852,6 +941,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     boxSizing: "border-box",
   },
+  successBox: {
+    background: "rgba(34,197,94,0.12)",
+    border: "1px solid rgba(34,197,94,0.35)",
+    color: "#bbf7d0",
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 800,
+    boxSizing: "border-box",
+    marginBottom: 14,
+  },
 
   primaryBtn: {
     width: "100%",
@@ -867,6 +966,18 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 1,
     boxSizing: "border-box",
     transition: "all 0.2s ease",
+  },
+  primaryBtnSmall: {
+    padding: "10px 14px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: BRAND_GRADIENT,
+    color: "#ffffff",
+    fontSize: "0.95rem",
+    fontWeight: 950,
+    cursor: "pointer",
+    boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+    whiteSpace: "nowrap",
   },
   primaryBtnLoading: {
     opacity: 0.95,
@@ -915,19 +1026,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     color: COLORS.text,
   },
-  shopifyBtn: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "10px 14px",
-    borderRadius: 999,
-    fontWeight: 900,
-    color: "#ffffff",
-    textDecoration: "none",
-    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
-    border: "1px solid rgba(187,247,208,0.35)",
-    boxShadow: "0 10px 24px rgba(34,197,94,0.22)",
-    whiteSpace: "nowrap",
+  savedInfo: {
+    marginTop: 8,
+    color: COLORS.muted,
+    fontWeight: 700,
+    fontSize: "0.92rem",
+    wordBreak: "break-all",
+  },
+  savedId: {
+    color: COLORS.text,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   },
 
   bottomBand: {

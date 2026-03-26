@@ -53,6 +53,7 @@ type TabKey = "inbox" | "sent" | "received" | "orders" | "shops";
 function isOutbound(m: Msg) {
   return m.direction === "outbound";
 }
+
 function isInbound(m: Msg) {
   return m.direction !== "outbound";
 }
@@ -77,29 +78,6 @@ function formatMoney(amountCents: number | null, currency: string | null): strin
   }
 }
 
-async function copyText(text: string) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.top = "-1000px";
-      ta.style.left = "-1000px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch {
-      return false;
-    }
-  }
-}
-
 function downloadJson(filename: string, obj: any) {
   const text = JSON.stringify(obj, null, 2);
   const blob = new Blob([text], { type: "application/json;charset=utf-8" });
@@ -111,6 +89,16 @@ function downloadJson(filename: string, obj: any) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+function safeFileName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
 }
 
 export default function MessagesPage() {
@@ -138,6 +126,7 @@ export default function MessagesPage() {
   const [shopsLoading, setShopsLoading] = useState(false);
   const [shopsError, setShopsError] = useState<string | null>(null);
   const [shopsOk, setShopsOk] = useState<string | null>(null);
+  const [downloadingZipId, setDownloadingZipId] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -299,6 +288,62 @@ export default function MessagesPage() {
       setMsgError(e?.message ?? "Erreur envoi");
     } finally {
       setSending(false);
+    }
+  }
+
+  async function downloadThemeZip(shop: Shop) {
+    if (!session?.access_token) {
+      setShopsError("Session invalide. Reconnecte-toi puis réessaie.");
+      return;
+    }
+
+    setDownloadingZipId(shop.id);
+    setShopsError(null);
+    setShopsOk(null);
+
+    try {
+      const res = await fetch("/api/theme-export", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          savedShopId: shop.id,
+        }),
+      });
+
+      if (!res.ok) {
+        let message = "Erreur export ZIP";
+        try {
+          const json = await res.json();
+          message = json?.error ?? message;
+        } catch {
+          const text = await res.text();
+          if (text) message = text;
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const baseName = safeFileName(shop.store_name || shop.payload?.themeAi?.brand?.storeName || "theme-copyshop") || "theme-copyshop";
+      const filename = `${baseName}-${shop.id}.zip`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setShopsOk("✅ Thème ZIP téléchargé.");
+      setTimeout(() => setShopsOk(null), 2500);
+    } catch (e: any) {
+      setShopsError(e?.message ?? "Erreur téléchargement ZIP");
+    } finally {
+      setDownloadingZipId(null);
     }
   }
 
@@ -471,7 +516,7 @@ export default function MessagesPage() {
               <div className="m-topRight" style={styles.panel}>
                 <div style={styles.panelTitle}>Mes boutiques</div>
                 <div style={styles.small}>
-                  Ici tu retrouves toutes les boutiques générées (stockées en DB). Tu peux copier ou télécharger le JSON.
+                  Ici tu retrouves toutes les boutiques générées. Tu peux télécharger directement le thème ZIP prêt à importer dans Shopify.
                 </div>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
@@ -496,11 +541,12 @@ export default function MessagesPage() {
                 {!shopsLoading && shops.length > 0 && (
                   <div style={styles.shopsList}>
                     {shops.map((s) => {
-                      const storeName = s.store_name || s.payload?.storeName || "Boutique sans nom";
+                      const storeName = s.store_name || s.payload?.storeName || s.payload?.themeAi?.brand?.storeName || "Boutique sans nom";
                       const pack = s.pack || s.payload?.meta?.pack || "—";
                       const createdAt = s.created_at;
                       const productUrl = s.product_url;
                       const shopifyAdminUrl = s.payload?.meta?.shopify?.product?.adminUrl || null;
+                      const isDownloading = downloadingZipId === s.id;
 
                       return (
                         <div key={s.id} style={styles.shopCard}>
@@ -529,21 +575,17 @@ export default function MessagesPage() {
                             <button
                               type="button"
                               style={styles.primaryBtn}
-                              onClick={async () => {
-                                const text = JSON.stringify(s.payload ?? {}, null, 2);
-                                const ok = await copyText(text);
-                                setShopsOk(ok ? "✅ JSON copié." : "❌ Impossible de copier (essaie Télécharger).");
-                                setTimeout(() => setShopsOk(null), 2500);
-                              }}
+                              onClick={() => downloadThemeZip(s)}
+                              disabled={isDownloading}
                             >
-                              Copier JSON
+                              {isDownloading ? "Téléchargement..." : "Télécharger le thème ZIP"}
                             </button>
 
                             <button
                               type="button"
                               style={styles.secondaryBtn}
                               onClick={() => {
-                                const filename = `${storeName.replaceAll(" ", "_")}_${s.id}.json`;
+                                const filename = `${safeFileName(storeName) || "boutique"}_${s.id}.json`;
                                 downloadJson(filename, s.payload ?? {});
                                 setShopsOk("✅ Fichier JSON téléchargé.");
                                 setTimeout(() => setShopsOk(null), 2500);
@@ -1099,9 +1141,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: "#ffffff",
     textDecoration: "none",
-    background: "linear-gradient(90deg, #15803d 0%, #22c55e 100%)",
-    border: "1px solid rgba(187,247,208,0.35)",
-    boxShadow: "0 8px 20px rgba(34,197,94,0.22)",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    border: `1px solid ${COLORS.border}`,
+    boxShadow: "0 8px 20px rgba(106,47,214,0.22)",
   },
   shopIdLine: { marginTop: 10, color: "rgba(201,210,255,0.85)", fontWeight: 800, fontSize: "0.9rem" },
 };
