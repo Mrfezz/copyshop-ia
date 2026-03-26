@@ -1,0 +1,310 @@
+{
+  "sections": {
+    "slideshow_QVjwPn": {
+      "type": "slideshow",
+      "blocks": {
+        "image_zTMUzq": {
+          "type": "image",
+          "settings": {
+            "content_max_width": 780,
+            "mobile_text_position": "place-self-end-center text-center",
+            "desktop_text_position": "sm:place-self-center sm:text-center",
+            "subheading": "Votre marque, votre univers",
+            "title": "Une boutique pensée pour convertir",
+            "heading_tag": "h0",
+            "button_text": "Découvrir la boutique",
+            "button_link": "",
+            "text_color": "#ffffff",
+            "button_background": "#ffffff",
+            "button_text_color": "#000000",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30,
+            "background": "",
+            "background_gradient": ""
+          }
+        }
+      },
+      "block_order": [
+        "image_zTMUzq"
+      ],
+      "settings": {
+        "full_width": true,
+        "allow_transparent_header": true,
+        "image_size": "lg",
+        "controls_type": "none",
+        "transition_type": "fade_with_text",
+        "autoplay": false,
+        "cycle_speed": 6,
+        "background": "#f2f2f2",
+        "background_gradient": ""
+      }
+    },
+    "scrolling_text_XJ3zM3": {
+      "type": "scrolling-text",
+      "settings": {
+        "full_width": true,
+        "text": "Qualité • Confiance • Livraison rapide • Service client • Offre exclusive",
+        "text_size": "xlarge",
+        "text_style": "fill",
+        "scrolling_mode": "auto",
+        "scrolling_speed": 15,
+        "clickable": false,
+        "link": "",
+        "background": "#bebdb9",
+        "background_gradient": "",
+        "text_color": "#ff6f20",
+        "text_gradient": ""
+      }
+    },
+    "images_with_text_scrolling_jrGe3T": {
+      "type": "images-with-text-scrolling",
+      "blocks": {
+        "item_8MUQRx": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-like",
+            "icon_width": 48,
+            "title": "Une offre claire et convaincante",
+            "content": "<p>Mettez en avant une promesse forte, simple à comprendre, avec des bénéfices concrets pour rassurer et convaincre vos visiteurs.</p>"
+          }
+        },
+        "item_zRQxjE": {
+          "type": "item",
+          "settings": {
+            "icon": "none",
+            "icon_width": 40,
+            "title": "Une boutique pensée pour inspirer confiance",
+            "content": "<p>Présentez vos points forts, vos garanties, votre service client et les éléments qui donnent envie d’acheter dès la première visite.</p>"
+          }
+        },
+        "item_MeMVjd": {
+          "type": "item",
+          "settings": {
+            "icon": "none",
+            "icon_width": 48,
+            "title": "Une expérience moderne et fluide",
+            "content": "<p>Créez un parcours simple, esthétique et efficace pour transformer vos visiteurs en clients, sur mobile comme sur ordinateur.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "item_8MUQRx",
+        "item_zRQxjE",
+        "item_MeMVjd"
+      ],
+      "settings": {
+        "full_width": true,
+        "stack_on_mobile": false,
+        "show_counter": true,
+        "desktop_image_effect": "reveal",
+        "image_position": "end",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": ""
+      }
+    },
+    "impact_text_eLVNxk": {
+      "type": "impact-text",
+      "blocks": {
+        "item_yN8PgF": {
+          "type": "item",
+          "settings": {
+            "title": "100%",
+            "subheading": "Une boutique alignée avec votre image de marque",
+            "content": "",
+            "button_text": "",
+            "button_url": ""
+          }
+        }
+      },
+      "block_order": [
+        "item_yN8PgF"
+      ],
+      "settings": {
+        "full_width": true,
+        "stack_mobile": true,
+        "text_alignment": "center",
+        "text_divider": "none",
+        "background": "",
+        "background_gradient": "",
+        "heading_text_color": "",
+        "heading_gradient": "",
+        "text_color": "",
+        "button_background": "",
+        "button_text_color": ""
+      }
+    },
+    "slideshow_jUXY7P": {
+      "type": "slideshow",
+      "blocks": {
+        "image_KCbkhw": {
+          "type": "image",
+          "settings": {
+            "content_max_width": 780,
+            "mobile_text_position": "place-self-end-center text-center",
+            "desktop_text_position": "sm:place-self-end-center sm:text-center",
+            "subheading": "Une identité forte",
+            "title": "Des visuels, du texte et une structure cohérente",
+            "heading_tag": "h0",
+            "button_text": "En savoir plus",
+            "button_link": "",
+            "text_color": "#ffffff",
+            "button_background": "#ffffff",
+            "button_text_color": "#000000",
+            "overlay_color": "#000000",
+            "overlay_opacity": 30,
+            "background": "",
+            "background_gradient": ""
+          }
+        },
+        "image_X7tKmg": {
+          "type": "image",
+          "settings": {
+            "content_max_width": 780,
+            "mobile_text_position": "place-self-end-center text-center",
+            "desktop_text_position": "sm:place-self-end-center sm:text-center",
+            "subheading": "Une boutique prête à évoluer",
+            "title": "Modifiable facilement dans Shopify",
+            "heading_tag": "h0",
+            "button_text": "Voir les avantages",
+            "button_link": "",
+            "text_color": "#ffffff",
+            "button_background": "#ffffff",
+            "button_text_color": "#000000",
+            "overlay_color": "#000000",
+            "overlay_opacity": 20,
+            "background": "",
+            "background_gradient": ""
+          }
+        }
+      },
+      "block_order": [
+        "image_KCbkhw",
+        "image_X7tKmg"
+      ],
+      "settings": {
+        "full_width": false,
+        "allow_transparent_header": true,
+        "image_size": "sm",
+        "controls_type": "dots",
+        "transition_type": "fade_with_text",
+        "autoplay": false,
+        "cycle_speed": 6,
+        "background": "#ffb899",
+        "background_gradient": ""
+      }
+    },
+    "faq_UTQbQP": {
+      "type": "faq",
+      "blocks": {
+        "item_Hx8Q39": {
+          "type": "item",
+          "settings": {
+            "title": "Quels sont les délais de livraison ?",
+            "content": "<p>Les délais de livraison varient selon le produit et la destination. Toutes les informations importantes sont précisées avant validation de la commande.</p>"
+          }
+        },
+        "item_pkjHUM": {
+          "type": "item",
+          "settings": {
+            "title": "Puis-je retourner un produit ?",
+            "content": "<p>Oui, vous pouvez nous contacter en cas de problème ou de demande de retour. Nous faisons le nécessaire pour vous apporter une solution rapide.</p>"
+          }
+        },
+        "item_nw7YH3": {
+          "type": "item",
+          "settings": {
+            "title": "Comment contacter le service client ?",
+            "content": "<p>Vous pouvez nous écrire via le formulaire de contact disponible sur la boutique. Nous répondons dans les meilleurs délais.</p>"
+          }
+        },
+        "item_AApMHK": {
+          "type": "item",
+          "settings": {
+            "title": "La qualité est-elle garantie ?",
+            "content": "<p>Nous sélectionnons nos offres avec soin afin de proposer une expérience sérieuse, claire et rassurante à nos clients.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "item_Hx8Q39",
+        "item_pkjHUM",
+        "item_nw7YH3",
+        "item_AApMHK"
+      ],
+      "settings": {
+        "full_width": true,
+        "subheading": "",
+        "title": "Questions fréquentes",
+        "content": "",
+        "team_avatar_width": 160,
+        "support_hours": "Notre service client est disponible du lundi au samedi.",
+        "answer_time": "Délai moyen de réponse : 24h",
+        "button_text": "Nous contacter",
+        "button_url": "",
+        "text_position": "center",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "button_background": "",
+        "button_text_color": "",
+        "accordion_background": "",
+        "accordion_text_color": ""
+      }
+    },
+    "newsletter_q8UxQw": {
+      "type": "newsletter",
+      "settings": {
+        "full_width": true,
+        "show_icon": true,
+        "title": "Newsletter",
+        "content": "<p>Recevez nos nouveautés, nos offres spéciales et nos conseils directement par email.</p>",
+        "button_text": "S'abonner",
+        "subtext": "",
+        "background": "",
+        "background_gradient": "",
+        "text_color": "",
+        "button_background": "",
+        "button_text_color": ""
+      }
+    },
+    "contact_9CP78f": {
+      "type": "contact",
+      "settings": {
+        "full_width": true,
+        "subheading": "Contactez-nous",
+        "title": "Une question ?",
+        "content": "<p>Notre équipe reste disponible pour vous répondre et vous accompagner.</p>",
+        "text_position": "center",
+        "contact_form_size": "large",
+        "background": "#ff6f20",
+        "background_gradient": "",
+        "text_color": "",
+        "heading_color": "",
+        "heading_gradient": "",
+        "contact_background": "#fac7ab",
+        "contact_text_color": "",
+        "button_background": "",
+        "button_text_color": "",
+        "show_faq": false,
+        "faq_text": "Vous avez une question ? La réponse se trouve peut-être déjà dans notre FAQ.",
+        "faq_link": "",
+        "faq_button_text": "FAQ"
+      }
+    }
+  },
+  "order": [
+    "slideshow_QVjwPn",
+    "scrolling_text_XJ3zM3",
+    "images_with_text_scrolling_jrGe3T",
+    "impact_text_eLVNxk",
+    "slideshow_jUXY7P",
+    "faq_UTQbQP",
+    "newsletter_q8UxQw",
+    "contact_9CP78f"
+  ]
+}

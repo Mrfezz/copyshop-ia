@@ -1,0 +1,107 @@
+{%- if section.settings.html != blank -%}
+  <style>
+    #shopify-section-{{ section.id }} {
+      {% if section.settings.remove_vertical_spacing %}--section-spacing-block: 0px;{% endif %}
+      {% if section.settings.remove_horizontal_spacing %}--section-spacing-inline: 0px;{% endif %}
+      {% if section.settings.text_alignment %}text-align: {{ section.settings.text_alignment }};{% endif %}
+    }
+  </style>
+
+  {%- render 'section-spacing-collapsing' -%}
+
+  <div {% render 'section-properties' %} class="{{ section.settings.custom_classes }}">
+    {{ section.settings.html }}
+  </div>
+{%- else -%}
+  <div class="placeholder">
+    <p style="text-align: center;">Insérez du code HTML personnalisé ici.</p>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "HTML personnalisé",
+  "class": "shopify-section--custom-html",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_vertical_spacing",
+      "label": "Supprimer l'espacement vertical",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_horizontal_spacing",
+      "label": "Supprimer l'espacement horizontal",
+      "default": false
+    },
+    {
+      "type": "html",
+      "id": "html",
+      "label": "Code HTML",
+      "default": "<p style=\"text-align: center\">Écrivez ou copiez/collez ici du code HTML</p>"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Alignement du texte",
+      "options": [
+        {
+          "value": "left",
+          "label": "Gauche"
+        },
+        {
+          "value": "center",
+          "label": "Centre"
+        },
+        {
+          "value": "right",
+          "label": "Droite"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "text",
+      "id": "custom_classes",
+      "label": "Classes CSS personnalisées",
+      "default": "custom-html-section"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs de la section",
+      "info": "Les dégradés remplacent les couleurs unies lorsqu'ils sont définis."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Couleur d'arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Dégradé d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Couleur du texte"
+    }
+  ],
+  "presets": [
+    {
+      "name": "HTML personnalisé"
+    }
+  ]
+}
+{% endschema %}

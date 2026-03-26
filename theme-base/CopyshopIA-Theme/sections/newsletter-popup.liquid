@@ -1,0 +1,156 @@
+{%- unless request.page_type == 'captcha' or section.settings.show_only_on_index and request.page_type != 'index' -%}
+  {%- unless section.settings.show_only_for_visitors and customer -%}
+    {%- assign posted_successfully = false -%}
+    {%- assign newsletter_id = 'newsletter-' | append: section.id -%}
+
+    {%- capture temporary -%}
+      {%- form 'customer', id: newsletter_id, class: 'form' -%}
+        {%- assign posted_successfully = form.posted_successfully? -%}
+      {%- endform -%}
+    {%- endcapture -%}
+
+    <newsletter-popup id="newsletter-drawer" open-from="right" class="drawer newsletter-drawer" {% if section.settings.show_only_once %}only-once{% endif %} apparition-delay="{{ section.settings.apparition_delay }}" {% if posted_successfully %}open{% endif %} handle-section-events>
+      <button is="close-button" aria-label="{{ 'general.accessibility.close' | t | escape }}" class="sm-max:hidden">
+        {%- render 'icon' with 'close', width: 19, height: 19 -%}
+      </button>
+
+      {%- if section.settings.image != blank -%}
+        {%- capture sizes -%}min(calc(100vw - 16px), 445px){%- endcapture -%}
+        {%- capture widths -%}{{ section.settings.image.width }}, {{ section.settings.image.width | times: 2 | at_most: section.settings.image.width }}{%- endcapture -%}
+        {{- section.settings.image | image_url: width: section.settings.image.width | image_tag: loading: 'lazy', widths: widths, sizes: sizes -}}
+      {%- endif -%}
+
+      <div class="newsletter-drawer__content v-stack gap-4 text-center">
+        <div class="v-stack gap-6">
+          {%- if section.settings.title != blank -%}
+            <p class="h5">{{- section.settings.title -}}</p>
+          {%- endif -%}
+
+          {%- form 'customer', id: newsletter_id, class: 'form' -%}
+            {%- if form.posted_successfully? -%}
+              <div class="success-message text-center">
+                <p class="text-lg">{{ section.settings.success_message }}</p>
+                {% if section.settings.enable_promo %}
+                  <p class="promo-code text-xl font-bold">{{ section.settings.promo_code_text }} : <span class="promo-code-value">{{ section.settings.promo_code }}</span></p>
+                {% endif %}
+              </div>
+
+              <script>
+                localStorage.setItem('theme:popup-filled', 'true');
+              </script>
+            {%- else -%}
+              {%- if form.errors -%}
+                {%- assign content = form.errors | default_errors -%}
+                {%- render 'banner', status: 'error', content: content -%}
+              {%- endif -%}
+
+              <div class="fieldset">
+                <input type="hidden" name="contact[tags]" value="newsletter">
+
+                {%- assign label = section.settings.email_placeholder -%}
+                {%- render 'input', type: 'email', name: 'contact[email]', label: label, required: true, autocomplete: 'email' -%}
+              </div>
+
+              {%- render 'button', content: section.settings.button_text, icon: 'picto-envelope', type: 'submit', size: 'xl' -%}
+            {%- endif -%}
+          {%- endform -%}
+        </div>
+
+        {%- if section.settings.subtext != blank -%}
+          <p class="text-xs text-subdued">{{- section.settings.subtext -}}</p>
+        {%- endif -%}
+      </div>
+    </newsletter-popup>
+  {%- endunless -%}
+{%- endunless -%}
+
+{% schema %}
+{
+  "name": "Popup Newsletter/Promo",
+  "class": "shopify-section--popup",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_promo",
+      "label": "Activer la promotion",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "apparition_delay",
+      "min": 0,
+      "max": 15,
+      "step": 1,
+      "unit": "sec",
+      "label": "Délai avant l'apparition du popup",
+      "default": 5
+    },
+    {
+      "type": "checkbox",
+      "id": "show_only_on_index",
+      "label": "Afficher uniquement sur la page d'accueil",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_only_for_visitors",
+      "label": "Désactiver pour les clients connectés",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_only_once",
+      "label": "Afficher une seule fois pour les visiteurs",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image",
+      "info": "1000 x 600px recommandé (JPG)."
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre",
+      "default": "Inscrivez-vous à notre newsletter"
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "Message de succès",
+      "default": "Merci pour votre inscription !"
+    },
+    {
+      "type": "text",
+      "id": "promo_code_text",
+      "label": "Texte pour le code promo",
+      "default": "Votre code promo"
+    },
+    {
+      "type": "text",
+      "id": "promo_code",
+      "label": "Code promotionnel",
+      "default": "PROMO2024"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texte du bouton",
+      "default": "S'inscrire"
+    },
+    {
+      "type": "text",
+      "id": "email_placeholder",
+      "label": "Placeholder de l'email",
+      "default": "Votre email"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subtext",
+      "label": "Texte secondaire",
+      "default": "Restez informé de nos nouveautés et offres exclusives."
+    }
+  ]
+}
+{% endschema %}

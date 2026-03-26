@@ -1,0 +1,35 @@
+{%- liquid
+  capture class
+    if gradient != blank
+      echo 'text-gradient '
+    elsif text_color != blank and text_color != 'rgba(0,0,0,0)'
+      echo 'text-custom '
+    endif
+
+    if style == 'outline'
+      echo 'text-stroke '
+    endif
+  endcapture
+
+  capture style
+    if gradient != blank
+      echo '--gradient: ' | append: gradient
+    elsif text_color != blank and text_color != 'rgba(0,0,0,0)'
+      echo '--text-color: ' | append: text_color.rgb | append: ';'
+    endif
+  endcapture
+-%}
+
+{%- capture text_content -%}
+  {%- if apparition_effect and settings.heading_apparition contains 'split' and gradient == blank -%}
+    <split-lines>{{ content | strip | escape }}</split-lines>
+  {%- else -%}
+    {{- content | strip | escape -}}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if class != blank -%}
+  <span class="{{ class }}" style="{{ style }}">{{- text_content -}}</span>
+{%- else -%}
+  {{- text_content -}}
+{%- endif -%}

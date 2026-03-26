@@ -1,0 +1,150 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "type": "footer",
+  "name": "Footer group",
+  "sections": {
+    "text-with-icons": {
+      "type": "text-with-icons",
+      "blocks": {
+        "free-shipping": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-customer-support",
+            "mobile_icon_width": 44,
+            "icon_width": 60,
+            "icon_background_type": "none",
+            "icon_background": "rgba(0,0,0,0)",
+            "icon_color": "#ff6f20",
+            "title": "Service client réactif",
+            "content": "<p>Vous pouvez nous contacter du lundi au samedi de 9:00 à 18:00.</p>"
+          }
+        },
+        "customer-support": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-box",
+            "mobile_icon_width": 44,
+            "icon_width": 60,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "#ff6f20",
+            "title": "LIVRAISON OFFERTE",
+            "content": "<p>Nous vous livrons gratuitement où que vous soyez !</p>"
+          }
+        },
+        "discount": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-star",
+            "mobile_icon_width": 44,
+            "icon_width": 60,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "#ff6f20",
+            "title": "GARANTIE 10 ANS",
+            "content": "<p>Nous vous garantissons le fonctionnement de Vividio<strong>™ </strong>durant 10 ans.</p>"
+          }
+        },
+        "payment": {
+          "type": "item",
+          "settings": {
+            "icon": "picto-credit-card",
+            "mobile_icon_width": 44,
+            "icon_width": 60,
+            "icon_background_type": "none",
+            "icon_background": "",
+            "icon_color": "#ff6f20",
+            "title": "PAIEMENT 100% SÉCURISÉ",
+            "content": "<p>Payez en toute sérénité sur notre site grâce à la technologie de sécurité SSL.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "free-shipping",
+        "customer-support",
+        "discount",
+        "payment"
+      ],
+      "settings": {
+        "full_width": true,
+        "title": "",
+        "heading_tag": "h6",
+        "text_alignment": "center",
+        "icon_spacing": "small",
+        "background": "#f5f5f5",
+        "background_gradient": "",
+        "text_color": "#191818"
+      }
+    },
+    "footer": {
+      "type": "footer",
+      "blocks": {
+        "newsletter": {
+          "type": "newsletter",
+          "settings": {
+            "image_width": 120,
+            "heading_size": "h3",
+            "title": "Abonnez-vous à notre newsletter !",
+            "content": "<p>Recevez dans votre boîte mail des réductions, des conseils et nos nouveaux arrivages.</p>"
+          }
+        },
+        "links": {
+          "type": "links",
+          "settings": {
+            "menu": "footer",
+            "show_menu_title": true
+          }
+        },
+        "text": {
+          "type": "text",
+          "disabled": true,
+          "settings": {
+            "title": "À Propos de Comfwork.",
+            "content": "<p><strong>contact@comfwork.com<br/></strong>16 rue du rond buisson 25220 Thise<br/>03.81.85.06.50</p><p></p><p>La seule marque Française qui est pensée par des professionels, pour des professionnels. Soyez enfin efficace et efficient.</p>"
+          }
+        },
+        "f94d6d55-2f49-4b15-b74f-315452887d27": {
+          "type": "links",
+          "settings": {
+            "menu": "main-menu",
+            "show_menu_title": true
+          }
+        },
+        "text_CwawGf": {
+          "type": "text",
+          "settings": {
+            "title": "Informations de l'entreprise",
+            "content": "<p>Nom de l'entreprise : <br/>Numéro entreprise : <br/>Adresse de l'entreprise : <br/>Téléphone : <br/>E-mail : </p>"
+          }
+        }
+      },
+      "block_order": [
+        "newsletter",
+        "links",
+        "text",
+        "f94d6d55-2f49-4b15-b74f-315452887d27",
+        "text_CwawGf"
+      ],
+      "settings": {
+        "show_social_media": false,
+        "show_payment_icons": false,
+        "show_country_selector": false,
+        "show_country_flag": false,
+        "show_country_name": false,
+        "show_locale_selector": false
+      }
+    }
+  },
+  "order": [
+    "text-with-icons",
+    "footer"
+  ]
+}

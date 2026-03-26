@@ -1,0 +1,222 @@
+{%- if section.blocks.size > 0 -%}
+  {%- render 'section-spacing-collapsing' -%}
+
+  <style>
+    @media screen and (min-width: 700px) {
+      #shopify-section-{{ section.id }} {
+        --tabs-max-width: {% if section.settings.content_size == 'small' %}760{% elsif section.settings.content_size == 'medium' %}1000{% elsif section.settings.content_size == 'large' %}1260{% endif %}px;
+        --section-stack-spacing-block: var(--spacing-8);
+      }
+    }
+
+    @media screen and (min-width: 1400px) {
+      #shopify-section-{{ section.id }} {
+        --section-stack-spacing-block: var(--spacing-10);
+      }
+    }
+  </style>
+
+  <div {% render 'section-properties' %}>
+    <div class="tabs">
+      <div class="section-stack">
+        {%- if section.settings.subheading != blank or section.settings.title != blank -%}
+          <div class="prose text-center">
+            {%- if section.settings.subheading != blank -%}
+              <p class="bold">{{ section.settings.subheading | escape }}</p>
+            {%- endif -%}
+
+            {%- if section.settings.title != blank -%}
+              <p class="h2">{%- render 'styled-text', content: section.settings.title, text_color: section.settings.heading_color, gradient: section.settings.heading_gradient -%}</p>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        <div class="tabs-container">
+          <div class="sm:hidden">
+            {%- for block in section.blocks -%}
+              {%- assign title = block.settings.title | default: block.settings.page.title -%}
+              {%- assign content = block.settings.page.content | default: block.settings.content -%}
+
+              {%- if title and content -%}
+                {%- assign open = false -%}
+
+                {%- if forloop.first and section.settings.first_tab_open -%}
+                  {%- assign open = true -%}
+                {%- endif -%}
+
+                {%- capture accordion_content -%}
+                  <div class="prose">{{ content }}</div>
+                {%- endcapture -%}
+
+                {%- render 'accordion', title: title, content: accordion_content, open: open -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+
+          <x-tabs class="tabs-inner">
+            <template shadowrootmode="open">
+              <slot role="tablist" part="tab-list" name="title"></slot>
+              <slot part="tab-panels" name="content"></slot>
+            </template>
+
+            {%- for block in section.blocks -%}
+              {%- assign title = block.settings.title | default: block.settings.page.title -%}
+              {%- assign content = block.settings.page.content | default: block.settings.content -%}
+
+              {%- if title != blank and content != blank -%}
+                <button type="button" slot="title" class="tabs-nav__button bold text-subdued text-center" {{ block.shopify_attributes }}>{{ title | escape }}</button>
+                <div role="tabpanel" class="tab-content prose" slot="content" {% cycle '', 'hidden', 'hidden', 'hidden', 'hidden' %}>
+                  {{ content }}
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </x-tabs>
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Onglets",
+  "class": "shopify-section--tabs",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "max_blocks": 5,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "content_size",
+      "label": "Taille du contenu",
+      "options": [
+        {
+          "value": "small",
+          "label": "Petite"
+        },
+        {
+          "value": "medium",
+          "label": "Moyenne"
+        },
+        {
+          "value": "large",
+          "label": "Grande"
+        },
+        {
+          "value": "fill",
+          "label": "Remplir la page"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Sous-titre",
+      "default": "Sous-titre"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre",
+      "default": "Titre"
+    },
+    {
+      "type": "checkbox",
+      "id": "first_tab_open",
+      "label": "Ouvrir le premier onglet sur mobile"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Le dégradé remplace les couleurs unies lorsqu'il est défini."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Dégradé d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texte"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Couleur du titre"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Dégradé du titre"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "tab",
+      "name": "Onglet",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Onglet"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu",
+          "default": "<p>Utilisez ce texte pour partager des informations sur votre marque avec vos clients.</p>"
+        },
+        {
+          "type": "page",
+          "id": "page",
+          "label": "Page",
+          "info": "Remplace le contenu intégré si spécifié."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Onglets",
+      "blocks": [
+        {
+          "type": "tab",
+          "settings": {
+            "title": "Onglet 1",
+            "content": "<p>Utilisez ce texte pour partager des informations sur votre marque avec vos clients.</p>"
+          }
+        },
+        {
+          "type": "tab",
+          "settings": {
+            "title": "Onglet 2",
+            "content": "<p>Décrivez un produit, partagez des annonces ou accueillez vos clients.</p>"
+          }
+        },
+        {
+          "type": "tab",
+          "settings": {
+            "title": "Onglet 3",
+            "content": "<p>Partagez des informations sur vos tarifs d'expédition, votre politique de retour ou vos coordonnées.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

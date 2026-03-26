@@ -1,0 +1,361 @@
+{% schema %}
+{
+  "name": "Bundle Section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Important : Configurez une réduction automatique",
+      "info": "Pour que ce bundle soit actif et que la réduction soit appliquée correctement, vous devez configurer une réduction automatique dans l'administration Shopify. Allez dans Marketing > Réductions > Réduction automatique pour en créer une."
+    },
+    {
+      "type": "text",
+      "id": "bundle_title",
+      "label": "Titre de la section",
+      "default": "🌟 Offre exceptionnelle 🌟"
+    },
+    {
+      "type": "color",
+      "id": "bundle_title_color",
+      "label": "Couleur",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "bundle_title_size",
+      "label": "Taille (px)",
+      "default": 24,
+      "min": 12,
+      "max": 48,
+      "step": 1
+    },
+    {
+      "type": "text",
+      "id": "bundle_description",
+      "label": "Description du bundle",
+      "default": "Économisez 10% avec ce pack !"
+    },
+    {
+      "type": "color",
+      "id": "bundle_description_color",
+      "label": "Couleur",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "bundle_description_size",
+      "label": "Taille (px)",
+      "default": 16,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    },
+    {
+      "type": "text",
+      "id": "bundle_price_label",
+      "label": "Texte pour le prix total du bundle",
+      "default": "Prix total du bundle :"
+    },
+    {
+      "type": "color",
+      "id": "bundle_price_color",
+      "label": "Couleur",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "bundle_price_size",
+      "label": "Taille (px)",
+      "default": 18,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    },
+    {
+      "type": "text",
+      "id": "savings_label",
+      "label": "Texte pour les économies réalisées",
+      "default": "Vous économisez :"
+    },
+    {
+      "type": "color",
+      "id": "savings_color",
+      "label": "Couleur",
+      "default": "#FF0000"
+    },
+    {
+      "type": "range",
+      "id": "savings_size",
+      "label": "Taille (px)",
+      "default": 18,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    },
+    {
+      "type": "radio",
+      "id": "discount_type",
+      "label": "Type de réduction",
+      "options": [
+        {
+          "label": "Pourcentage",
+          "value": "percentage"
+        },
+        {
+          "label": "Montant fixe",
+          "value": "fixed"
+        }
+      ],
+      "default": "percentage"
+    },
+    {
+      "type": "number",
+      "id": "discount_value",
+      "label": "Valeur de la réduction",
+      "default": 10
+    },
+    {
+      "type": "text",
+      "id": "variant_text",
+      "label": "Texte pour la variante",
+      "default": "Variante :"
+    },
+    {
+      "type": "text",
+      "id": "quantity_text",
+      "label": "Texte pour quantité",
+      "default": "Quantité"
+    },
+    {
+      "type": "range",
+      "id": "quantity_text_size",
+      "label": "Taille (px)",
+      "default": 14,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    },
+    {
+      "type": "text",
+      "id": "price_without_discount_text",
+      "label": "Texte pour prix sans remise",
+      "default": "Prix sans remise :"
+    },
+    {
+      "type": "range",
+      "id": "price_without_discount_size",
+      "label": "Taille (px)",
+      "default": 14,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texte du bouton",
+      "default": "Ajouter au panier"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Couleur",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Couleur d'arrière-plan",
+      "default": "#FF6F20"
+    },
+    {
+      "type": "range",
+      "id": "button_text_size",
+      "label": "Taille (px)",
+      "default": 16,
+      "min": 12,
+      "max": 36,
+      "step": 1
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Produit",
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "Sélectionner un produit"
+        },
+        {
+          "type": "number",
+          "id": "quantity",
+          "label": "Quantité",
+          "default": 1
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Bundle Section",
+      "category": "Promotion"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="bundle-section">
+  <h2 style="color: {{ section.settings.bundle_title_color }}; font-size: {{ section.settings.bundle_title_size }}px;">
+    {{ section.settings.bundle_title }}
+  </h2>
+  <p style="color: {{ section.settings.bundle_description_color }}; font-size: {{ section.settings.bundle_description_size }}px;">
+    {{ section.settings.bundle_description }}
+  </p>
+
+  <div class="bundle-products">
+    {% assign total_price = 0 %}
+    {% for block in section.blocks %}
+    {% if block.settings.product %}
+    <div class="bundle-product">
+      <a href="{{ block.settings.product.url }}">
+        <img src="{{ block.settings.product.featured_image | img_url: 'medium' }}" alt="{{ block.settings.product.title }}">
+      </a>
+      <h3>{{ block.settings.product.title }}</h3>
+
+      <p style="font-size: {{ section.settings.price_without_discount_size }}px;">
+        {{ section.settings.price_without_discount_text }}
+        <strong>{{ block.settings.product.price | times: block.settings.quantity | money }}</strong>
+      </p>
+
+      <label for="variant_{{ block.id }}" style="font-size: {{ section.settings.quantity_text_size }}px;">
+        {{ section.settings.variant_text }}
+      </label>
+
+      <select name="variant_{{ block.id }}" id="variant_{{ block.id }}">
+        {% for variant in block.settings.product.variants %}
+        <option value="{{ variant.id }}">{{ variant.title }}</option>
+        {% endfor %}
+      </select>
+
+      <p>{{ section.settings.quantity_text }} : {{ block.settings.quantity }}</p>
+      {% assign total_price = total_price | plus: block.settings.product.price | times: block.settings.quantity %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Ajouter des espaces vides si moins de 3 produits -->
+    {% if forloop.length < 3 %}
+    {% for i in (forloop.length..3) %}
+    <div class="bundle-product empty"></div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="bundle-summary">
+    {% if section.settings.discount_type == "percentage" %}
+      {% assign discount = total_price | times: section.settings.discount_value | divided_by: 100 %}
+    {% else %}
+      {% assign discount = section.settings.discount_value %}
+    {% endif %}
+    {% assign discounted_price = total_price | minus: discount %}
+
+    <p style="color: {{ section.settings.bundle_price_color }}; font-size: {{ section.settings.bundle_price_size }}px;">
+      <strong>{{ section.settings.bundle_price_label }}</strong>
+      <span>{{ discounted_price | money }}</span>
+    </p>
+    <p style="color: {{ section.settings.savings_color }}; font-size: {{ section.settings.savings_size }}px;">
+      <strong>{{ section.settings.savings_label }}</strong>
+      <span>{{ discount | money }}</span>
+    </p>
+
+    <button class="button bundle-cta" 
+            id="add-bundle-to-cart"
+            style="
+              color: {{ section.settings.button_text_color }};
+              background-color: {{ section.settings.button_bg_color }};
+              font-size: {{ section.settings.button_text_size }}px;
+            ">
+      {{ section.settings.button_text }}
+    </button>
+  </div>
+</div>
+
+<script>
+  document.getElementById('add-bundle-to-cart').addEventListener('click', function () {
+    const bundleProducts = [
+      {% for block in section.blocks %}
+      {% if block.settings.product %}
+      {
+        id: {{ block.settings.product.variants.first.id }},
+        quantity: {{ block.settings.quantity }}
+      },
+      {% endif %}
+      {% endfor %}
+    ];
+
+    const addProductToCart = (product) => {
+      return fetch('/cart/add.js', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: product.id, quantity: product.quantity })
+      });
+    };
+
+    const addBundleToCart = async () => {
+      for (const product of bundleProducts) {
+        try {
+          await addProductToCart(product);
+        } catch (error) {
+          console.error('Erreur lors de l\'ajout du produit au panier :', product, error);
+          alert('Une erreur s\'est produite lors de l\'ajout au panier.');
+          return;
+        }
+      }
+      window.location.href = '/checkout';
+    };
+
+    addBundleToCart();
+  });
+</script>
+
+<style>
+.bundle-section {
+  text-align: center;
+  margin: 40px auto;
+}
+.bundle-products {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+.bundle-product {
+  max-width: 200px;
+}
+.bundle-product.empty {
+  visibility: hidden;
+}
+.bundle-summary {
+  margin-top: 20px;
+}
+.bundle-summary span {
+  font-weight: bold;
+}
+.button {
+  padding: 10px 20px;
+  font-weight: bold;
+  text-align: center;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.button:hover {
+  opacity: 0.8;
+}
+</style>
+
+
+

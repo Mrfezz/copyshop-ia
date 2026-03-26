@@ -1,0 +1,267 @@
+{%- comment -%}
+----------------------------------------------------------------------------------------------------------------------
+SECTION - COMPTE À REBOURS
+----------------------------------------------------------------------------------------------------------------------
+
+Affiche un compte à rebours entièrement personnalisable avec des options pour la date, l'heure, le fuseau horaire,
+les couleurs, les tailles, et la possibilité d'ajouter des émojis.
+
+{%- endcomment -%}
+
+{%- render 'section-spacing-collapsing' -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    {% if section.settings.background_color %}background-color: {{ section.settings.background_color }};{% endif %}
+    {% if section.settings.text_color %}color: {{ section.settings.text_color }};{% endif %}
+    text-align: {{ section.settings.text_alignment }};
+    padding: 20px;
+    border-radius: 8px;
+  }
+
+  .countdown-timer__emoji {
+    font-size: {{ section.settings.emoji_size }}px;
+    margin-bottom: 10px;
+  }
+
+  .countdown-timer__title {
+    font-size: {{ section.settings.title_font_size }}px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .countdown-timer__clock {
+    font-size: {{ section.settings.timer_font_size }}px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+.button:hover {
+  opacity: 0.8;
+}
+
+  .countdown-timer__clock span {
+    display: inline-block;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .countdown-timer__button {
+    padding: 10px 20px;
+    font-size: {{ section.settings.button_font_size }}px;
+    color: {{ section.settings.button_text_color }};
+    background-color: {{ section.settings.button_background_color }};
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .countdown-timer__button:hover {
+    opacity: 0.9;
+  }
+</style>
+
+<div {% render 'section-properties' %}>
+  <div class="countdown-timer">
+    {%- if section.settings.emoji != blank -%}
+      <div class="countdown-timer__emoji">{{ section.settings.emoji }}</div>
+    {%- endif -%}
+
+    {%- if section.settings.title != blank -%}
+      <div class="countdown-timer__title">{{ section.settings.title | escape }}</div>
+    {%- endif -%}
+
+    <div class="countdown-timer__clock" id="countdown-{{ section.id }}">
+      <!-- L'horloge sera mise à jour via JavaScript -->
+    </div>
+
+    {%- if section.settings.button_text != blank and section.settings.button_url != blank -%}
+  <a href="{{ section.settings.button_url }}" class="button countdown-timer__button" 
+     style="
+       color: {{ section.settings.button_text_color }};
+       background-color: {{ section.settings.button_background_color }};
+       font-size: {{ section.settings.button_font_size }}px;
+       padding: 10px 20px;
+       border-radius: 5px;
+       border: none;
+       text-align: center;
+       cursor: pointer;
+       text-decoration: none;
+       display: inline-block;
+       transition: all 0.3s ease;
+     ">
+    {{ section.settings.button_text | escape }}
+  </a>
+{%- endif -%}
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const countdownElement = document.getElementById("countdown-{{ section.id }}");
+    const startDate = new Date("{{ section.settings.start_date }}T{{ section.settings.start_time }}{{ section.settings.timezone }}").getTime();
+    const endDate = new Date("{{ section.settings.end_date }}T{{ section.settings.end_time }}{{ section.settings.timezone }}").getTime();
+
+    function updateCountdown() {
+      const now = new Date().getTime();
+      if (now < startDate) {
+        countdownElement.innerHTML = "La promotion commence bientôt !";
+      } else if (now >= startDate && now <= endDate) {
+        const distance = endDate - now;
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownElement.innerHTML = `
+          <span>${days}j</span>
+          <span>${hours}h</span>
+          <span>${minutes}m</span>
+          <span>${seconds}s</span>
+        `;
+      } else {
+        countdownElement.innerHTML = "La promotion est terminée.";
+      }
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Compte à rebours",
+  "class": "shopify-section--countdown-timer",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre",
+      "default": "Offre spéciale en cours"
+    },
+    {
+      "type": "text",
+      "id": "emoji",
+      "label": "Émoji",
+      "default": "🔥"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Couleur de fond",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Couleur du texte",
+      "default": "#000000"
+    },
+    {
+      "type": "number",
+      "id": "title_font_size",
+      "label": "Taille de police du titre (px)",
+      "default": 24
+    },
+    {
+      "type": "number",
+      "id": "timer_font_size",
+      "label": "Taille de police du compte à rebours (px)",
+      "default": 32
+    },
+    {
+      "type": "number",
+      "id": "emoji_size",
+      "label": "Taille de l'émoji (px)",
+      "default": 32
+    },
+    {
+      "type": "text",
+      "id": "start_date",
+      "label": "Date de début (AAAA-MM-JJ)",
+      "default": "2024-11-17"
+    },
+    {
+      "type": "text",
+      "id": "start_time",
+      "label": "Heure de début (HH:mm)",
+      "default": "00:00"
+    },
+    {
+      "type": "text",
+      "id": "end_date",
+      "label": "Date de fin (AAAA-MM-JJ)",
+      "default": "2024-12-01"
+    },
+    {
+      "type": "text",
+      "id": "end_time",
+      "label": "Heure de fin (HH:mm)",
+      "default": "23:59"
+    },
+    {
+      "type": "select",
+      "id": "timezone",
+      "label": "Fuseau horaire",
+      "options": [
+        { "value": "+00:00", "label": "UTC" },
+        { "value": "+01:00", "label": "Paris (UTC+1)" },
+        { "value": "-05:00", "label": "New York (UTC-5)" },
+        { "value": "+09:00", "label": "Tokyo (UTC+9)" }
+      ],
+      "default": "+00:00"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texte du bouton",
+      "default": "Voir l'offre"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Lien du bouton"
+    },
+    {
+      "type": "color",
+      "id": "button_background_color",
+      "label": "Couleur de fond du bouton",
+      "default": "#FF5722"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Couleur du texte du bouton",
+      "default": "#ffffff"
+    },
+    {
+      "type": "number",
+      "id": "button_font_size",
+      "label": "Taille de police du bouton (px)",
+      "default": 16
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Alignement du texte",
+      "options": [
+        { "value": "left", "label": "Gauche" },
+        { "value": "center", "label": "Centre" },
+        { "value": "right", "label": "Droite" }
+      ],
+      "default": "center"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Compte à rebours"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,249 @@
+<cart-drawer
+  {% if request.design_mode %}
+    handle-section-events
+  {% endif %}
+  class="cart-drawer drawer drawer--lg"
+  id="cart-drawer"
+>
+  {%- if cart.item_count == 0 -%}
+    <button is="close-button" aria-label="Fermer">
+      {%- render 'icon' with 'close' -%}
+    </button>
+
+    <div class="empty-state align-self-center">
+      <div class="empty-state__icon-wrapper">
+        {%- render 'icon' with 'cart', width: 32, height: 32, stroke_width: 1 -%}
+        <span class="count-bubble count-bubble--lg">0</span>
+      </div>
+
+      <div class="prose">
+        <p class="h5">Votre panier est actuellement vide.</p>
+
+        {%- assign button_content = 'Continuer vos achats' -%}
+        {%- render 'button', href: settings.cart_empty_button_link, size: 'xl', content: button_content -%}
+      </div>
+    </div>
+  {%- else -%}
+    <div>
+      <div class="cart-drawer__top">
+        <div class="h-stack items-center justify-between">
+          <div class="h-stack gap-2 sm:gap-2.5">
+            <p class="h5">Mon panier</p>
+            <cart-count class="count-bubble count-bubble--md">{{ cart.item_count }}</cart-count>
+          </div>
+
+          <button type="button" is="close-button" class="drawer__close-icon">
+            <span class="sr-only">Fermer</span>
+            {%- render 'icon' with 'close' -%}
+          </button>
+        </div>
+
+        {%- if settings.cart_module_timer_enable -%}
+          <div
+            style="color:{{ settings.col }};background:{{ settings.bg }};padding: 5px 0;text-align: center;border-radius: var(--rounded-button);"
+            class="drawer__module drawer__module--timer"
+            data-duration="{{ settings.timer_delay }}"
+          >
+            {%- assign timer = "<span style='font-weight:800' class='drawer__module--timer-time'></span>" -%}
+            <p class="timer__text">
+              {{- settings.cart_module_timer_text | replace: '$time', timer -}}
+            </p>
+          </div>
+          <script>
+            if (document.querySelector(".drawer__module--timer")) {
+              const timer = document.querySelector(".drawer__module--timer-time");
+              const timerDrawerModule = document.querySelector(
+                ".drawer__module--timer"
+              );
+              let time;
+
+              if (localStorage.getItem("cartTimer")) {
+                time = localStorage.getItem("cartTimer");
+              } else {
+                time = timerDrawerModule.dataset.duration * 60;
+                localStorage.setItem("cartTimer", time);
+              }
+
+              const tick = () => {
+                const minutes = Math.floor(time / 60);
+                const seconds = time % 60;
+                timer.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+                if (time > 0) {
+                  localStorage.setItem("cartTimer", time--);
+                } else {
+                  const xhr = new XMLHttpRequest();
+                  xhr.open("POST", "/cart/clear.js", true);
+                  xhr.setRequestHeader("Content-Type", "application/json");
+                  xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                      localStorage.removeItem("cartTimer");
+                      window.location.reload();
+                    }
+                  };
+                  xhr.send();
+                }
+              };
+
+              tick();
+              setInterval(() => {
+                tick();
+              }, 1000);
+            }
+          </script>
+        {%- endif -%}
+
+        {%- if settings.cart_show_free_shipping_threshold -%}
+          {%- render 'free-shipping-bar' -%}
+        {%- endif -%}
+      </div>
+
+      <div class="v-stack gap-6 sm:gap-8">
+        <div class="cart-drawer__line-items">
+          {%- for line_item in cart.items -%}
+            {%- render 'line-item', line_item: line_item, show_desktop_quantity: true -%}
+          {%- endfor -%}
+        </div>
+
+        {%- if section.settings.products.count > 0 -%}
+          <div class="cart-drawer__recommendations">
+            <div class="v-stack gap-2.5 sm:gap-4">
+              {%- capture carousel_id -%}cart-drawer-recommendations{%- endcapture -%}
+
+              {%- if section.settings.recommendations_title != blank or section.settings.products.count > 1 -%}
+                <div class="h-stack justify-between gap-4">
+                  {%- if section.settings.recommendations_title != blank -%}
+                    <p>{{ section.settings.recommendations_title | escape }}</p>
+                  {%- endif -%}
+
+                  {%- if section.settings.products.count > 1 -%}
+                    <div class="h-stack gap-2 hidden sm:flex">
+                      <button
+                        is="prev-button"
+                        class="circle-chevron hover:colors"
+                        aria-controls="{{ carousel_id }}"
+                        aria-label="Précédent"
+                        disabled
+                      >
+                        {%- render 'icon' with 'chevron-left-small', direction_aware: true -%}
+                      </button>
+                      <button
+                        is="next-button"
+                        class="circle-chevron hover:colors"
+                        aria-controls="{{ carousel_id }}"
+                        aria-label="Suivant"
+                      >
+                        {%- render 'icon' with 'chevron-right-small', direction_aware: true -%}
+                      </button>
+                    </div>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+
+              <scroll-carousel
+                selector=".horizontal-product"
+                id="{{ carousel_id }}"
+                class="horizontal-product-list-carousel scroll-area bleed"
+              >
+                <div class="horizontal-product-list divide-x">
+                  {%- for recommended_product in section.settings.products -%}
+                    {%- render 'horizontal-product',
+                      product: recommended_product,
+                      show_add_to_cart: true,
+                      background: section.settings.product_card_background,
+                      text_color: section.settings.product_card_text_color
+                    -%}
+                  {%- endfor -%}
+                </div>
+              </scroll-carousel>
+            </div>
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="v-stack gap-4 sm:gap-6" slot="footer">
+      <div class="v-stack gap-1">
+        <div class="h-stack gap-4 justify-between">
+          <span class="h5">Total</span>
+          <span class="h5">{{ cart.total_price | money_with_currency }}</span>
+        </div>
+        <p class="text-subdued text-sm">Taxes et livraison calculées à la caisse.</p>
+      </div>
+
+      <form action="{{ routes.cart_url }}" method="POST" class="buy-buttons">
+        <a
+          href="{{ routes.cart_url }}"
+          class="button button--xl"
+          data-no-instant
+        >
+          Voir le panier
+        </a>
+        <button
+          type="submit"
+          class="button button--xl"
+          name="checkout"
+        >
+          Passer à la caisse
+        </button>
+      </form>
+    </div>
+  {%- endif -%}
+</cart-drawer>
+
+{% schema %}
+{
+  "name": "Panier latéral",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Le panier latéral ne s'affichera pas pour vos clients si vous avez défini le type de panier sur 'Page' dans les paramètres globaux du thème."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cart_note",
+      "label": "Afficher les notes de commande",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_shipping_text",
+      "label": "Afficher le texte sur la livraison",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_cart_button",
+      "label": "Afficher le bouton 'Voir le panier'",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Recommandations de produits"
+    },
+    {
+      "type": "text",
+      "id": "recommendations_title",
+      "label": "Titre des recommandations",
+      "default": "Produits tendances ce mois-ci"
+    },
+    {
+      "type": "product_list",
+      "id": "products",
+      "label": "Recommandations",
+      "info": "Suggérez des produits supplémentaires à vos clients.",
+      "limit": 10
+    },
+    {
+      "type": "color",
+      "id": "product_card_background",
+      "label": "Couleur de fond des cartes produits"
+    },
+    {
+      "type": "color",
+      "id": "product_card_text_color",
+      "label": "Couleur du texte des cartes produits"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,61 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-cart",
+      "blocks": {
+        "totals": {
+          "type": "totals",
+          "settings": {
+            "show_order_weight": false,
+            "show_shipping_text": true
+          }
+        },
+        "cart_note": {
+          "type": "cart_note",
+          "disabled": true,
+          "settings": {}
+        },
+        "checkout_button": {
+          "type": "checkout_button",
+          "settings": {}
+        },
+        "81e97675-385a-4cd8-ba8b-981d93427563": {
+          "type": "offer",
+          "settings": {
+            "text_alignment": "start",
+            "icon_position": "aligned",
+            "icon": "picto-coupon",
+            "custom_icon": "shopify://shop_images/191416097-origpic-c68f21_0e6647fe-e522-4ec7-8900-9d311d79137f.png",
+            "icon_width": 52,
+            "title": "MIT KLARNA BEZAHLEN",
+            "content": "<p>Mit Klarna in <strong>6 Raten</strong> zahlen oder <strong>30 Tage nach</strong> Abschluss Ihrer Bestellung zahlen.</p>",
+            "background": "#f7f7f7",
+            "text_color": ""
+          }
+        }
+      },
+      "block_order": [
+        "totals",
+        "cart_note",
+        "checkout_button",
+        "81e97675-385a-4cd8-ba8b-981d93427563"
+      ],
+      "settings": {
+        "show_shipping_estimator": false,
+        "show_payment_icons": false
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

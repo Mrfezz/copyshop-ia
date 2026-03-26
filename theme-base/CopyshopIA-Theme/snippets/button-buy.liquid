@@ -1,0 +1,78 @@
+{% liquid
+  assign style = style | default: settings.button_style
+
+  capture class_attribute
+    echo 'button'
+
+    if size != blank and size != 'base'
+      echo ' button--' | append: size
+    endif
+
+    if style == 'outline'
+      echo ' button--outline'
+    endif
+
+    if secondary and disabled != true
+      echo ' button--secondary'
+    endif
+
+    if subdued and background == blank and text_color == blank
+      echo ' button--subdued'
+    endif
+
+    if stretch
+      echo ' w-full'
+    endif
+  endcapture
+%}
+
+{%- capture style_attribute -%}
+  {%- if background != blank and background != 'rgba(0,0,0,0)' -%}
+    --button-background: {{ background.rgb }} / var(--button-background-opacity, 1);
+
+    {%- if style != 'outline' -%}
+      --button-outline-color: {{ background.rgb }};
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- if text_color != blank and text_color != 'rgba(0,0,0,0)' -%}
+    --button-text-color: {{ text_color.rgb }};
+
+    {%- if style == 'outline' -%}
+      --button-outline-color: {{ text_color.rgb }};
+    {%- endif -%}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- capture attributes -%}
+  {% if class_attribute != blank %}class="{{ class_attribute | strip_newlines | strip }}"{% endif %}
+  {% if style_attribute != blank %}style="{{ style_attribute | strip_newlines | strip }}"{% endif %}
+  {% if aria_controls %}aria-controls="{{ aria_controls }}" aria-expanded="false"{% endif %}
+  {% if disabled %}{% if href %}role="link" aria-disabled="true"{% else %}disabled{% endif %}{% endif %}
+  {% if name %}name="{{ name }}"{% endif %}
+  {% if form %}form="{{ form }}"{% endif %}
+  {% if href %}href="{{ href }}"{% endif %}
+  {% if external and href != blank %}target="_blank"{% endif %}
+  {% if href == blank %}is="{{ is | default: 'custom-button' }}"{% endif %}
+{%- endcapture -%}
+
+{%- capture button_content -%}
+  {% if icon != blank %}
+    <div style="align-items: center;" class="text-with-icon justify-center">
+      <span id="atc">{{- content -}}</span>
+      <img src="{{ icon | img_url:"master" }}" style="width:20px;height:20px">
+    </div>
+  {%- else -%}
+     <span id="atc">{{- content -}}</span>
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if href != blank -%}
+  <a {{ attributes }} {{ block.shopify_attributes }}>
+    {{- button_content -}}
+  </a>
+{%- else -%}
+  <button type="{{ type | default: 'button' }}" {{ attributes }} {{ block.shopify_attributes }}>
+    {{- button_content -}}
+  </button>
+{%- endif -%}

@@ -1,0 +1,778 @@
+{%- if section.blocks.size > 0 -%}
+  {%- render 'section-spacing-collapsing' -%}
+
+  <style>
+    #shopify-section-{{ section.id }} {
+      --rich-text-max-width: {% if section.settings.content_width == 'small' %}650px{% elsif section.settings.content_width == 'medium' %}780px{% else %}100%{% endif %}
+    }
+  </style>
+
+  <div {% render 'section-properties' %}>
+    {%- assign text_position = section.settings.text_position -%}
+    {%- assign blocks_before_divider = '' -%}
+    {%- assign blocks_after_divider = '' -%}
+
+    {%- for block in section.blocks -%}
+      {%- capture block_content -%}
+        {%- case block.type -%}
+          {%- when 'subheading' -%}
+            {%- if block.settings.text != blank -%}
+              <p class="bold" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</p>
+            {%- endif -%}
+
+          {%- when 'heading' -%}
+            {%- if block.settings.text != blank -%}
+              <p class="{{ block.settings.heading_tag }} hyphenate" {{ block.shopify_attributes }}>
+                {%- render 'styled-text', content: block.settings.text, text_color: block.settings.text_color, gradient: block.settings.gradient -%}
+              </p>
+            {%- endif -%}
+
+          {%- when 'richtext' -%}
+            {%- if block.settings.content != blank -%}
+              <div {{ block.shopify_attributes }}>
+                {{- block.settings.content -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'page' -%}
+            {%- if block.settings.page.content != blank -%}
+              <div {{ block.shopify_attributes }}>
+                {{- block.settings.page.content -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'liquid' -%}
+            {%- if block.settings.liquid != blank -%}
+              <div {{ block.shopify_attributes }}>
+                {{- block.settings.liquid -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'image' -%}
+            {%- if block.settings.image != blank -%}
+              <div {{ block.shopify_attributes }} style="margin-block-start: 0">
+                {%- capture image_style_attribute -%}{% if section.settings.text_position == 'center' %}margin-inline: auto;{% endif %}{%- endcapture -%}
+
+                {%- if block.settings.width_mode == 'custom' -%}
+                  {%- capture image_style_attribute -%}{{ image_style_attribute }} --image-max-width: {{ block.settings.max_width }}px; --image-mobile-max-width: {{ block.settings.mobile_max_width }}px{%- endcapture -%}
+                  {%- capture image_sizes_attribute -%}(max-width: 699px) min({{ block.settings.mobile_max_width }}px, 100vw), min({{ block.settings.max_width }}px, 100vw){%- endcapture -%}
+                {%- else -%}
+                  {%- capture image_sizes_attribute -%}min(100vw, var(--page-width)){%- endcapture -%}
+                {%- endif -%}
+
+                {{- block.settings.image | image_url: width: block.settings.image.width | image_tag: loading: 'lazy', sizes: image_sizes_attribute, widths: '200,300,400,500,600,800,1000,1200,1400,1600', style: image_style_attribute -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'button' -%}
+            {%- if block.settings.text != blank -%}
+              {% render 'button', content: block.settings.text, href: block.settings.url, size: block.settings.size, style: block.settings.style, background: block.settings.background, text_color: block.settings.text_color, block: block %}
+            {%- endif -%}
+
+          {%- when 'icon' -%}
+            {%- capture icon -%}
+              {%- if block.settings.custom_icon != blank -%}
+                {%- capture sizes -%}{{ block.settings.icon_width }}px{%- endcapture -%}
+                {%- capture widths -%}{{ block.settings.icon_width }}, {{ block.settings.icon_width | times: 2 | at_most: block.settings.custom_icon.width }}{%- endcapture -%}
+                {%- capture style -%}--icon-max-width: {{ block.settings.icon_width }}px{%- endcapture -%}
+                {{- block.settings.custom_icon | image_url: width: block.settings.custom_icon.width | image_tag: loading: 'lazy', sizes: sizes, widths: widths, style: style, class: 'image-icon' -}}
+              {%- else -%}
+                {%- render 'icon' with block.settings.icon, width: block.settings.icon_width, height: block.settings.icon_width -%}
+              {%- endif -%}
+            {%- endcapture -%}
+
+            {%- if icon != blank -%}
+              <div {{ block.shopify_attributes }}>
+                {%- if block.settings.icon_background_type == 'none' -%}
+                  <div {% render 'surface', text_color: block.settings.icon_color %}>
+                    {{- icon -}}
+                  </div>
+                {%- else -%}
+                  {%- capture surface_class -%}icon-block {% if block.settings.icon_background_type == 'circle' %}rounded-full{% endif %}{%- endcapture -%}
+                  <div {% render 'surface', class: surface_class, background: block.settings.icon_background, text_color: block.settings.icon_color, background_fallback: 'bg-secondary' %}>
+                    {{- icon -}}
+                  </div>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+
+          {%- when 'divider' -%}
+            {%- assign divider_index = forloop.index -%}
+        {%- endcase -%}
+      {%- endcapture -%}
+
+      {%- if divider_index == blank or forloop.index < divider_index -%}
+        {%- assign blocks_before_divider = blocks_before_divider | append: block_content -%}
+      {%- else -%}
+        {%- assign blocks_after_divider = blocks_after_divider | append: block_content -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- if blocks_before_divider != blank and blocks_after_divider != blank -%}
+      <div class="split-rich-text">
+        <div class="prose {% if text_position == 'center' %}justify-items-center text-center{% else %}justify-items-start{% endif %}">
+          {{- blocks_before_divider -}}
+        </div>
+
+        <div class="prose {% if text_position == 'center' %}justify-items-center text-center{% else %}justify-items-start{% endif %}">
+          {{- blocks_after_divider -}}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div class="rich-text {% if text_position == 'center' %}justify-center{% endif %} {% if blocks_before_divider != blank and blocks_after_divider != blank %}md:hidden{% endif %}">
+      <div class="rich-text__wrapper">
+        <div class="prose {% if text_position == 'center' %}justify-items-center text-center{% else %}justify-items-start{% endif %}">
+          {{- blocks_before_divider -}}
+          {{- blocks_after_divider -}}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Texte enrichi",
+  "class": "shopify-section--rich-text",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "content_width",
+      "label": "Largeur du contenu",
+      "options": [
+        {
+          "value": "small",
+          "label": "Petit"
+        },
+        {
+          "value": "medium",
+          "label": "Moyen"
+        },
+        {
+          "value": "large",
+          "label": "Grand"
+        }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Position du texte",
+      "options": [
+        {
+          "value": "start",
+          "label": "Gauche"
+        },
+        {
+          "value": "center",
+          "label": "Centre"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Le dégradé remplace les couleurs unies lorsqu'il est défini."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Dégradé d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texte"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "subheading",
+      "name": "Sous-titre",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Sous-titre"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "Titre",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Titre"
+        },
+        {
+          "type": "select",
+          "id": "heading_tag",
+          "label": "Style",
+          "options": [
+            {
+              "value": "h0",
+              "label": "H0"
+            },
+            {
+              "value": "h1",
+              "label": "H1"
+            },
+            {
+              "value": "h2",
+              "label": "H2"
+            },
+            {
+              "value": "h3",
+              "label": "H3"
+            },
+            {
+              "value": "h4",
+              "label": "H4"
+            },
+            {
+              "value": "h5",
+              "label": "H5"
+            },
+            {
+              "value": "h6",
+              "label": "H6"
+            }
+          ],
+          "default": "h1"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Texte"
+        },
+        {
+          "type": "color_background",
+          "id": "gradient",
+          "label": "Dégradé"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "name": "Paragraphe",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu",
+          "default": "<p>Utilisez ce texte pour partager des informations sur votre marque avec vos clients. Décrivez un produit, partagez des annonces ou souhaitez la bienvenue à vos clients.</p>"
+        }
+      ]
+    },
+    {
+      "type": "page",
+      "name": "Page",
+      "settings": [
+        {
+          "type": "page",
+          "id": "page",
+          "label": "Page"
+        }
+      ]
+    },
+    {
+      "type": "liquid",
+      "name": "Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "liquid",
+          "label": "Liquid",
+          "default": "<p>Écrivez du code Liquid personnalisé pour inclure un widget ou du code dynamique.</p>"
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "name": "Image",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "1600 x 800px .jpg recommandé"
+        },
+        {
+          "type": "radio",
+          "id": "width_mode",
+          "label": "Largeur de l'image",
+          "options": [
+            {
+              "value": "full_width",
+              "label": "Pleine largeur"
+            },
+            {
+              "value": "custom",
+              "label": "Personnalisée"
+            }
+          ],
+          "default": "custom"
+        },
+        {
+          "type": "range",
+          "id": "max_width",
+          "min": 100,
+          "max": 1000,
+          "step": 10,
+          "unit": "px",
+          "label": "Largeur maximale",
+          "default": 600
+        },
+        {
+          "type": "range",
+          "id": "mobile_max_width",
+          "min": 100,
+          "max": 600,
+          "step": 10,
+          "unit": "px",
+          "label": "Largeur maximale mobile",
+          "default": 400
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "Bouton",
+      "settings": [
+        {
+          "type": "select",
+          "id": "style",
+          "label": "Style",
+          "options": [
+            {
+              "value": "outline",
+              "label": "Contour"
+            },
+            {
+              "value": "fill",
+              "label": "Plein"
+            }
+          ],
+          "default": "fill"
+        },
+        {
+          "type": "select",
+          "id": "size",
+          "label": "Taille",
+          "options": [
+            {
+              "value": "sm",
+              "label": "Petit"
+            },
+            {
+              "value": "base",
+              "label": "Moyen"
+            },
+            {
+              "value": "lg",
+              "label": "Grand"
+            },
+            {
+              "value": "xl",
+              "label": "Très grand"
+            }
+          ],
+          "default": "xl"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Texte du bouton"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Lien"
+        },
+        {
+          "type": "color",
+          "id": "background",
+          "label": "Arrière-plan"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Texte"
+        }
+      ]
+    },
+    {
+      "type": "icon",
+      "name": "Icône",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            {
+              "value": "picto-coupon",
+              "label": "Coupon",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-percent",
+              "label": "Pourcentage",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-gift",
+              "label": "Cadeau",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-star",
+              "label": "Étoile",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-like",
+              "label": "J'aime",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-building",
+              "label": "Bâtiment",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-love",
+              "label": "Cœur",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-award-gift",
+              "label": "Cadeau récompense",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-happy",
+              "label": "Sourire",
+              "group": "Boutique"
+            },
+            {
+              "value": "picto-box",
+              "label": "Boîte",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-pin",
+              "label": "Épingle",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-timer",
+              "label": "Minuteur",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-validation",
+              "label": "Validation",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-truck",
+              "label": "Camion",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-return",
+              "label": "Retour",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-earth",
+              "label": "Terre",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-plane",
+              "label": "Avion",
+              "group": "Expédition"
+            },
+            {
+              "value": "picto-credit-card",
+              "label": "Carte bancaire",
+              "group": "Paiement & Sécurité"
+            },
+            {
+              "value": "picto-lock",
+              "label": "Cadenas",
+              "group": "Paiement & Sécurité"
+            },
+            {
+              "value": "picto-shield",
+              "label": "Bouclier",
+              "group": "Paiement & Sécurité"
+            },
+            {
+              "value": "picto-secure-profile",
+              "label": "Profil sécurisé",
+              "group": "Paiement & Sécurité"
+            },
+            {
+              "value": "picto-money",
+              "label": "Argent",
+              "group": "Paiement & Sécurité"
+            },
+            {
+              "value": "picto-recycle",
+              "label": "Recyclage",
+              "group": "Écologie"
+            },
+            {
+              "value": "picto-leaf",
+              "label": "Feuille",
+              "group": "Écologie"
+            },
+            {
+              "value": "picto-tree",
+              "label": "Arbre",
+              "group": "Écologie"
+            },
+            {
+              "value": "picto-mobile-phone",
+              "label": "Téléphone mobile",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-phone",
+              "label": "Téléphone",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-chat",
+              "label": "Chat",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-customer-support",
+              "label": "Support client",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-operator",
+              "label": "Opérateur",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-mailbox",
+              "label": "Boîte aux lettres",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-envelope",
+              "label": "Enveloppe",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-comment",
+              "label": "Commentaire",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-question",
+              "label": "Question",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-send",
+              "label": "Envoyer",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-at-sign",
+              "label": "Arobase",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-camera",
+              "label": "Appareil photo",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-wifi",
+              "label": "WiFi",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-bluetooth",
+              "label": "Bluetooth",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-printer",
+              "label": "Imprimante",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-smart-watch",
+              "label": "Montre connectée",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-coffee",
+              "label": "Café",
+              "group": "Alimentation"
+            },
+            {
+              "value": "picto-burger",
+              "label": "Burger",
+              "group": "Alimentation"
+            },
+            {
+              "value": "picto-beer",
+              "label": "Bière",
+              "group": "Alimentation"
+            },
+            {
+              "value": "picto-target",
+              "label": "Cible",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-document",
+              "label": "Document",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-jewelry",
+              "label": "Bijou",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-music",
+              "label": "Musique",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-file",
+              "label": "Fichier",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-mask",
+              "label": "Masque",
+              "group": "Autres"
+            },
+            {
+              "value": "picto-stop",
+              "label": "Stop",
+              "group": "Autres"
+            }
+          ],
+          "default": "picto-coupon"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon",
+          "label": "Icône personnalisée",
+          "info": "240 x 240px .png recommandé"
+        },
+        {
+          "type": "range",
+          "id": "icon_width",
+          "min": 24,
+          "max": 120,
+          "step": 4,
+          "unit": "px",
+          "label": "Largeur de l'icône",
+          "default": 32
+        },
+        {
+          "type": "select",
+          "id": "icon_background_type",
+          "label": "Type d'arrière-plan de l'icône",
+          "options": [
+            {
+              "value": "none",
+              "label": "Aucun"
+            },
+            {
+              "value": "square",
+              "label": "Carré"
+            },
+            {
+              "value": "circle",
+              "label": "Cercle"
+            }
+          ],
+          "default": "circle"
+        },
+        {
+          "type": "color",
+          "id": "icon_background",
+          "label": "Arrière-plan de l'icône"
+        },
+        {
+          "type": "color",
+          "id": "icon_color",
+          "label": "Couleur de l'icône"
+        }
+      ]
+    },
+    {
+      "type": "divider",
+      "name": "Séparateur de colonne",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Le contenu avant et après ce bloc est divisé en deux colonnes (sur desktop uniquement)."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Texte enrichi",
+      "blocks": [
+        {
+          "type": "subheading",
+          "settings": {
+            "text": "Sous-titre"
+          }
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Titre",
+            "heading_tag": "tw-text-h1"
+          }
+        },
+        {
+          "type": "richtext"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

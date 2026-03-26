@@ -1,0 +1,221 @@
+{%- render 'section-spacing-collapsing' -%}
+
+{%- assign text_position = section.settings.text_position -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-stack-intro: {% if text_position == 'center' %}66.6667%{% else %}50%{% endif %};
+    --section-stack-main: 50%;
+  }
+</style>
+
+<div {% render 'section-properties' %}>
+  <div class="section-stack {% if text_position != 'center' %}section-stack--horizontal{% else %}section-stack--center{% endif %} {% if text_position == 'end' %}section-stack--reverse{% endif %}">
+    {%- capture content -%}
+      {%- if section.settings.subheading != blank -%}
+        <p class="bold">{{ section.settings.subheading | escape }}</p>
+      {%- endif -%}
+
+      {%- if section.settings.title != blank -%}
+        <h2 class="h2">
+          {%- render 'styled-text', content: section.settings.title, text_color: section.settings.heading_color, gradient: section.settings.heading_gradient -%}
+        </h2>
+      {%- endif -%}
+
+      {{- section.settings.content -}}
+
+      {%- if section.settings.button_text != blank -%}
+        {% render 'button', content: section.settings.button_text, href: section.settings.button_url, size: 'xl', background: section.settings.button_background, text_color: section.settings.button_text_color %}
+      {%- endif -%}
+    {%- endcapture -%}
+
+    {%- if content != blank -%}
+      <div class="section-stack__intro">
+        <div class="prose {% if text_position == 'center' %}text-center{% endif %}">
+          {{- content -}}
+        </div>
+      </div>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="section-stack__main">
+        <div {% render 'surface', class: 'accordion-box rounded', background: section.settings.accordion_background, text_color: section.settings.accordion_text_color, background_fallback: 'bg-secondary' %}>
+          {%- for block in section.blocks -%}
+            {%- if block.settings.title != blank and block.settings.content != blank -%}
+              {%- capture accordion_content -%}
+                <div class="prose">{{ block.settings.content }}</div>
+              {%- endcapture -%}
+
+              {%- render 'accordion', title: block.settings.title, content: accordion_content, block: block -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Contenu en accordéon",
+  "class": "shopify-section--accordion-content",
+  "tag": "section",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "custom.overlay"]
+  },
+  "blocks": [
+    {
+      "name": "Élément",
+      "type": "item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Titre de l'élément"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu",
+          "default": "<p>Ajoutez du contenu ici pour mieux expliquer vos produits ou politiques à vos clients.</p>"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Sous-titre"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre principal",
+      "default": "Titre principal de la section"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Contenu principal",
+      "default": "<p>Utilisez ce texte pour partager des informations sur votre marque, décrire un produit ou accueillir vos clients.</p>"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texte du bouton"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Lien du bouton"
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Position du texte",
+      "options": [
+        {
+          "value": "start",
+          "label": "Gauche"
+        },
+        {
+          "value": "center",
+          "label": "Centre"
+        },
+        {
+          "value": "end",
+          "label": "Droite"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Les gradients remplacent les couleurs unies lorsqu'ils sont définis."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Gradient de l'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Couleur du texte"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Couleur des titres"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Gradient des titres"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "Arrière-plan du bouton"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Texte du bouton"
+    },
+    {
+      "type": "color",
+      "id": "accordion_background",
+      "label": "Arrière-plan de l'accordéon"
+    },
+    {
+      "type": "color",
+      "id": "accordion_text_color",
+      "label": "Texte de l'accordéon"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Contenu en accordéon",
+      "blocks": [
+        {
+          "type": "item",
+          "settings": {
+            "title": "Question 1",
+            "content": "<p>Réponse à la question 1.</p>"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "title": "Question 2",
+            "content": "<p>Réponse à la question 2.</p>"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "title": "Question 3",
+            "content": "<p>Réponse à la question 3.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

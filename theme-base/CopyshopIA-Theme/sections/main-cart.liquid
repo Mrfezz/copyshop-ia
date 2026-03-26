@@ -1,0 +1,619 @@
+<div class="container">
+  {%- if cart.item_count == 0 -%}
+    <div class="empty-state">
+      <div class="empty-state__icon-wrapper">
+        {%- render 'icon' with 'cart', width: 32, height: 32, stroke_width: 1 -%}
+        <span class="count-bubble count-bubble--lg">0</span>
+      </div>
+
+      <div class="prose">
+        <p class="h4">{{ 'cart.general.empty' | t }}</p>
+
+        {%- assign button_content = 'cart.general.continue_shopping' | t -%}
+        {%- render 'button', href: settings.cart_empty_button_link, size: 'xl', content: button_content -%}
+      </div>
+    </div>
+  {%- else -%}
+    <div class="page-spacer">
+      <div class="cart">
+        <div class="cart-header">
+          <h1 class="h2">{{ 'cart.general.title' | t }}</h1>
+
+          {%- if settings.cart_show_free_shipping_threshold -%}
+            {%- render 'free-shipping-bar' -%}
+          {%- endif -%}
+        </div>
+
+        <div class="cart-order">
+          <div class="cart-order__summary">
+            {%- comment -%}
+            ----------------------------------------------------------------------------------------------------------------
+            RÉCAPITULATIF DE LA COMMANDE
+            ----------------------------------------------------------------------------------------------------------------
+            {%- endcomment -%}
+            <table class="order-summary">
+              <thead class="order-summary__header">
+                <tr>
+                  <th>{{ 'customer.order.product' | t }}</th>
+                  <th class="w-0">{{ 'customer.order.quantity' | t }}</th>
+                  <th class="text-end">{{ 'customer.order.total' | t }}</th>
+                </tr>
+              </thead>
+
+              <tbody class="order-summary__body">
+                {%- for line_item in cart.items -%}
+                  {%- assign line_max_quantity = '' -%}
+
+                  {%- if line_item.variant.inventory_management != blank and line_item.variant.inventory_policy == 'deny' -%}
+                    {%- assign line_max_quantity = line_item.variant.inventory_quantity -%}
+                  {%- endif -%}
+
+                  <tr>
+                    <td>{%- render 'line-item', line_item: line_item -%}</td>
+
+                    <td class="hidden align-center text-center text-subdued sm:table-cell">
+                      <line-item-quantity class="v-stack justify-center gap-2">
+                        <input class="quantity-input" type="text" is="quantity-input" inputmode="numeric" {% if line_max_quantity != blank %}max="{{ line_max_quantity }}"{% endif %} data-line-key="{{ line_item.key }}" aria-label="{{ 'cart.order.change_quantity' | t | escape }}" value="{{ line_item.quantity }}">
+
+                        <span class="text-xs">
+                          <a href="{{ line_item.url_to_remove }}" class="link">{{ 'cart.order.remove' | t }}</a>
+                        </span>
+                      </line-item-quantity>
+                    </td>
+
+                    <td class="hidden align-center text-subdued text-end sm:table-cell">{{ line_item.final_line_price | money }}</td>
+                  </tr>
+                {%- endfor -%}
+              </tbody>
+            </table>
+
+            {%- comment -%}
+            ----------------------------------------------------------------------------------------------------------------
+            ESTIMATEUR D'EXPÉDITION
+            ----------------------------------------------------------------------------------------------------------------
+            {%- endcomment -%}
+
+            {%- if section.settings.show_shipping_estimator and cart.requires_shipping -%}
+              {%- assign accordion_title = 'cart.shipping_estimator.estimate_shipping' | t -%}
+              {%- capture accordion_content -%}{%- render 'shipping-estimator' -%}{%- endcapture -%}
+
+              {%- render 'accordion', title: accordion_title, icon: 'picto-box', content: accordion_content, size: 'lg' -%}
+            {%- endif -%}
+          </div>
+
+          <safe-sticky class="cart-order__recap v-stack gap-6">
+            <form action="{{ routes.cart_url }}" method="POST" class="cart-form rounded">
+              {%- for block in section.blocks -%}
+                {%- case block.type -%}
+                  {%- when '@app' -%}
+                    {%- render block -%}
+
+                  {%- when 'totals' -%}
+                    <div class="cart-form__totals v-stack gap-2" {{ block.shopify_attributes }}>
+                      {%- if block.settings.show_order_weight -%}
+                        <div class="h-stack gap-4 justify-between">
+                          <span class="text-subdued">{{ 'cart.general.weight' | t }}</span>
+                          <span class="text-subdued">{{ cart.total_weight | weight_with_unit }}</span>
+                        </div>
+                      {%- endif -%}
+
+                      <div class="h-stack gap-4 justify-between">
+                        <span class="text-subdued">{{ 'cart.general.subtotal' | t }}</span>
+                        <span class="text-subdued">{{ cart.items_subtotal_price | money }}</span>
+                      </div>
+
+                      {% for discount_application in cart.cart_level_discount_applications %}
+                        <div class="h-stack gap-4 justify-between">
+                          <div class="badge">
+                            {%- render 'icon' with 'discount' -%} {{- discount_application.title -}}
+                          </div>
+
+                          <span class="text-subdued">-{{ discount_application.total_allocated_amount | money }}</span>
+                        </div>
+                      {% endfor %}
+
+                      <div class="h-stack gap-4 justify-between">
+                        <span class="h5">{{ 'cart.general.total' | t }}</span>
+                        <span class="h5">{{- cart.total_price | money_with_currency -}}</span>
+                      </div>
+
+                      {%- if block.settings.show_shipping_text -%}
+                        {%- if cart.taxes_included and shop.shipping_policy.body != blank -%}
+                          <span class="text-subdued text-sm">{{ 'cart.general.taxes_included_and_shipping_policy_html' | t: link: shop.shipping_policy.url }}</span>
+                        {%- elsif cart.taxes_included -%}
+                          <span class="text-subdued text-sm">{{ 'cart.general.taxes_included_but_shipping_at_checkout' | t }}</span>
+                        {%- elsif shop.shipping_policy.body != blank -%}
+                          <span class="text-subdued text-sm">{{ 'cart.general.taxes_and_shipping_policy_at_checkout_html' | t: link: shop.shipping_policy.url }}</span>
+                        {%- else -%}
+                          <span class="text-subdued text-sm">{{ 'cart.general.taxes_and_shipping_at_checkout' | t }}</span>
+                        {%- endif -%}
+                      {%- endif -%}
+                    </div>
+
+                  {%- when 'cart_note' -%}
+                    <cart-note class="cart-form__note block" {{ block.shopify_attributes }}>
+                      {%- assign order_note = 'cart.general.order_note' | t -%}
+                      {%- render 'input', name: 'note', multiline: 3, label: order_note, value: cart.note, maxlength: block.settings.maxlength -%}
+                    </cart-note>
+
+                  {%- when 'text' -%}
+                    {%- if block.settings.content != blank -%}
+                      <div class="prose text-subdued" {{ block.shopify_attributes }}>
+                        {{- block.settings.content -}}
+                      </div>
+                    {%- endif -%}
+
+                  {%- when 'offer' -%}
+                    {%- assign previous_block_index = forloop.index0 | minus: 1 -%}
+                    {%- assign next_block_index = forloop.index0 | plus: 1 -%}
+
+                    {%- if section.blocks[next_block_index].type == 'offer' -%}
+                      <div class="v-stack gap-4">
+                    {%- endif -%}
+
+                    {%- render 'offer', block: block -%}
+
+                    {%- if section.blocks[previous_block_index].type == 'offer' -%}
+                      </div>
+                    {%- endif -%}
+
+                  {%- when 'accelerated_buttons' -%}
+                    {% if additional_checkout_buttons %}
+                      <div class="additional-checkout-buttons additional-checkout-buttons--vertical" {{ block.shopify_attributes }}>
+                        {{- content_for_additional_checkout_buttons -}}
+                      </div>
+                    {% endif %}
+
+                  {%- when 'checkout_button' -%}
+                    {%- assign checkout_button = 'cart.general.checkout' | t -%}
+                    {%- render 'button', type: 'submit', icon: 'picto-lock', content: checkout_button, size: 'xl', name: 'checkout', stretch: true, block: block -%}
+                {%- endcase -%}
+              {%- endfor -%}
+            </form>
+
+            {%- if section.settings.show_payment_icons and shop.enabled_payment_types.size > 0 -%}
+              <div class="v-stack gap-4">
+                <span class="text-xs text-subdued text-center">{{ 'cart.general.we_accept' | t }}</span>
+
+                <div class="h-stack gap-2 wrap justify-center">
+                  {%- for type in shop.enabled_payment_types -%}
+                    {{- type | payment_type_svg_tag -}}
+                  {%- endfor -%}
+                </div>
+              </div>
+            {%- endif -%}
+          </safe-sticky>
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Panier",
+  "class": "shopify-section--main-cart",
+  "tag": "section",
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "totals",
+      "name": "Totaux",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_order_weight",
+          "label": "Afficher le poids de la commande",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "show_shipping_text",
+          "label": "Afficher le texte d'expédition / taxes",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "cart_note",
+      "name": "Note de panier",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "number",
+          "id": "max_length",
+          "label": "Nombre maximum de caractères"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Texte",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu"
+        }
+      ]
+    },
+    {
+      "type": "checkout_button",
+      "name": "Bouton de paiement",
+      "limit": 1
+    },
+    {
+      "type": "accelerated_buttons",
+      "name": "Boutons de paiement",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Configurez les boutons de paiement accéléré dans vos [paramètres de paiement](https://www.shopify.com/admin/settings/payments)."
+        }
+      ]
+    },
+    {
+      "type": "offer",
+      "name": "Offre",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "select",
+          "id": "text_alignment",
+          "label": "Alignement du texte",
+          "options": [
+            {
+              "value": "start",
+              "label": "Gauche"
+            },
+            {
+              "value": "center",
+              "label": "Centre"
+            }
+          ],
+          "default": "start"
+        },
+        {
+          "type": "select",
+          "id": "icon_position",
+          "label": "Position de l'icône",
+          "options": [
+            {
+              "value": "aligned",
+              "label": "Aligné horizontalement"
+            },
+            {
+              "value": "stacked",
+              "label": "Empilé"
+            }
+          ],
+          "default": "aligned"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            {
+  "value": "aucun",
+  "label": "Aucun"
+},
+{
+  "value": "picto-coupon",
+  "label": "Coupon",
+  "group": "Boutique"
+},
+{
+  "value": "picto-percent",
+  "label": "Pourcentage",
+  "group": "Boutique"
+},
+{
+  "value": "picto-gift",
+  "label": "Cadeau",
+  "group": "Boutique"
+},
+{
+  "value": "picto-star",
+  "label": "Étoile",
+  "group": "Boutique"
+},
+{
+  "value": "picto-like",
+  "label": "J'aime",
+  "group": "Boutique"
+},
+{
+  "value": "picto-building",
+  "label": "Bâtiment",
+  "group": "Boutique"
+},
+{
+  "value": "picto-love",
+  "label": "Amour",
+  "group": "Boutique"
+},
+{
+  "value": "picto-award-gift",
+  "label": "Cadeau récompensé",
+  "group": "Boutique"
+},
+{
+  "value": "picto-happy",
+  "label": "Heureux",
+  "group": "Boutique"
+},
+{
+  "value": "picto-box",
+  "label": "Boîte",
+  "group": "Expédition"
+},
+{
+  "value": "picto-pin",
+  "label": "Épingle",
+  "group": "Expédition"
+},
+{
+  "value": "picto-timer",
+  "label": "Minuteur",
+  "group": "Expédition"
+},
+{
+  "value": "picto-validation",
+  "label": "Validation",
+  "group": "Expédition"
+},
+{
+  "value": "picto-truck",
+  "label": "Camion",
+  "group": "Expédition"
+},
+{
+  "value": "picto-return",
+  "label": "Retour",
+  "group": "Expédition"
+},
+{
+  "value": "picto-earth",
+  "label": "Terre",
+  "group": "Expédition"
+},
+{
+  "value": "picto-plane",
+  "label": "Avion",
+  "group": "Expédition"
+},
+{
+  "value": "picto-credit-card",
+  "label": "Carte de crédit",
+  "group": "Paiement & Sécurité"
+},
+{
+  "value": "picto-lock",
+  "label": "Cadenas",
+  "group": "Paiement & Sécurité"
+},
+{
+  "value": "picto-shield",
+  "label": "Bouclier",
+  "group": "Paiement & Sécurité"
+},
+{
+  "value": "picto-secure-profile",
+  "label": "Profil sécurisé",
+  "group": "Paiement & Sécurité"
+},
+{
+  "value": "picto-money",
+  "label": "Argent",
+  "group": "Paiement & Sécurité"
+},
+{
+  "value": "picto-recycle",
+  "label": "Recycler",
+  "group": "Écologie"
+},
+{
+  "value": "picto-leaf",
+  "label": "Feuille",
+  "group": "Écologie"
+},
+{
+  "value": "picto-tree",
+  "label": "Arbre",
+  "group": "Écologie"
+},
+{
+  "value": "picto-mobile-phone",
+  "label": "Téléphone mobile",
+  "group": "Communication"
+},
+{
+  "value": "picto-phone",
+  "label": "Téléphone",
+  "group": "Communication"
+},
+{
+  "value": "picto-chat",
+  "label": "Chat",
+  "group": "Communication"
+},
+{
+  "value": "picto-customer-support",
+  "label": "Support client",
+  "group": "Communication"
+},
+{
+  "value": "picto-operator",
+  "label": "Opérateur",
+  "group": "Communication"
+},
+{
+  "value": "picto-mailbox",
+  "label": "Boîte aux lettres",
+  "group": "Communication"
+},
+{
+  "value": "picto-envelope",
+  "label": "Enveloppe",
+  "group": "Communication"
+},
+{
+  "value": "picto-comment",
+  "label": "Commentaire",
+  "group": "Communication"
+},
+{
+  "value": "picto-question",
+  "label": "Question",
+  "group": "Communication"
+},
+{
+  "value": "picto-send",
+  "label": "Envoyer",
+  "group": "Communication"
+},
+{
+  "value": "picto-at-sign",
+  "label": "Arrobase",
+  "group": "Technologie"
+},
+{
+  "value": "picto-camera",
+  "label": "Caméra",
+  "group": "Technologie"
+},
+{
+  "value": "picto-wifi",
+  "label": "WiFi",
+  "group": "Technologie"
+},
+{
+  "value": "picto-bluetooth",
+  "label": "Bluetooth",
+  "group": "Technologie"
+},
+{
+  "value": "picto-printer",
+  "label": "Imprimante",
+  "group": "Technologie"
+},
+{
+  "value": "picto-smart-watch",
+  "label": "Montre connectée",
+  "group": "Technologie"
+},
+{
+  "value": "picto-coffee",
+  "label": "Café",
+  "group": "Nourriture & Boissons"
+},
+{
+  "value": "picto-burger",
+  "label": "Burger",
+  "group": "Nourriture & Boissons"
+},
+{
+  "value": "picto-beer",
+  "label": "Bière",
+  "group": "Nourriture & Boissons"
+},
+{
+  "value": "picto-target",
+  "label": "Cible",
+  "group": "Autre"
+},
+{
+  "value": "picto-document",
+  "label": "Document",
+  "group": "Autre"
+},
+{
+  "value": "picto-jewelry",
+  "label": "Bijoux",
+  "group": "Autre"
+},
+{
+  "value": "picto-music",
+  "label": "Musique",
+  "group": "Autre"
+},
+{
+  "value": "picto-file",
+  "label": "Fichier",
+  "group": "Autre"
+},
+{
+  "value": "picto-mask",
+  "label": "Masque",
+  "group": "Autre"
+},
+{
+  "value": "picto-stop",
+  "label": "Arrêter",
+  "group": "Autre"
+}
+],
+"default": "picto-coupon"
+},
+{
+  "type": "image_picker",
+  "id": "custom_icon",
+  "label": "Icône personnalisée",
+  "info": "240 x 240px .png recommandé"
+},
+{
+  "type": "range",
+  "id": "icon_width",
+  "min": 20,
+  "max": 100,
+  "step": 4,
+  "unit": "px",
+  "label": "Largeur de l'icône",
+  "default": 24
+},
+{
+  "type": "text",
+  "id": "title",
+  "label": "Titre",
+  "default": "Expédition"
+},
+{
+  "type": "richtext",
+  "id": "content",
+  "label": "Contenu",
+  "default": "<p>Contenu court sur vos tarifs d'expédition ou réductions.</p>"
+},
+{
+  "type": "color",
+  "id": "background",
+  "label": "Arrière-plan"
+},
+{
+  "type": "color",
+  "id": "text_color",
+  "label": "Texte"
+}
+]
+}
+],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_shipping_estimator",
+      "label": "Afficher l'estimateur de frais d'expédition",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "label": "Afficher les icônes de paiement",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

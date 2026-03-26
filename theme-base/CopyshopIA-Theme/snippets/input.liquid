@@ -1,0 +1,34 @@
+{%- capture id -%}input-{{ section.id }}-{{ 'now' | date: '%N' }}{%- endcapture -%}
+
+{%- capture optional_attributes -%}
+  {% if form %}form="{{ form }}"{% endif %}
+  {% if value and multiline == blank %}value="{{ value }}"{% endif %}
+  {% if tabindex %}tabindex="{{ tabindex }}"{% endif %}
+  {% if minlength and minlength > 0 %}minlength="{{ minlength }}"{% endif %}
+  {% if maxlength and maxlength > 0 %}maxlength="{{ maxlength }}"{% endif %}
+  {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+  {% if autocapitalize %}autocapitalize="{{ autocapitalize }}"{% endif %}
+  {% if enterkeyhint %}enterkeyhint="{{ enterkeyhint }}"{% endif %}
+  {% if required %}required{% endif %}
+{%- endcapture -%}
+
+<div class="form-control" {{ block.shopify_attributes }}>
+  {%- if multiline != blank -%}
+    <textarea id="{{ id }}" class="textarea is-floating" is="resizable-textarea" name="{{ name }}" placeholder=" " rows="{{ multiline }}" {{ optional_attributes }}>{{- value -}}</textarea>
+  {%- else -%}
+    <input id="{{ id }}" class="input is-floating" type="{{ type | default: 'text' }}" {% if type == 'email' or type == 'tel' %}dir="ltr"{% endif %} name="{{ name }}" placeholder=" " {{ optional_attributes }}>
+  {%- endif -%}
+
+  {%- if label != blank -%}
+    <label for="{{ id }}" class="floating-label">{{ label }}</label>
+  {%- endif -%}
+
+  {%- if self_submit -%}
+    <div class="self-submit-button">
+      <button type="submit" class="circle-chevron hover:colors">
+        <span class="sr-only">{{ 'general.newsletter.subscribe' | t }}</span>
+        {%- render 'icon' with 'chevron-right-small', direction_aware: true -%}
+      </button>
+    </div>
+  {%- endif -%}
+</div>

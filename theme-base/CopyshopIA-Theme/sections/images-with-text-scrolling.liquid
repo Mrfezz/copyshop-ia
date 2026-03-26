@@ -1,0 +1,533 @@
+{%- render 'section-spacing-collapsing' -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --images-scrolling-block-count: {{ section.blocks.size }};
+    --images-scrolling-image-ratio: {{ section.blocks.first.settings.image.aspect_ratio | default: 1 }};
+  }
+
+  @media screen and (max-width: 740px) {
+    #shopify-section-{{ section.id }} {
+      --images-scrolling-grid: {% if section.settings.stack_on_mobile %}none{% else %}auto / auto-flow 73vw{% endif %};
+    }
+  }
+
+  @media screen and (min-width: 741px) {
+    #shopify-section-{{ section.id }} {
+      --images-scrolling-grid-template-columns: {% if section.settings.image_position == 'start' %}[media] minmax(0, 1fr) [content] minmax(0, 0.8fr){% else %}[content] minmax(0, 0.8fr) [media] minmax(0, 1fr){% endif %};
+    }
+  }
+</style>
+
+<div {% render 'section-properties', narrow: true %}>
+  {%- comment -%}
+  ----------------------------------------------------------------------------------------------------------------------
+  VARIATION MOBILE
+  ----------------------------------------------------------------------------------------------------------------------
+  {%- endcomment -%}
+  <images-with-text-scrolling class="images-scrolling-mobile scroll-area bleed sm:unbleed">
+    {%- for block in section.blocks -%}
+      <div class="images-scrolling-mobile__item snap-start" {{ block.shopify_attributes }}>
+        {%- if block.settings.image != blank -%}
+          {{- block.settings.image | image_url: width: block.settings.image.width | image_tag: loading: 'lazy', sizes: '(max-width: 740px) 100vw, 650px', widths: '200,300,400,600,800,1000,1200,1400,1600', class: 'rounded-sm' -}}
+        {%- else -%}
+          {%- capture image_placeholder -%}product-{%- cycle '1', '2', '3', '4' -%}{%- endcapture -%}
+          {{- image_placeholder | placeholder_svg_tag: 'placeholder' -}}
+        {%- endif -%}
+
+        <div class="images-scrolling__content">
+          {%- if section.settings.show_counter -%}
+            <span class="images-scrolling__counter bold">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</span>
+          {%- endif -%}
+
+          <div class="prose" style="--images-scrolling-item-icon-width: {{ block.settings.icon_width }}px">
+            {%- if block.settings.custom_icon != blank -%}
+              {%- capture sizes -%}{{ block.settings.icon_width }}px{%- endcapture -%}
+              {%- capture widths -%}{{ block.settings.icon_width }}, {{ block.settings.icon_width | times: 2 | at_most: block.settings.custom_icon.width }}{%- endcapture -%}
+              {{- block.settings.custom_icon | image_url: width: block.settings.custom_icon.width | image_tag: loading: 'lazy', sizes: sizes, widths: widths, class: 'images-scrolling__icon' -}}
+            {%- elsif block.settings.icon != 'none' -%}
+              {%- render 'icon' with block.settings.icon, width: block.settings.icon_width, height: block.settings.icon_width, class: 'images-scrolling__icon' -%}
+            {%- endif -%}
+
+            {%- if block.settings.title != blank -%}
+              <p class="h1" {% if settings.heading_apparition != 'none' %}reveal-on-scroll="true"{% endif %}>
+                {%- render 'styled-text', content: block.settings.title, apparition_effect: true -%}
+              </p>
+            {%- endif -%}
+
+            {{- block.settings.content -}}
+          </div>
+        </div>
+      </div>
+    {%- endfor -%}
+  </images-with-text-scrolling>
+
+  {%- comment -%}
+  ----------------------------------------------------------------------------------------------------------------------
+  VARIATION DESKTOP
+  ----------------------------------------------------------------------------------------------------------------------
+  {%- endcomment -%}
+  <images-with-text-scrolling scrolling-experience="{{ section.settings.desktop_image_effect }}" class="images-scrolling-desktop">
+    <div class="images-scrolling-desktop__content-list">
+      {%- for block in section.blocks -%}
+        <div class="images-scrolling__content {% unless forloop.first %}opacity-0{% endunless %}">
+          {%- if section.settings.show_counter -%}
+            <span class="images-scrolling__counter bold">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</span>
+          {%- endif -%}
+
+          <div class="prose" style="--images-scrolling-item-icon-width: {{ block.settings.icon_width }}px">
+            {%- if block.settings.custom_icon != blank -%}
+              {%- capture sizes -%}{{ block.settings.icon_width }}px{%- endcapture -%}
+              {%- capture widths -%}{{ block.settings.icon_width }}, {{ block.settings.icon_width | times: 2 | at_most: block.settings.custom_icon.width }}{%- endcapture -%}
+              {{- block.settings.custom_icon | image_url: width: block.settings.custom_icon.width | image_tag: loading: 'lazy', sizes: sizes, widths: widths, class: 'images-scrolling__icon' -}}
+            {%- elsif block.settings.icon != 'none' -%}
+              {%- render 'icon' with block.settings.icon, width: block.settings.icon_width, height: block.settings.icon_width, class: 'images-scrolling__icon' -%}
+            {%- endif -%}
+
+            {%- if block.settings.title != blank -%}
+              <p class="h1" {% if settings.heading_apparition != 'none' %}reveal-on-scroll="true"{% endif %}>
+                {%- render 'styled-text', content: block.settings.title, text_color: section.settings.heading_color, gradient: section.settings.heading_gradient, apparition_effect: true -%}
+              </p>
+            {%- endif -%}
+
+            {{- block.settings.content -}}
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+
+    <div class="images-scrolling-desktop__media-wrapper">
+      {%- for block in section.blocks -%}
+        {%- if block.settings.image != blank -%}
+          {{- block.settings.image | image_url: width: block.settings.image.width | image_tag: loading: 'lazy', sizes: '(max-width: 740px) 100vw, 650px', widths: '200,300,400,600,800,1000,1200,1400,1600', class: 'rounded-sm' -}}
+        {%- else -%}
+          {%- capture image_placeholder -%}product-{%- cycle '1', '2', '3', '4' -%}{%- endcapture -%}
+          {{- image_placeholder | placeholder_svg_tag: 'placeholder' -}}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </images-with-text-scrolling>
+</div>
+
+{% schema %}
+{
+  "name": "Images et texte défilants",
+  "tag": "section",
+  "class": "shopify-section--images-and-text-scrolling",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "custom.overlay"]
+  },
+  "max_blocks": 15,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "stack_on_mobile",
+      "label": "Empiler sur mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_counter",
+      "label": "Afficher le compteur",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "desktop_image_effect",
+      "label": "Transition de l'image sur desktop",
+      "options": [
+        {
+          "value": "reveal",
+          "label": "Révéler"
+        },
+        {
+          "value": "fade",
+          "label": "Fondu"
+        }
+      ],
+      "default": "reveal"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Position de l'image",
+      "options": [
+        {
+          "value": "start",
+          "label": "Gauche"
+        },
+        {
+          "value": "end",
+          "label": "Droite"
+        }
+      ],
+      "default": "end"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Le gradient remplace les couleurs unies lorsqu'il est défini."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Gradient d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texte"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Couleur du titre"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Gradient du titre"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Article",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "1200 x 1600px .jpg recommandé"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            {
+              "value": "none",
+              "label": "Aucune"
+            },
+            {
+              "value": "picto-coupon",
+              "label": "Coupon",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-percent",
+              "label": "Pourcentage",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-gift",
+              "label": "Cadeau",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-star",
+              "label": "Étoile",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-like",
+              "label": "J'aime",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-building",
+              "label": "Bâtiment",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-love",
+              "label": "Amour",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-award-gift",
+              "label": "Cadeau de récompense",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-happy",
+              "label": "Heureux",
+              "group": "Shop"
+            },
+            {
+              "value": "picto-box",
+              "label": "Boîte",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-pin",
+              "label": "Épingle",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-timer",
+              "label": "Minuteur",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-validation",
+              "label": "Validation",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-truck",
+              "label": "Camion",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-return",
+              "label": "Retour",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-earth",
+              "label": "Terre",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-plane",
+              "label": "Avion",
+              "group": "Shipping"
+            },
+            {
+              "value": "picto-credit-card",
+              "label": "Carte de crédit",
+              "group": "Payment & Security"
+            },
+            {
+              "value": "picto-lock",
+              "label": "Cadenas",
+              "group": "Payment & Security"
+            },
+            {
+              "value": "picto-shield",
+              "label": "Bouclier",
+              "group": "Payment & Security"
+            },
+            {
+              "value": "picto-secure-profile",
+              "label": "Profil sécurisé",
+              "group": "Payment & Security"
+            },
+            {
+              "value": "picto-money",
+              "label": "Argent",
+              "group": "Payment & Security"
+            },
+            {
+              "value": "picto-recycle",
+              "label": "Recycler",
+              "group": "Ecology"
+            },
+            {
+              "value": "picto-leaf",
+              "label": "Feuille",
+              "group": "Ecology"
+            },
+            {
+              "value": "picto-tree",
+              "label": "Arbre",
+              "group": "Ecology"
+            },
+            {
+              "value": "picto-mobile-phone",
+              "label": "Téléphone mobile",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-phone",
+              "label": "Téléphone",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-chat",
+              "label": "Chat",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-customer-support",
+              "label": "Support client",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-operator",
+              "label": "Opérateur",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-mailbox",
+              "label": "Boîte aux lettres",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-envelope",
+              "label": "Enveloppe",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-comment",
+              "label": "Commentaire",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-question",
+              "label": "Question",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-send",
+              "label": "Envoyer",
+              "group": "Communication"
+            },
+            {
+              "value": "picto-at-sign",
+              "label": "At",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-camera",
+              "label": "Caméra",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-wifi",
+              "label": "WiFi",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-bluetooth",
+              "label": "Bluetooth",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-printer",
+              "label": "Imprimante",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-smart-watch",
+              "label": "Montre connectée",
+              "group": "Tech"
+            },
+            {
+              "value": "picto-coffee",
+              "label": "Café",
+              "group": "Food & Drink"
+            },
+            {
+              "value": "picto-burger",
+              "label": "Burger",
+              "group": "Food & Drink"
+            },
+            {
+              "value": "picto-beer",
+              "label": "Bière",
+              "group": "Food & Drink"
+            },
+            {
+              "value": "picto-target",
+              "label": "Cible",
+              "group": "Other"
+            },
+            {
+              "value": "picto-document",
+              "label": "Document",
+              "group": "Other"
+            },
+            {
+              "value": "picto-jewelry",
+              "label": "Bijoux",
+              "group": "Other"
+            },
+            {
+              "value": "picto-music",
+              "label": "Musique",
+              "group": "Other"
+            },
+            {
+              "value": "picto-file",
+              "label": "Fichier",
+              "group": "Other"
+            },
+            {
+              "value": "picto-mask",
+              "label": "Masque",
+              "group": "Other"
+            },
+            {
+              "value": "picto-stop",
+              "label": "Arrêter",
+              "group": "Other"
+            }
+          ],
+          "default": "none"
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_icon",
+          "label": "Icône personnalisée",
+          "info": "240 x 240px .png recommandé"
+        },
+        {
+          "type": "range",
+          "id": "icon_width",
+          "min": 24,
+          "max": 120,
+          "step": 4,
+          "unit": "px",
+          "label": "Largeur de l'icône",
+          "default": 48
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Titre",
+          "default": "Titre"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu",
+          "default": "<p>Utilisez ce texte pour partager des informations sur votre marque avec vos clients. Décrivez un produit, partagez des annonces ou accueillez les clients sur votre boutique.</p>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Images et texte défilants",
+      "blocks": [
+        {
+          "type": "item",
+          "settings": {
+            "title": "Titre 1"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "title": "Titre 2"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

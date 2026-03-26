@@ -1,0 +1,125 @@
+{%- if section.settings.liquid != blank -%}
+  <style>
+    #shopify-section-{{ section.id }} {
+      {% if section.settings.remove_vertical_spacing %}--section-spacing-block: 0px;{% endif %}
+      {% if section.settings.remove_horizontal_spacing %}--section-spacing-inline: 0px;{% endif %}
+      text-align: {{ section.settings.text_alignment }};
+      font-size: {% case section.settings.text_size %}{% when 'small' %}14px{% when 'medium' %}16px{% when 'large' %}20px{% endcase %};
+    }
+  </style>
+
+  {%- render 'section-spacing-collapsing' -%}
+
+  <div {% render 'section-properties' %} class="{{ section.settings.custom_classes }}">
+    {{ section.settings.liquid }}
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Liquid personnalisé",
+  "class": "shopify-section--custom-liquid",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_vertical_spacing",
+      "label": "Supprimer l'espacement vertical",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "remove_horizontal_spacing",
+      "label": "Supprimer l'espacement horizontal",
+      "default": false
+    },
+    {
+      "type": "liquid",
+      "id": "liquid",
+      "label": "Code Liquid",
+      "info": "Ajoutez des extraits de code Liquid ou des widgets d'application.",
+      "default": "<p style=\"text-align: center\">Écrivez ou copiez/collez du code Liquid</p>"
+    },
+    {
+      "type": "text",
+      "id": "custom_classes",
+      "label": "Classes CSS personnalisées",
+      "default": "custom-liquid-section"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Alignement du texte",
+      "options": [
+        {
+          "value": "left",
+          "label": "Gauche"
+        },
+        {
+          "value": "center",
+          "label": "Centre"
+        },
+        {
+          "value": "right",
+          "label": "Droite"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "Taille du texte",
+      "options": [
+        {
+          "value": "small",
+          "label": "Petit"
+        },
+        {
+          "value": "medium",
+          "label": "Moyen"
+        },
+        {
+          "value": "large",
+          "label": "Grand"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Les dégradés remplacent les couleurs unies lorsqu'ils sont définis."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Couleur d'arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Dégradé d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Couleur du texte"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Liquid personnalisé"
+    }
+  ]
+}
+{% endschema %}

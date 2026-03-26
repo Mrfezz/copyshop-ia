@@ -1,0 +1,312 @@
+{%- render 'section-spacing-collapsing' -%}
+
+{%- assign text_position = section.settings.text_position -%}
+
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-stack-intro: {% if text_position == 'center' %}60%{% else %}50%{% endif %};
+    --section-stack-main: {% if text_position == 'center' %}60%{% else %}50%{% endif %};
+  }
+</style>
+
+<div {% render 'section-properties' %}>
+  <div class="section-stack {% if text_position != 'center' %}section-stack--horizontal{% else %}section-stack--center{% endif %} {% if text_position == 'end' %}section-stack--reverse{% endif %}">
+    {%- capture content -%}
+      {%- if section.settings.subheading != blank -%}
+        <p class="bold">{{ section.settings.subheading | escape }}</p>
+      {%- endif -%}
+
+      {%- if section.settings.title != blank -%}
+        <h2 class="h2">
+          {%- render 'styled-text', content: section.settings.title, text_color: section.settings.heading_color, gradient: section.settings.heading_gradient -%}
+        </h2>
+      {%- endif -%}
+
+      {{- section.settings.content -}}
+    {%- endcapture -%}
+
+    {%- capture subcontent -%}
+      <div class="faq-availability">
+        {%- if section.settings.team_avatar != blank or section.settings.support_hours != blank or section.settings.answer_time != blank -%}
+          <div class="v-stack gap-4">
+            {%- if section.settings.team_avatar != blank -%}
+              {%- capture sizes -%}{{ section.settings.team_avatar_width }}px{%- endcapture -%}
+              {%- capture widths -%}{{ section.settings.team_avatar_width }}, {{ section.settings.team_avatar_width | times: 2 | at_most: section.settings.team_avatar.width }}{%- endcapture -%}
+              {%- capture style -%}max-width: {{ section.settings.team_avatar_width }}px{%- endcapture -%}
+              {{- section.settings.team_avatar | image_url: width: section.settings.team_avatar.width | image_tag: loading: 'lazy', style: style, sizes: sizes, widths: widths -}}
+            {%- endif -%}
+
+            {%- if section.settings.support_hours != blank or section.settings.answer_time != blank -%}
+              <div class="v-stack">
+                {{- section.settings.support_hours -}}
+
+                {%- if section.settings.answer_time != blank -%}
+                  <span class="text-subdued">{{ section.settings.answer_time }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.button_text != blank -%}
+          {% render 'button', content: section.settings.button_text, href: section.settings.button_url, size: 'xl', background: section.settings.button_background, text_color: section.settings.button_text_color %}
+        {%- endif -%}
+      </div>
+    {%- endcapture -%}
+
+    {%- if content != blank or subcontent != blank -%}
+      <div class="section-stack__intro">
+        <div class="v-stack gap-10">
+          {%- if content != blank -%}
+            <div class="prose {% if text_position == 'center' %}text-center{% endif %}">
+              {{- content -}}
+            </div>
+          {%- endif -%}
+
+          {%- if text_position != 'center' and subcontent != blank -%}
+            <div class="hidden lg:block">
+              {{- subcontent -}}
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="section-stack__main" >
+        <div {% render 'surface', class: 'accordion-box rounded', background: section.settings.accordion_background, text_color: section.settings.accordion_text_color, background_fallback: 'bg-secondary' %}>
+          {%- for block in section.blocks -%}
+            {%- if block.settings.title != blank and block.settings.content != blank -%}
+              {%- capture accordion_content -%}
+                <div class="prose">{{ block.settings.content }}</div>
+              {%- endcapture -%}
+
+              {%- render 'accordion', title: block.settings.title, content: accordion_content, block: block -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div {% if text_position != 'center' %}class="lg:hidden"{% endif %}>
+      {{- subcontent -}}
+    </div>
+  </div>
+</div>
+
+{%- comment -%}Sur la page FAQ, nous générons également le contenu avec des microdonnées JSON pour le SEO{%- endcomment -%}
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {%- for block in section.blocks -%}
+        {
+          "@type": "Question",
+          "name": {{ block.settings.title | json }},
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": {{ block.settings.content | json }}
+          }
+        }{% unless forloop.last %},{% endunless %}
+      {%- endfor -%}
+    ]
+  }
+</script>
+
+{% schema %}
+{
+  "name": "FAQ",
+  "class": "shopify-section--faq",
+  "tag": "section",
+  "disabled_on": {
+    "groups": ["header", "custom.overlay"]
+  },
+  "blocks": [
+    {
+      "name": "Élément",
+      "type": "item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Question",
+          "default": "Question"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Réponse",
+          "default": "<p>Rédigez une réponse pour les questions fréquentes de vos clients concernant vos produits, politiques d'expédition, etc.</p>"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Des données structurées sont automatiquement créées sur la page FAQ pour améliorer le SEO. [En savoir plus](https://developers.google.com/search/docs/advanced/structured-data/faqpage)"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Sous-titre"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre",
+      "default": "FAQ"
+    },
+    {
+      "type": "richtext",
+      "id": "content",
+      "label": "Contenu",
+      "default": "<p>Utilisez ce texte pour partager des informations sur vos produits ou vos politiques d'expédition.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "team_avatar",
+      "label": "Avatar de l'équipe",
+      "info": "700 x 160px .jpg recommandé"
+    },
+    {
+      "type": "range",
+      "id": "team_avatar_width",
+      "min": 50,
+      "max": 350,
+      "step": 10,
+      "unit": "px",
+      "label": "Largeur de l'avatar de l'équipe",
+      "default": 160
+    },
+    {
+      "type": "text",
+      "id": "support_hours",
+      "label": "Heures d'ouverture du support",
+      "default": "Notre support client est disponible du lundi au vendredi : 8h-20h30."
+    },
+    {
+      "type": "text",
+      "id": "answer_time",
+      "label": "Temps de réponse moyen",
+      "default": "Temps de réponse moyen : 24h"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Texte du bouton"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Lien du bouton"
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Position du texte",
+      "options": [
+        {
+          "value": "start",
+          "label": "Gauche"
+        },
+        {
+          "value": "center",
+          "label": "Centre"
+        },
+        {
+          "value": "end",
+          "label": "Droite"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs",
+      "info": "Les dégradés remplacent les couleurs unies lorsqu'ils sont définis."
+    },
+    {
+      "type": "color",
+      "id": "background",
+      "label": "Couleur d'arrière-plan"
+    },
+    {
+      "type": "color_background",
+      "id": "background_gradient",
+      "label": "Dégradé d'arrière-plan"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Couleur du texte"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Couleur du titre"
+    },
+    {
+      "type": "color_background",
+      "id": "heading_gradient",
+      "label": "Dégradé du titre"
+    },
+    {
+      "type": "color",
+      "id": "button_background",
+      "label": "Couleur de fond du bouton"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Couleur du texte du bouton"
+    },
+    {
+      "type": "color",
+      "id": "accordion_background",
+      "label": "Couleur de fond de l'accordéon"
+    },
+    {
+      "type": "color",
+      "id": "accordion_text_color",
+      "label": "Couleur du texte de l'accordéon"
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ",
+      "blocks": [
+        {
+          "type": "item",
+          "settings": {
+            "title": "Expédiez-vous à l'étranger ?",
+            "content": "<p>Oui, nous expédions dans le monde entier. Les frais d'expédition s'appliqueront et seront ajoutés lors du paiement. Nous organisons des promotions et des réductions toute l'année, restez à l'écoute pour des offres exclusives.</p>"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "title": "Combien de temps pour recevoir ma commande ?",
+            "content": "<p>Cela dépend de votre localisation. Les commandes traitées ici prendront 5 à 7 jours ouvrables pour arriver. Les livraisons internationales peuvent prendre entre 7 et 16 jours. Les détails de livraison seront fournis dans votre email de confirmation.</p>"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "title": "Une autre question ?",
+            "content": "<p>Vous pouvez nous contacter via notre page de contact ! Nous serons ravis de vous aider.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

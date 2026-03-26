@@ -1,0 +1,19 @@
+{%- capture id -%}select-{{ 'now' | date: '%N' }}{%- endcapture -%}
+
+{%- capture optional_attributes -%}
+  {% if form %}form="{{ form }}"{% endif %}
+  {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+  {% if required %}required{% endif %}
+{%- endcapture -%}
+
+<div class="form-control" {{ block.shopify_attributes }}>
+  <select id="{{ id }}" class="select select--native is-floating" name="{{ name }}" {{ optional_attributes }}>
+    {{- options -}}
+  </select>
+
+  {%- render 'icon' with 'chevron-bottom', class: 'select-chevron' -%}
+
+  {%- if label != blank -%}
+    <label for="{{ id }}" class="floating-label">{{ label }}</label>
+  {%- endif -%}
+</div>

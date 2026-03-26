@@ -1,0 +1,118 @@
+{% style %}
+  .product__rating {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .product-info__title{margin-top:4px;}
+
+  .stars__items:before {
+    content: "\2605\2605\2605\2605\2605";
+    position: absolute;
+    top: 0;
+    left: 0;
+    color:  rgba(110,114,240, 1);
+    -webkit-background-clip: text!important;
+    -webkit-text-fill-color: transparent;
+    background-clip: text!important;
+    text-fill-color: transparent;
+  }
+
+  .stars__items {
+    position: relative;
+    -webkit-appearance: none;
+    appearance: none;
+    color: transparent;
+    display: block;
+    vertical-align: baseline;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .rating__stars {
+    line-height: 1;
+  }
+
+  .rating .icon-star {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+
+  .rating__fill--accent .icon-star.inactive {
+    fill: rgb(var(--color-accent-1));
+    fill-rule: evenodd;
+  }
+
+  .rating__fill--text .icon-star.inactive {
+    fill:  rgba(110,114,240, 1);
+    fill-rule: evenodd;
+  }
+
+  .rating__fill--accent .icon-star.active {
+    fill: rgb(var(--color-accent-1));
+  }
+
+  .rating__fill--text .icon-star.active {
+    fill:  rgba(110,114,240, 1);
+  }
+  meter::-webkit-meter-optimum-value {
+    background: #FFF;
+  }
+  meter::-moz-meter-bar {
+    background: #FFF;
+  }
+
+  meter::-webkit-meter-bar {background:#FFF;} /*background color of bar*/
+  meter::-webkit-meter-optimum-value {background: #FFF;}
+  meter::-webkit-meter-suboptimum-value{background:#FFF;}
+  meter::-webkit-meter-even-less-good-value{background:#FFF;}
+
+  :root,
+  .stars {
+    --stars-color:  rgba(110,114,240, 1);
+    --stars-text-color:  rgba(110,114,240, 1);
+  }
+
+  .stars__items::before {
+      --percent: calc({{ rating | default: 5 }}/5*100%);
+      background: linear-gradient(90deg, rgba(110,114,240, 1) var(--percent), rgba(110,114,240, 0.2) var(--percent));
+        background-color: white;
+  }
+
+  {%- if style == 'mini' -%}
+    .stars__text--stars_color {
+      color: #000000;
+    }
+  {%- endif -%}
+{% endstyle %}
+
+<div class="stars stars__color--{{ settings.stars_color }} stars__style--{{ style | default: 'stars' }}">
+  {%- capture meter -%}
+    <meter
+      class="stars__items stars__items-{{ unique }}"
+      min="0"
+      max="5"
+      value="{{ rating | default: 5 }}"
+      title="{{ rating | default: 5 }} out of 5 stars"
+    >
+      {{ rating | default: 5 }} out of 5
+    </meter>
+  {%- endcapture -%}
+
+  {%- if style == 'mini' -%}
+    <p class="stars__mini">
+      <span class="stars__text stars__text--note">{{ rating | default: 5 }}</span
+      ><span class="stars__text--stars_color">★</span>
+    </p>
+
+  {%- elsif style == 'full' -%}
+    <div class="stars__full">
+      <p class="stars__text stars__text--note">{{ rating | default: 5 }}/5</p>
+      {{ meter }}
+    </div>
+
+  {%- else -%}
+    {{ meter }}
+  {%- endif -%}
+</div>

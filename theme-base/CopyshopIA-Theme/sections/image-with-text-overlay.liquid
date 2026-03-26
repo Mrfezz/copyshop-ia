@@ -1,0 +1,448 @@
+{%- render 'section-spacing-collapsing' -%}
+
+{%- comment -%}
+------------------------------------------------------------------------------------------------------------------------
+CSS
+------------------------------------------------------------------------------------------------------------------------
+{%- endcomment -%}
+<style>
+  {%- assign block_size = section.settings.block_size -%}
+
+  #shopify-section-{{ section.id }} {
+    {%- if section.settings.full_width -%}
+      --section-outer-spacing-block: 0;
+    {%- endif -%}
+
+    --content-over-media-overlay: {{ section.settings.overlay_color.rgb }} / {{ section.settings.overlay_opacity | divided_by: 100.0 }};
+
+    {%- if section.settings.allow_transparent_header -%}
+      margin-block-start: calc(-1 * var(--header-height) * var(--section-is-first));
+    {%- endif -%}
+  }
+</style>
+
+<div {% render 'section-properties' %} {% if section.settings.allow_transparent_header %}allow-transparent-header{% endif %}>
+  {%- capture class -%}content-over-media content-over-media--{{ section.settings.image_size }} {% if section.settings.full_width %}full-bleed{% else %}shadow-block rounded-lg{% endif %}{%- endcapture -%}
+
+  <image-banner reveal-on-scroll="true" {% if section.settings.enable_parallax %}parallax="0.3"{% endif %} {% render 'surface', class: class, text_color: section.settings.text_color %}>
+    {%- if section.settings.image != blank -%}
+      {%- capture image_class -%}{% if section.settings.mobile_image != blank %}hidden sm:block{% endif %}{%- endcapture -%}
+      {%- capture sizes -%}{% if section.settings.full_width %}100vw{% else %}(max-width: 740px) calc(100vw - 40px), (max-width: 999px) calc(100vw - 64px), min({{ settings.page_width }}px, 100vw - 96px){% endif %}{%- endcapture -%}
+
+      {{- section.settings.image | image_url: width: section.settings.image.width | image_tag: loading: 'lazy', sizes: sizes, widths: '200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200', class: image_class -}}
+
+      {%- if section.settings.mobile_image != blank -%}
+        {{- section.settings.mobile_image | image_url: width: section.settings.mobile_image.width | image_tag: loading: 'lazy', sizes: sizes, widths: '200,300,400,500,600,700,800,900,1000,1200,1400,1600', class: 'sm:hidden' -}}
+      {%- endif -%}
+    {%- else -%}
+      {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder' | replace: '<svg', '<svg preserveAspectRatio="xMinYMin slice"' }}
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="{{ section.settings.mobile_text_position }} {{ section.settings.desktop_text_position }}">
+        <div class="prose">
+          {%- for block in section.blocks -%}
+            {%- case block.type -%}
+              {%- when 'subheading' -%}
+                {%- if block.settings.text != blank -%}
+                  <p class="bold" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</p>
+                {%- endif -%}
+
+              {%- when 'heading' -%}
+                {%- if block.settings.text != blank -%}
+                  <p class="{{ block.settings.heading_tag }}" {% if settings.heading_apparition != 'none' %}reveal-on-scroll="true"{% endif %} {{ block.shopify_attributes }}>
+                    {%- render 'styled-text', content: block.settings.text, apparition_effect: true -%}
+                  </p>
+                {%- endif -%}
+
+              {%- when 'richtext' -%}
+                {%- if block.settings.content != blank -%}
+                  <div {{ block.shopify_attributes }}>
+                    {{- block.settings.content -}}
+                  </div>
+                {%- endif -%}
+
+              {%- when 'liquid' -%}
+                {%- if block.settings.liquid != blank -%}
+                  <div {{ block.shopify_attributes }}>
+                    {{- block.settings.liquid -}}
+                  </div>
+                {%- endif -%}
+
+              {%- when 'button' -%}
+                {%- if block.settings.text != blank -%}
+                  {% render 'button', content: block.settings.text, href: block.settings.url, size: block.settings.size, style: block.settings.style, background: block.settings.background, text_color: block.settings.text_color, block: block %}
+                {%- endif -%}
+            {%- endcase -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </image-banner>
+</div>
+
+{% schema %}
+{
+  "name": "Image avec texte",
+  "class": "shopify-section--image-with-text-overlay",
+  "tag": "section",
+  "disabled_on": {
+    "templates": ["password"],
+    "groups": ["header", "custom.overlay"]
+  },
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Pleine largeur",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "allow_transparent_header",
+      "label": "Autoriser l'en-tête transparent",
+      "info": "Ce paramètre s'applique uniquement lorsque cette section est la première.",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_parallax",
+      "label": "Activer l'effet parallax",
+      "info": "Le parallax découpe les images.",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "image_size",
+      "label": "Taille de l'image",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Ratio d'image original"
+        },
+        {
+          "value": "sm",
+          "label": "Petit"
+        },
+        {
+          "value": "md",
+          "label": "Moyen"
+        },
+        {
+          "value": "lg",
+          "label": "Grand"
+        },
+        {
+          "value": "fill",
+          "label": "Remplir l'écran"
+        }
+      ],
+      "info": "Choisissez \"Ratio d'image original\" pour éviter le découpage de l'image. [En savoir plus](https://help.shopify.com/en/manual/online-store/images/theme-images#best-practices-for-slideshows-and-full-widtw-images)",
+      "default": "auto"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image",
+      "info": "3200 x 1600px .jpg recommandé"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Image mobile",
+      "info": "1300 x 1500px .jpg recommandé. Par défaut, l'image de bureau est utilisée."
+    },
+    {
+      "type": "select",
+      "id": "mobile_text_position",
+      "label": "Position du texte mobile",
+      "options": [
+        {
+          "value": "place-self-start text-start",
+          "label": "Haut à gauche"
+        },
+        {
+          "value": "place-self-start-center text-center",
+          "label": "Haut au centre"
+        },
+        {
+          "value": "place-self-start-end text-end",
+          "label": "Haut à droite"
+        },
+        {
+          "value": "place-self-center-start text-start",
+          "label": "Milieu à gauche"
+        },
+        {
+          "value": "place-self-center text-center",
+          "label": "Milieu au centre"
+        },
+        {
+          "value": "place-self-center-end text-end",
+          "label": "Milieu à droite"
+        },
+        {
+          "value": "place-self-end-start text-start",
+          "label": "Bas à gauche"
+        },
+        {
+          "value": "place-self-end-center text-center",
+          "label": "Bas au centre"
+        },
+        {
+          "value": "place-self-end text-end",
+          "label": "Bas à droite"
+        }
+      ],
+      "default": "place-self-center text-center"
+    },
+    {
+      "type": "select",
+      "id": "desktop_text_position",
+      "label": "Position du texte sur ordinateur",
+      "options": [
+        {
+          "value": "sm:place-self-start sm:text-start",
+          "label": "Haut à gauche"
+        },
+        {
+          "value": "sm:place-self-start-center sm:text-center",
+          "label": "Haut au centre"
+        },
+        {
+          "value": "sm:place-self-start-end sm:text-end",
+          "label": "Haut à droite"
+        },
+        {
+          "value": "sm:place-self-center-start sm:text-start",
+          "label": "Milieu à gauche"
+        },
+        {
+          "value": "sm:place-self-center sm:text-center",
+          "label": "Milieu au centre"
+        },
+        {
+          "value": "sm:place-self-center-end sm:text-end",
+          "label": "Milieu à droite"
+        },
+        {
+          "value": "sm:place-self-end-start sm:text-start",
+          "label": "Bas à gauche"
+        },
+        {
+          "value": "sm:place-self-end-center sm:text-center",
+          "label": "Bas au centre"
+        },
+        {
+          "value": "sm:place-self-end sm:text-end",
+          "label": "Bas à droite"
+        }
+      ],
+      "default": "sm:place-self-center sm:text-center"
+    },
+    {
+      "type": "header",
+      "content": "Couleurs"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Texte",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Superposition",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Opacité de la superposition",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "%",
+      "default": 30
+    }
+  ],
+  "blocks": [
+    {
+      "type": "subheading",
+      "name": "Sous-titre",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Sous-titre"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "Titre",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Titre"
+        },
+        {
+          "type": "select",
+          "id": "heading_tag",
+          "label": "Style",
+          "options": [
+            {
+              "value": "h0",
+              "label": "H0"
+            },
+            {
+              "value": "h1",
+              "label": "H1"
+            },
+            {
+              "value": "h2",
+              "label": "H2"
+            },
+            {
+              "value": "h3",
+              "label": "H3"
+            },
+            {
+              "value": "h4",
+              "label": "H4"
+            },
+            {
+              "value": "h5",
+              "label": "H5"
+            },
+            {
+              "value": "h6",
+              "label": "H6"
+            }
+          ],
+          "default": "h1"
+        }
+      ]
+    },
+    {
+      "name": "Paragraphe",
+      "type": "richtext",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Contenu",
+          "default": "<p>Utilisez ce texte pour partager des informations sur votre marque avec vos clients. Décrivez un produit, partagez des annonces ou accueillez les clients sur votre boutique.</p>"
+        }
+      ]
+    },
+    {
+      "name": "Liquid",
+      "type": "liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "liquid",
+          "label": "Liquid",
+          "default": "<p>Utilisez ce texte pour afficher du code Liquid personnalisé afin d'inclure un widget ou un code dynamique.</p>"
+        }
+      ]
+    },
+    {
+      "name": "Bouton",
+      "type": "button",
+      "settings": [
+        {
+          "type": "select",
+          "id": "style",
+          "label": "Style",
+          "options": [
+            {
+              "value": "outline",
+              "label": "Contour"
+            },
+            {
+              "value": "fill",
+              "label": "Remplir"
+            }
+          ],
+          "default": "fill"
+        },
+        {
+          "type": "select",
+          "id": "size",
+          "label": "Taille",
+          "options": [
+            {
+              "value": "sm",
+              "label": "Petit"
+            },
+            {
+              "value": "base",
+              "label": "Moyen"
+            },
+            {
+              "value": "lg",
+              "label": "Grand"
+            },
+            {
+              "value": "xl",
+              "label": "Très grand"
+            }
+          ],
+          "default": "lg"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "Texte du bouton"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Lien"
+        },
+        {
+          "type": "color",
+          "id": "background",
+          "label": "Arrière-plan"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Texte"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image avec texte",
+      "blocks": [
+        {
+          "type": "subheading",
+          "settings": {
+            "text": "Sous-titre"
+          }
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Image avec superposition de texte",
+            "heading_tag": "h1"
+          }
+        },
+        {
+          "type": "richtext"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

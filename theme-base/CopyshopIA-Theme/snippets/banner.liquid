@@ -1,0 +1,20 @@
+{%- case status -%}
+  {%- when 'success' -%}
+    {%- assign icon = 'success' -%}
+    {%- assign button_background = settings.success_color -%}
+  {%- when 'error' -%}
+    {%- assign icon = 'error' -%}
+    {%- assign button_background = settings.error_color -%}
+  {%- when 'warning' -%}
+    {%- assign icon = 'warning' -%}
+    {%- assign button_background = settings.warning_color -%}
+{%- endcase -%}
+
+<div class="banner banner--{{ status }} {% if button_content != blank %}banner--with-icon{% endif %} {% if text_alignment != 'left' %}justify-center{% endif %}">
+  {%- render 'icon' with icon, width: icon_width, height: icon_width, class: 'offset-icon' -%}
+  {{- content -}}
+
+  {%- if button_content != blank -%}
+    {%- render 'button', href: button_href, external: true, content: button_content, size: 'sm', background: button_background -%}
+  {%- endif -%}
+</div>
