@@ -396,6 +396,16 @@ export default function CompteClientPage() {
             </article>
 
             <article style={styles.card}>
+              <h2 style={styles.cardTitle}>Mes boutiques</h2>
+              <p style={styles.cardText}>
+                Retrouve toutes les boutiques générées par l’IA et accède à une page dédiée avec pagination.
+              </p>
+              <a href="/mes-boutiques" style={styles.button}>
+                Mes boutiques
+              </a>
+            </article>
+
+            <article style={styles.card}>
               <h2 style={styles.cardTitle}>Accès outil IA</h2>
               <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
 
