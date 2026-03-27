@@ -37,7 +37,10 @@ function formatDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+  return d.toLocaleString("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 function formatAmount(
@@ -52,8 +55,12 @@ function formatAmount(
 
   const cur = (currency || "EUR").toUpperCase();
   const eur = amountCents / 100;
+
   try {
-    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: cur }).format(eur);
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: cur,
+    }).format(eur);
   } catch {
     return `${eur.toFixed(2)} ${cur}`;
   }
@@ -74,6 +81,7 @@ function humanizeProductKey(key?: string | null): string {
   if (k === "ia-premium") return "Pack Premium IA";
   if (k === "ia-ultime") return "Pack Ultime IA";
   if (k === "recharge-ia" || k === "ia-recharge-5") return "Recharge +5 boutiques";
+
   return k;
 }
 
@@ -185,6 +193,7 @@ export default function CompteClientPage() {
     if (!session) return;
 
     let cancelled = false;
+
     (async () => {
       setPurchasesLoading(true);
       setPurchasesError(null);
@@ -211,7 +220,9 @@ export default function CompteClientPage() {
 
         if (!cancelled) setPurchases(sorted);
       } catch (e: any) {
-        if (!cancelled) setPurchasesError(e?.message ?? "Erreur chargement achats");
+        if (!cancelled) {
+          setPurchasesError(e?.message ?? "Erreur chargement achats");
+        }
       } finally {
         if (!cancelled) setPurchasesLoading(false);
       }
@@ -224,6 +235,33 @@ export default function CompteClientPage() {
 
   const userEmail = session?.user?.email ?? "";
   const lastPurchase = purchases?.[0] ?? null;
+
+  async function handleAuthSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthMsg(null);
+    setAuthLoading(true);
+
+    try {
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setAuthMsg("Connecté ✅");
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
+      }
+    } catch (err: any) {
+      setAuthError(err?.message ?? "Erreur d’auth");
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
 
   return (
     <main style={styles.page}>
@@ -321,174 +359,154 @@ export default function CompteClientPage() {
         )}
 
         {!checking && session && (
-          <div className="client-grid" style={styles.grid}>
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Mes achats</h2>
-              <p style={styles.cardText}>Historique de tes packs + factures.</p>
+          <div className="client-columns" style={styles.columns}>
+            <div className="client-column" style={styles.column}>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Mes achats</h2>
+                <p style={styles.cardText}>Historique de tes packs + factures.</p>
 
-              {purchasesLoading ? (
-                <div style={styles.smallNote}>Chargement de l’historique...</div>
-              ) : purchasesError ? (
-                <div style={styles.authError}>{purchasesError}</div>
-              ) : purchases.length === 0 ? (
-                <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
-              ) : (
-                <>
-                  <div style={styles.infoBox}>
-                    <div style={styles.infoLine}>
-                      <span style={styles.infoLabel}>Dernier pack :</span>
-                      <span style={styles.infoValue}>
-                        {humanizeProductKey(lastPurchase?.product_key)}
-                      </span>
+                {purchasesLoading ? (
+                  <div style={styles.smallNote}>Chargement de l’historique...</div>
+                ) : purchasesError ? (
+                  <div style={styles.authError}>{purchasesError}</div>
+                ) : purchases.length === 0 ? (
+                  <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
+                ) : (
+                  <>
+                    <div style={styles.infoBox}>
+                      <div style={styles.infoLine}>
+                        <span style={styles.infoLabel}>Dernier pack :</span>
+                        <span style={styles.infoValue}>
+                          {humanizeProductKey(lastPurchase?.product_key)}
+                        </span>
+                      </div>
+                      <div style={styles.infoLine}>
+                        <span style={styles.infoLabel}>Date :</span>
+                        <span style={styles.infoValue}>
+                          {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
+                        </span>
+                      </div>
                     </div>
-                    <div style={styles.infoLine}>
-                      <span style={styles.infoLabel}>Date :</span>
-                      <span style={styles.infoValue}>
-                        {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
-                      </span>
+
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
+                      <ul style={styles.purchaseList}>
+                        {purchases.slice(0, 5).map((p) => (
+                          <li key={p.id} style={styles.purchaseItem}>
+                            <div style={{ fontWeight: 900 }}>
+                              {humanizeProductKey(p.product_key)}
+                            </div>
+                            <div style={styles.purchaseMeta}>
+                              <span>{formatDate(p.created_at || p.updated_at)}</span>
+                              <span>•</span>
+                              <span>
+                                {formatAmount(p.amount_total, p.currency, p.product_key)}
+                              </span>
+                              <span>•</span>
+                              <span style={styles.badge}>
+                                {(p.status || "unknown").toUpperCase()}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
+                  </>
+                )}
 
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
-                    <ul style={styles.purchaseList}>
-                      {purchases.slice(0, 5).map((p) => (
-                        <li key={p.id} style={styles.purchaseItem}>
-                          <div style={{ fontWeight: 900 }}>
-                            {humanizeProductKey(p.product_key)}
-                          </div>
-                          <div style={styles.purchaseMeta}>
-                            <span>{formatDate(p.created_at || p.updated_at)}</span>
-                            <span>•</span>
-                            <span>{formatAmount(p.amount_total, p.currency, p.product_key)}</span>
-                            <span>•</span>
-                            <span style={styles.badge}>
-                              {(p.status || "unknown").toUpperCase()}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
+                <a href="/historique-commandes" style={styles.buttonAlt}>
+                  Voir l’historique complet
+                </a>
+              </article>
 
-              <a href="/historique-commandes" style={styles.buttonAlt}>
-                Voir l’historique complet
-              </a>
-            </article>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Messagerie</h2>
+                <p style={styles.cardText}>Accède à tes messages avec le support.</p>
+                <a href="/messages" style={styles.buttonAlt}>
+                  Ouvrir la messagerie
+                </a>
+                <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
+              </article>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Panier</h2>
-              <p style={styles.cardText}>
-                Reprends ton achat ou passe à un pack supérieur.
-              </p>
-              <a href="/panier" style={styles.button}>
-                Aller au panier
-              </a>
-            </article>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Accès outil IA</h2>
+                <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Messagerie</h2>
-              <p style={styles.cardText}>Accède à tes messages avec le support.</p>
-              <a href="/messages" style={styles.buttonAlt}>
-                Ouvrir la messagerie
-              </a>
-              <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
-            </article>
+                <a href="/outil-ia" style={styles.button}>
+                  Ouvrir l’outil
+                </a>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Mes boutiques</h2>
-              <p style={styles.cardText}>
-                Retrouve toutes les boutiques générées par l’IA et accède à une page dédiée avec pagination.
-              </p>
-              <a href="/mes-boutiques" style={styles.button}>
-                Mes boutiques
-              </a>
-            </article>
+                <div style={styles.smallNote}>
+                  (Le lien s’activera automatiquement après paiement)
+                </div>
+              </article>
+            </div>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Accès outil IA</h2>
-              <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
+            <div className="client-column" style={styles.column}>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Panier</h2>
+                <p style={styles.cardText}>
+                  Reprends ton achat ou passe à un pack supérieur.
+                </p>
+                <a href="/panier" style={styles.button}>
+                  Aller au panier
+                </a>
+              </article>
 
-              <a href="/outil-ia" style={styles.button}>
-                Ouvrir l’outil
-              </a>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Support</h2>
+                <p style={styles.cardText}>
+                  Assistance rapide via WhatsApp.
+                  <br />
+                  Réponse moyenne : <strong>8h</strong> (Lun–Sam 9h–18h).
+                </p>
 
-              <div style={styles.smallNote}>
-                (Le lien s’activera automatiquement après paiement)
-              </div>
-            </article>
+                <a
+                  href="https://wa.me/33745214922"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.button}
+                >
+                  Me contacter
+                </a>
+              </article>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Recharges</h2>
-              <p style={styles.cardText}>
-                Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
-                Basic/Premium.
-              </p>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Mes boutiques</h2>
+                <p style={styles.cardText}>
+                  Retrouve toutes les boutiques générées par l’IA et accède à une page
+                  dédiée avec pagination.
+                </p>
+                <a href="/mes-boutiques" style={styles.button}>
+                  Mes boutiques
+                </a>
+              </article>
 
-              <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
-                Voir les recharges
-              </a>
-            </article>
+              <article style={styles.card}>
+                <h2 style={styles.cardTitle}>Recharges</h2>
+                <p style={styles.cardText}>
+                  Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
+                  Basic/Premium.
+                </p>
 
-            <article style={styles.card}>
-              <h2 style={styles.cardTitle}>Support</h2>
-              <p style={styles.cardText}>
-                Assistance rapide via WhatsApp.
-                <br />
-                Réponse moyenne : <strong>8h</strong> (Lun–Sam 9h–18h).
-              </p>
-
-              <a
-                href="https://wa.me/33745214922"
-                target="_blank"
-                rel="noreferrer"
-                style={styles.button}
-              >
-                Me contacter
-              </a>
-            </article>
+                <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
+                  Voir les recharges
+                </a>
+              </article>
+            </div>
           </div>
         )}
       </section>
 
       <style>{`
         @media (max-width: 980px) {
-          .client-grid {
+          .client-columns {
             grid-template-columns: 1fr !important;
           }
         }
       `}</style>
     </main>
   );
-
-  async function handleAuthSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthMsg(null);
-    setAuthLoading(true);
-
-    try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        setAuthMsg("Connecté ✅");
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setAuthMsg("Compte créé ✅ (vérifie ton email si demandé)");
-      }
-    } catch (err: any) {
-      setAuthError(err?.message ?? "Erreur d’auth");
-    } finally {
-      setAuthLoading(false);
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-  }
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -536,6 +554,7 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: "center",
     marginBottom: 30,
   },
+
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -544,12 +563,14 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+
   title: {
     fontSize: "clamp(2.2rem, 4vw, 3.4rem)",
     fontWeight: 900,
     margin: "8px 0 8px",
     letterSpacing: "-0.02em",
   },
+
   sub: {
     fontSize: "1.05rem",
     color: COLORS.muted,
@@ -569,16 +590,19 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 680,
     boxSizing: "border-box",
   },
+
   paymentTitle: {
     fontWeight: 900,
     color: "#b7ffd9",
     fontSize: "0.98rem",
   },
+
   paymentText: {
     color: "rgba(255,255,255,0.85)",
     fontWeight: 700,
     fontSize: "0.95rem",
   },
+
   paymentHint: {
     color: "rgba(255,255,255,0.70)",
     fontWeight: 700,
@@ -594,6 +618,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     flexWrap: "wrap",
   },
+
   logoutBtn: {
     padding: "6px 10px",
     borderRadius: 999,
@@ -615,11 +640,18 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  grid: {
+  columns: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 20,
     alignItems: "start",
+  },
+
+  column: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 20,
+    minWidth: 0,
   },
 
   card: {
@@ -641,6 +673,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.35rem",
     margin: 0,
   },
+
   cardText: {
     fontSize: "1rem",
     color: COLORS.muted,
@@ -692,16 +725,19 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     boxSizing: "border-box",
   },
+
   infoLine: {
     display: "flex",
     justifyContent: "space-between",
     gap: 10,
     fontSize: "0.98rem",
   },
+
   infoLabel: {
     color: COLORS.muted,
     fontWeight: 800,
   },
+
   infoValue: {
     fontWeight: 900,
     color: COLORS.text,
@@ -709,10 +745,11 @@ const styles: Record<string, React.CSSProperties> = {
 
   purchaseList: {
     margin: 0,
-    paddingLeft: 16,
+    paddingLeft: 0,
     display: "grid",
     gap: 8,
   },
+
   purchaseItem: {
     background: "rgba(255,255,255,0.04)",
     border: `1px solid ${COLORS.border}`,
@@ -720,6 +757,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "10px 12px",
     listStyle: "none",
   },
+
   purchaseMeta: {
     marginTop: 6,
     display: "inline-flex",
@@ -730,6 +768,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.9rem",
     flexWrap: "wrap",
   },
+
   badge: {
     padding: "2px 8px",
     borderRadius: 999,
@@ -750,6 +789,7 @@ const styles: Record<string, React.CSSProperties> = {
     placeItems: "center",
     paddingTop: 10,
   },
+
   authCard: {
     width: "min(520px, 100%)",
     background: COLORS.cardBg,
@@ -761,6 +801,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: "100%",
     overflow: "hidden",
   },
+
   authTabs: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -768,6 +809,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 14,
     boxSizing: "border-box",
   },
+
   authTab: {
     padding: "10px 12px",
     borderRadius: 999,
@@ -779,23 +821,27 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     maxWidth: "100%",
   },
+
   authTabActive: {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     border: "none",
     boxShadow: "0 8px 20px rgba(106,47,214,0.35)",
   },
+
   authForm: {
     display: "grid",
     gap: 8,
     width: "100%",
     boxSizing: "border-box",
   },
+
   label: {
     fontSize: "0.9rem",
     fontWeight: 800,
     color: COLORS.muted,
     marginTop: 4,
   },
+
   input: {
     width: "100%",
     maxWidth: "100%",
@@ -809,6 +855,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1rem",
     boxSizing: "border-box",
   },
+
   authBtn: {
     marginTop: 8,
     padding: "12px 14px",
@@ -822,6 +869,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     maxWidth: "100%",
   },
+
   authError: {
     marginTop: 4,
     background: "rgba(255, 77, 77, 0.12)",
@@ -834,6 +882,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     maxWidth: "100%",
   },
+
   authMsg: {
     marginTop: 4,
     background: "rgba(64, 255, 141, 0.1)",
