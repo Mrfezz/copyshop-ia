@@ -337,7 +337,9 @@ export default function CompteClientPage() {
                   <div style={styles.infoBox}>
                     <div style={styles.infoLine}>
                       <span style={styles.infoLabel}>Dernier pack :</span>
-                      <span style={styles.infoValue}>{humanizeProductKey(lastPurchase?.product_key)}</span>
+                      <span style={styles.infoValue}>
+                        {humanizeProductKey(lastPurchase?.product_key)}
+                      </span>
                     </div>
                     <div style={styles.infoLine}>
                       <span style={styles.infoLabel}>Date :</span>
@@ -617,6 +619,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: 20,
+    alignItems: "start",
   },
 
   card: {
