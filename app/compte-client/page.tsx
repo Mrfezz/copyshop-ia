@@ -359,116 +359,91 @@ export default function CompteClientPage() {
         )}
 
         {!checking && session && (
-          <div className="client-columns" style={styles.columns}>
-            <div className="client-column" style={styles.column}>
-              <article style={styles.card}>
-                <h2 style={styles.cardTitle}>Mes achats</h2>
-                <p style={styles.cardText}>Historique de tes packs + factures.</p>
+          <div className="client-dashboard-grid" style={styles.dashboardGrid}>
+            <article style={{ ...styles.card, ...styles.areaAchats }}>
+              <h2 style={styles.cardTitle}>Mes achats</h2>
+              <p style={styles.cardText}>Historique de tes packs + factures.</p>
 
-                {purchasesLoading ? (
-                  <div style={styles.smallNote}>Chargement de l’historique...</div>
-                ) : purchasesError ? (
-                  <div style={styles.authError}>{purchasesError}</div>
-                ) : purchases.length === 0 ? (
-                  <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
-                ) : (
-                  <>
-                    <div style={styles.infoBox}>
-                      <div style={styles.infoLine}>
-                        <span style={styles.infoLabel}>Dernier pack :</span>
-                        <span style={styles.infoValue}>
-                          {humanizeProductKey(lastPurchase?.product_key)}
-                        </span>
-                      </div>
-                      <div style={styles.infoLine}>
-                        <span style={styles.infoLabel}>Date :</span>
-                        <span style={styles.infoValue}>
-                          {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
-                        </span>
-                      </div>
+              {purchasesLoading ? (
+                <div style={styles.smallNote}>Chargement de l’historique...</div>
+              ) : purchasesError ? (
+                <div style={styles.authError}>{purchasesError}</div>
+              ) : purchases.length === 0 ? (
+                <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
+              ) : (
+                <>
+                  <div style={styles.infoBox}>
+                    <div style={styles.infoLine}>
+                      <span style={styles.infoLabel}>Dernier pack :</span>
+                      <span style={styles.infoValue}>
+                        {humanizeProductKey(lastPurchase?.product_key)}
+                      </span>
                     </div>
-
-                    <div style={{ marginTop: 10 }}>
-                      <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
-                      <ul style={styles.purchaseList}>
-                        {purchases.slice(0, 5).map((p) => (
-                          <li key={p.id} style={styles.purchaseItem}>
-                            <div style={{ fontWeight: 900 }}>
-                              {humanizeProductKey(p.product_key)}
-                            </div>
-                            <div style={styles.purchaseMeta}>
-                              <span>{formatDate(p.created_at || p.updated_at)}</span>
-                              <span>•</span>
-                              <span>
-                                {formatAmount(p.amount_total, p.currency, p.product_key)}
-                              </span>
-                              <span>•</span>
-                              <span style={styles.badge}>
-                                {(p.status || "unknown").toUpperCase()}
-                              </span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                    <div style={styles.infoLine}>
+                      <span style={styles.infoLabel}>Date :</span>
+                      <span style={styles.infoValue}>
+                        {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
+                      </span>
                     </div>
-                  </>
-                )}
-
-                <a href="/historique-commandes" style={styles.buttonAlt}>
-                  Voir l’historique complet
-                </a>
-              </article>
-
-              <article style={{ ...styles.card, ...styles.cardMedium }}>
-                <div style={styles.cardBody}>
-                  <h2 style={styles.cardTitle}>Messagerie</h2>
-                  <p style={styles.cardText}>Accède à tes messages avec le support.</p>
-                </div>
-
-                <div style={styles.cardFooter}>
-                  <a href="/messages" style={styles.buttonAlt}>
-                    Ouvrir la messagerie
-                  </a>
-                  <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
-                </div>
-              </article>
-
-              <article style={{ ...styles.card, ...styles.cardMedium }}>
-                <div style={styles.cardBody}>
-                  <h2 style={styles.cardTitle}>Accès outil IA</h2>
-                  <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
-                </div>
-
-                <div style={styles.cardFooter}>
-                  <a href="/outil-ia" style={styles.button}>
-                    Ouvrir l’outil
-                  </a>
-                  <div style={styles.smallNote}>
-                    (Le lien s’activera automatiquement après paiement)
                   </div>
-                </div>
-              </article>
-            </div>
 
-            <div className="client-column" style={styles.column}>
-              <article style={styles.card}>
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
+                    <ul style={styles.purchaseList}>
+                      {purchases.slice(0, 5).map((p) => (
+                        <li key={p.id} style={styles.purchaseItem}>
+                          <div style={{ fontWeight: 900 }}>
+                            {humanizeProductKey(p.product_key)}
+                          </div>
+                          <div style={styles.purchaseMeta}>
+                            <span>{formatDate(p.created_at || p.updated_at)}</span>
+                            <span>•</span>
+                            <span>
+                              {formatAmount(p.amount_total, p.currency, p.product_key)}
+                            </span>
+                            <span>•</span>
+                            <span style={styles.badge}>
+                              {(p.status || "unknown").toUpperCase()}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              )}
+
+              <a href="/historique-commandes" style={styles.buttonAlt}>
+                Voir l’historique complet
+              </a>
+            </article>
+
+            <article style={{ ...styles.card, ...styles.cardTop, ...styles.areaPanier }}>
+              <div style={styles.cardBody}>
                 <h2 style={styles.cardTitle}>Panier</h2>
                 <p style={styles.cardText}>
                   Reprends ton achat ou passe à un pack supérieur.
                 </p>
+              </div>
+
+              <div style={styles.cardFooter}>
                 <a href="/panier" style={styles.button}>
                   Aller au panier
                 </a>
-              </article>
+              </div>
+            </article>
 
-              <article style={styles.card}>
+            <article style={{ ...styles.card, ...styles.cardTop, ...styles.areaSupport }}>
+              <div style={styles.cardBody}>
                 <h2 style={styles.cardTitle}>Support</h2>
                 <p style={styles.cardText}>
                   Assistance rapide via WhatsApp.
                   <br />
                   Réponse moyenne : <strong>8h</strong> (Lun–Sam 9h–18h).
                 </p>
+              </div>
 
+              <div style={styles.cardFooter}>
                 <a
                   href="https://wa.me/33745214922"
                   target="_blank"
@@ -477,47 +452,85 @@ export default function CompteClientPage() {
                 >
                   Me contacter
                 </a>
-              </article>
+              </div>
+            </article>
 
-              <article style={{ ...styles.card, ...styles.cardMedium }}>
-                <div style={styles.cardBody}>
-                  <h2 style={styles.cardTitle}>Mes boutiques</h2>
-                  <p style={styles.cardText}>
-                    Retrouve toutes les boutiques générées par l’IA et accède à une page dédiée.
-                  </p>
-                </div>
+            <article style={{ ...styles.card, ...styles.cardMedium, ...styles.areaMessagerie }}>
+              <div style={styles.cardBody}>
+                <h2 style={styles.cardTitle}>Messagerie</h2>
+                <p style={styles.cardText}>Accède à tes messages avec le support.</p>
+              </div>
 
-                <div style={styles.cardFooter}>
-                  <a href="/mes-boutiques" style={styles.button}>
-                    Mes boutiques
-                  </a>
-                </div>
-              </article>
+              <div style={styles.cardFooter}>
+                <a href="/messages" style={styles.buttonAlt}>
+                  Ouvrir la messagerie
+                </a>
+                <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
+              </div>
+            </article>
 
-              <article style={{ ...styles.card, ...styles.cardMedium }}>
-                <div style={styles.cardBody}>
-                  <h2 style={styles.cardTitle}>Recharges</h2>
-                  <p style={styles.cardText}>
-                    Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
-                    Basic/Premium.
-                  </p>
-                </div>
+            <article style={{ ...styles.card, ...styles.cardMedium, ...styles.areaBoutiques }}>
+              <div style={styles.cardBody}>
+                <h2 style={styles.cardTitle}>Mes boutiques</h2>
+                <p style={styles.cardText}>
+                  Retrouve toutes les boutiques générées par l’IA et accède à une page dédiée.
+                </p>
+              </div>
 
-                <div style={styles.cardFooter}>
-                  <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
-                    Voir les recharges
-                  </a>
+              <div style={styles.cardFooter}>
+                <a href="/mes-boutiques" style={styles.button}>
+                  Mes boutiques
+                </a>
+              </div>
+            </article>
+
+            <article style={{ ...styles.card, ...styles.cardMedium, ...styles.areaOutil }}>
+              <div style={styles.cardBody}>
+                <h2 style={styles.cardTitle}>Accès outil IA</h2>
+                <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
+              </div>
+
+              <div style={styles.cardFooter}>
+                <a href="/outil-ia" style={styles.button}>
+                  Ouvrir l’outil
+                </a>
+                <div style={styles.smallNote}>
+                  (Le lien s’activera automatiquement après paiement)
                 </div>
-              </article>
-            </div>
+              </div>
+            </article>
+
+            <article style={{ ...styles.card, ...styles.cardMedium, ...styles.areaRecharges }}>
+              <div style={styles.cardBody}>
+                <h2 style={styles.cardTitle}>Recharges</h2>
+                <p style={styles.cardText}>
+                  Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
+                  Basic/Premium.
+                </p>
+              </div>
+
+              <div style={styles.cardFooter}>
+                <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
+                  Voir les recharges
+                </a>
+              </div>
+            </article>
           </div>
         )}
       </section>
 
       <style>{`
         @media (max-width: 980px) {
-          .client-columns {
+          .client-dashboard-grid {
             grid-template-columns: 1fr !important;
+            grid-template-areas:
+              "achats"
+              "panier"
+              "support"
+              "messagerie"
+              "boutiques"
+              "outil"
+              "recharges" !important;
           }
         }
       `}</style>
@@ -656,18 +669,45 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
   },
 
-  columns: {
+  dashboardGrid: {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
+    gridTemplateAreas: `
+      "achats panier"
+      "achats support"
+      "messagerie boutiques"
+      "outil recharges"
+    `,
     gap: 20,
-    alignItems: "start",
+    alignItems: "stretch",
   },
 
-  column: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 20,
-    minWidth: 0,
+  areaAchats: {
+    gridArea: "achats",
+  },
+
+  areaPanier: {
+    gridArea: "panier",
+  },
+
+  areaSupport: {
+    gridArea: "support",
+  },
+
+  areaMessagerie: {
+    gridArea: "messagerie",
+  },
+
+  areaBoutiques: {
+    gridArea: "boutiques",
+  },
+
+  areaOutil: {
+    gridArea: "outil",
+  },
+
+  areaRecharges: {
+    gridArea: "recharges",
   },
 
   card: {
@@ -682,6 +722,12 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     maxWidth: "100%",
     overflow: "hidden",
+    height: "100%",
+  },
+
+  cardTop: {
+    minHeight: 180,
+    justifyContent: "space-between",
   },
 
   cardMedium: {
