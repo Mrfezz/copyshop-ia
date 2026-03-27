@@ -419,25 +419,33 @@ export default function CompteClientPage() {
                 </a>
               </article>
 
-              <article style={styles.card}>
-                <h2 style={styles.cardTitle}>Messagerie</h2>
-                <p style={styles.cardText}>Accède à tes messages avec le support.</p>
-                <a href="/messages" style={styles.buttonAlt}>
-                  Ouvrir la messagerie
-                </a>
-                <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
+              <article style={{ ...styles.card, ...styles.cardMedium }}>
+                <div style={styles.cardBody}>
+                  <h2 style={styles.cardTitle}>Messagerie</h2>
+                  <p style={styles.cardText}>Accède à tes messages avec le support.</p>
+                </div>
+
+                <div style={styles.cardFooter}>
+                  <a href="/messages" style={styles.buttonAlt}>
+                    Ouvrir la messagerie
+                  </a>
+                  <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
+                </div>
               </article>
 
-              <article style={styles.card}>
-                <h2 style={styles.cardTitle}>Accès outil IA</h2>
-                <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
+              <article style={{ ...styles.card, ...styles.cardMedium }}>
+                <div style={styles.cardBody}>
+                  <h2 style={styles.cardTitle}>Accès outil IA</h2>
+                  <p style={styles.cardText}>Disponible après achat d’un pack IA.</p>
+                </div>
 
-                <a href="/outil-ia" style={styles.button}>
-                  Ouvrir l’outil
-                </a>
-
-                <div style={styles.smallNote}>
-                  (Le lien s’activera automatiquement après paiement)
+                <div style={styles.cardFooter}>
+                  <a href="/outil-ia" style={styles.button}>
+                    Ouvrir l’outil
+                  </a>
+                  <div style={styles.smallNote}>
+                    (Le lien s’activera automatiquement après paiement)
+                  </div>
                 </div>
               </article>
             </div>
@@ -471,27 +479,35 @@ export default function CompteClientPage() {
                 </a>
               </article>
 
-              <article style={styles.card}>
-                <h2 style={styles.cardTitle}>Mes boutiques</h2>
-                <p style={styles.cardText}>
-                  Retrouve toutes les boutiques générées par l’IA et accède à une page
-                  dédiée avec pagination.
-                </p>
-                <a href="/mes-boutiques" style={styles.button}>
-                  Mes boutiques
-                </a>
+              <article style={{ ...styles.card, ...styles.cardMedium }}>
+                <div style={styles.cardBody}>
+                  <h2 style={styles.cardTitle}>Mes boutiques</h2>
+                  <p style={styles.cardText}>
+                    Retrouve toutes les boutiques générées par l’IA et accède à une page dédiée.
+                  </p>
+                </div>
+
+                <div style={styles.cardFooter}>
+                  <a href="/mes-boutiques" style={styles.button}>
+                    Mes boutiques
+                  </a>
+                </div>
               </article>
 
-              <article style={styles.card}>
-                <h2 style={styles.cardTitle}>Recharges</h2>
-                <p style={styles.cardText}>
-                  Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
-                  Basic/Premium.
-                </p>
+              <article style={{ ...styles.card, ...styles.cardMedium }}>
+                <div style={styles.cardBody}>
+                  <h2 style={styles.cardTitle}>Recharges</h2>
+                  <p style={styles.cardText}>
+                    Ajoute <strong>5 boutiques supplémentaires</strong> sur ton pack
+                    Basic/Premium.
+                  </p>
+                </div>
 
-                <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
-                  Voir les recharges
-                </a>
+                <div style={styles.cardFooter}>
+                  <a href="/paiement?product=recharge-ia" style={styles.buttonAlt}>
+                    Voir les recharges
+                  </a>
+                </div>
               </article>
             </div>
           </div>
@@ -666,6 +682,22 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: "border-box",
     maxWidth: "100%",
     overflow: "hidden",
+  },
+
+  cardMedium: {
+    minHeight: 190,
+    justifyContent: "space-between",
+  },
+
+  cardBody: {
+    display: "grid",
+    gap: 10,
+  },
+
+  cardFooter: {
+    display: "grid",
+    gap: 6,
+    alignContent: "end",
   },
 
   cardTitle: {
