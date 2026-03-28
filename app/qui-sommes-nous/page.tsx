@@ -216,7 +216,7 @@ export default function QuiSommesNousPage() {
             <article style={styles.trustCard}>
               <p style={styles.trustNumber}>48h–7j</p>
               <p style={styles.trustLabel}>
-                délai moyen pour livrer une boutique selon le pack choisi
+                délai moyen pour livrer une boutique selon le pack digitaux choisi
               </p>
             </article>
 
@@ -254,7 +254,7 @@ export default function QuiSommesNousPage() {
             </div>
 
             <p style={styles.ctaSub}>
-              Réponse moyenne : 8h (Lun–Sam 9h–18h). Pas d&apos;obligation, on
+              Réponse moyenne : 8h (Lun–Sam 9h–18h). Pas d&apos;obligation, gratuit, on
               fait le point tranquillement.
             </p>
           </div>
