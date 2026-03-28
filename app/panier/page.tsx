@@ -26,7 +26,7 @@ const COLORS = {
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`;
 
-// ✅ Tous tes productKey (packs IA + services digitaux + services à la carte)
+// ✅ Tous les productKey
 type ProductKey =
   | "ia-basic"
   | "ia-premium"
@@ -35,9 +35,11 @@ type ProductKey =
   | "services-pro"
   | "services-business"
   | "kbis-24h"
+  | "creation-entreprise-sasu-sarl"
   | "logo-shopify"
   | "nom-domaine"
   | "contact-fournisseur"
+  | "contact-flocage-produit"
   | "shopify-paiement"
   | "reseaux-sociaux"
   | "flyer-image-video"
@@ -90,7 +92,6 @@ export default function PanierPage() {
   const [checking, setChecking] = useState(true);
   const [items, setItems] = useState<CartItem[]>([]);
 
-  // ✅ Session Supabase
   useEffect(() => {
     let ignore = false;
 
@@ -112,7 +113,6 @@ export default function PanierPage() {
     };
   }, []);
 
-  // ✅ Lire le panier (et se mettre à jour si un autre endroit modifie le panier)
   useEffect(() => {
     const readCart = () => {
       try {
@@ -146,18 +146,17 @@ export default function PanierPage() {
     const onCustom = () => readCart();
 
     window.addEventListener("storage", onStorage);
-    window.addEventListener("copyshop_cart_updated", onCustom as any);
+    window.addEventListener("copyshop_cart_updated", onCustom as EventListener);
 
     return () => {
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener("copyshop_cart_updated", onCustom as any);
+      window.removeEventListener("copyshop_cart_updated", onCustom as EventListener);
     };
   }, []);
 
   const userEmail = session?.user?.email ?? null;
 
   const hasIaInCart = useMemo(() => {
-    // ✅ uniquement les vrais produits IA qui donnent accès à /outil-ia
     return items.some((it) => {
       const k = String(it.productKey ?? "");
       return k === "ia-basic" || k === "ia-premium" || k === "ia-ultime";
@@ -185,8 +184,6 @@ export default function PanierPage() {
         updatedAt: new Date().toISOString(),
       };
       localStorage.setItem(CART_KEY, JSON.stringify(payload));
-
-      // ✅ important: update badge dans le même onglet
       window.dispatchEvent(new Event("copyshop_cart_updated"));
     } catch (e) {
       console.error("cart save error", e);
@@ -201,7 +198,6 @@ export default function PanierPage() {
     });
   }
 
-  // ✅ Paiement panier entier (si 1 seul item et productKey présent, on peut garder le mode "produit")
   const payHref =
     items.length === 1 && items[0]?.productKey
       ? `/paiement?product=${items[0].productKey}`
@@ -225,18 +221,17 @@ export default function PanierPage() {
               </div>
             )}
 
-            <Link href="/compte-client" style={styles.secondaryBtn as any}>
+            <Link href="/compte-client" style={styles.secondaryBtn}>
               {userEmail ? "Mon compte" : "Se connecter"}
             </Link>
 
-            <Link href="/packs-ia" style={styles.secondaryBtn as any}>
+            <Link href="/packs-ia" style={styles.secondaryBtn}>
               Voir les packs
             </Link>
           </div>
         </header>
 
-        <section style={styles.grid} data-grid="panier">
-          {/* LEFT */}
+        <section className="panier-grid" style={styles.grid}>
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Articles</h2>
 
@@ -247,15 +242,15 @@ export default function PanierPage() {
                   Choisis un produit pour l’ajouter au panier.
                 </div>
 
-                <Link href="/packs-ia" style={styles.primaryBtn as any}>
+                <Link href="/packs-ia" style={styles.primaryBtn}>
                   Choisir un pack
                 </Link>
               </div>
             ) : (
-              <div style={{ display: "grid", gap: 10 }}>
+              <div style={styles.itemsList}>
                 {items.map((it) => (
-                  <div key={it.id} style={styles.itemRow}>
-                    <div style={{ minWidth: 0 }}>
+                  <div key={it.id} className="panier-item-row" style={styles.itemRow}>
+                    <div className="panier-item-text" style={styles.itemTextWrap}>
                       <div style={styles.itemTitle}>{it.title}</div>
                       <div style={styles.itemSub}>
                         {it.priceLabel}
@@ -276,28 +271,25 @@ export default function PanierPage() {
             )}
           </div>
 
-          {/* RIGHT */}
           <div style={styles.card}>
             <h2 style={styles.cardTitle}>Récapitulatif</h2>
 
             <div style={styles.summaryBox}>
-              <div style={styles.summaryLine}>
+              <div className="panier-summary-line" style={styles.summaryLine}>
                 <span style={styles.summaryLabel}>Total</span>
                 <span style={styles.summaryValue}>{totalLabel}</span>
               </div>
 
-              {/* ✅ Texte neutre (plus de confusion pack / outil IA) */}
               <div style={styles.summaryHint}>
                 Paiement unique via Stripe. La commande dépend du produit (accès,
                 prise en charge, ou informations).
               </div>
             </div>
 
-            {/* ✅ FIX : séparation verticale du bouton (Link = inline par défaut) */}
             <Link
               href={payHref}
               style={{
-                ...(styles.primaryBtn as any),
+                ...styles.primaryBtn,
                 display: "inline-block",
                 marginTop: 12,
                 marginBottom: 12,
@@ -306,13 +298,11 @@ export default function PanierPage() {
               Passer au paiement
             </Link>
 
-            {/* ✅ note claire et “safe” */}
             <div style={styles.note}>
               {hasIaInCart ? (
                 <>
                   ✅ Ton panier contient un <strong>pack IA</strong> : l’accès à{" "}
-                  <strong>/outil-ia</strong> sera débloqué après validation du
-                  paiement.
+                  <strong>/outil-ia</strong> sera débloqué après validation du paiement.
                 </>
               ) : (
                 <>
@@ -324,7 +314,6 @@ export default function PanierPage() {
           </div>
         </section>
 
-        {/* ✅ bande bas conditionnelle */}
         <div style={styles.bottomBand}>
           {hasIaInCart
             ? "🔒 Accès à l’outil IA uniquement avec un pack IA."
@@ -334,8 +323,28 @@ export default function PanierPage() {
 
       <style>{`
         *, *::before, *::after { box-sizing: border-box; }
+
         @media (max-width: 980px) {
-          section[data-grid="panier"] { grid-template-columns: 1fr !important; }
+          .panier-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .panier-item-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .panier-item-text {
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+
+          .panier-summary-line {
+            flex-wrap: wrap !important;
+            align-items: flex-start !important;
+          }
         }
       `}</style>
     </main>
@@ -350,6 +359,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: COLORS.text,
     overflowX: "hidden",
   },
+
   bgGradient: {
     position: "fixed",
     inset: 0,
@@ -359,6 +369,7 @@ const styles: Record<string, React.CSSProperties> = {
       `linear-gradient(180deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 45%, ${COLORS.bgBottom} 100%)`,
     zIndex: -2,
   },
+
   bgDots: {
     position: "fixed",
     inset: 0,
@@ -387,6 +398,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 10,
   },
+
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -395,12 +407,14 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+
   title: {
     fontSize: "clamp(2.0rem, 4vw, 3.0rem)",
     fontWeight: 900,
     margin: 0,
     letterSpacing: "-0.02em",
   },
+
   sub: {
     fontSize: "1.05rem",
     color: COLORS.muted,
@@ -415,6 +429,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     marginTop: 6,
   },
+
   statusPill: {
     background: "rgba(10, 15, 43, 0.85)",
     border: `1px solid ${COLORS.border}`,
@@ -424,7 +439,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.9rem",
     color: COLORS.text,
     maxWidth: "100%",
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
+
   secondaryBtn: {
     background: "rgba(255,255,255,0.10)",
     border: `1px solid ${COLORS.border}`,
@@ -435,6 +454,8 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     textDecoration: "none",
     maxWidth: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
   },
 
   grid: {
@@ -451,8 +472,10 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 34px rgba(0,0,0,0.25)",
     overflow: "hidden",
     maxWidth: "100%",
+    minWidth: 0,
     boxSizing: "border-box",
   },
+
   cardTitle: {
     margin: 0,
     fontSize: "1.15rem",
@@ -469,15 +492,26 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 10,
     boxSizing: "border-box",
+    minWidth: 0,
   },
+
   emptyTitle: {
     fontWeight: 950,
     fontSize: "1.05rem",
   },
+
   emptyText: {
     color: COLORS.muted,
     fontWeight: 700,
     lineHeight: 1.5,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  },
+
+  itemsList: {
+    display: "grid",
+    gap: 10,
+    minWidth: 0,
   },
 
   itemRow: {
@@ -490,21 +524,40 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "12px 12px",
     background: "rgba(2,6,23,0.45)",
     boxSizing: "border-box",
+    maxWidth: "100%",
+    minWidth: 0,
   },
+
+  itemTextWrap: {
+    minWidth: 0,
+    flex: 1,
+    maxWidth: "100%",
+  },
+
   itemTitle: {
     fontWeight: 950,
     fontSize: "1.02rem",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
     maxWidth: "100%",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    lineHeight: 1.35,
   },
+
   itemSub: {
     color: COLORS.muted,
     fontWeight: 750,
     fontSize: "0.92rem",
     marginTop: 4,
+    maxWidth: "100%",
+    minWidth: 0,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    lineHeight: 1.45,
   },
+
   removeBtn: {
     padding: "9px 12px",
     borderRadius: 999,
@@ -515,6 +568,9 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     whiteSpace: "nowrap",
     boxSizing: "border-box",
+    alignSelf: "flex-start",
+    flexShrink: 0,
+    maxWidth: "100%",
   },
 
   summaryBox: {
@@ -526,27 +582,40 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     marginBottom: 12,
     boxSizing: "border-box",
+    minWidth: 0,
   },
+
   summaryLine: {
     display: "flex",
     justifyContent: "space-between",
     gap: 10,
     alignItems: "center",
     fontSize: "1rem",
+    minWidth: 0,
   },
+
   summaryLabel: {
     color: COLORS.muted,
     fontWeight: 800,
+    minWidth: 0,
   },
+
   summaryValue: {
     fontWeight: 950,
     color: COLORS.text,
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    textAlign: "right",
   },
+
   summaryHint: {
     color: "rgba(255,255,255,0.72)",
     fontWeight: 700,
     fontSize: "0.9rem",
     lineHeight: 1.5,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
 
   primaryBtn: {
@@ -571,6 +640,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "0.92rem",
     fontWeight: 700,
     lineHeight: 1.55,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
 
   bottomBand: {
@@ -583,5 +654,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: COLORS.text,
     boxSizing: "border-box",
+    maxWidth: "100%",
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
 };

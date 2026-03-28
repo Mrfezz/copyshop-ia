@@ -35,7 +35,7 @@ export default function Page() {
 
       <h2>6. Droit de rétractation (résumé)</h2>
       <p>
-        Aucun droit de rétractation pour chacun des produits Copyshop IA! Pour certains contenus/services numériques, le droit de rétractation peut ne pas s’appliquer lorsque l’exécution
+        Aucun droit de rétractation pour chacun des produits Copyshop IA !  Pour certains contenus/services numériques, le droit de rétractation peut ne pas s’appliquer lorsque l’exécution
         a commencé avec ton accord (ex : accès digital immédiat).
       </p>
 
