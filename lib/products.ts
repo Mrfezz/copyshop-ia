@@ -98,6 +98,14 @@ export const PRODUCTS = {
       "On crée ta micro-entreprise / société de A à Z et tu reçois ton Kbis rapidement. Tu gagnes du temps et tu démarres légalement sans stress.",
   },
 
+  "creation-entreprise-sasu-sarl": {
+    name: "Création d'entreprise SASU / SARL",
+    priceLabel: "500€",
+    stripePriceId: "price_1TG2GyIGNjC6wKJRMTOvr4A3",
+    description:
+      "Accompagnement complet pour la création de votre société en SASU ou SARL : préparation du dossier, dépôt et suivi jusqu’à l’immatriculation. Comptez environ 10 jours si vos documents sont complets et à jour. Si certains documents sont manquants ou non conformes, le délai peut être supérieur à 10 jours.",
+  },
+
   "logo-shopify": {
     name: "Logo boutique Shopify",
     priceLabel: "119,99€",
@@ -106,7 +114,6 @@ export const PRODUCTS = {
       "Un logo pro + mini charte graphique pour une boutique crédible et mémorable. Parfait pour renforcer la confiance et booster tes ventes.",
   },
 
-  // ⭐ Nouveau service : Nom de domaine
   "nom-domaine": {
     name: "Nom de domaine (mise en ligne + configuration)",
     priceLabel: "49,99€",
@@ -121,6 +128,14 @@ export const PRODUCTS = {
     stripePriceId: "price_1SizD7IGNjC6wKJRcZ55zUCi",
     description:
       "On te trouve un fournisseur fiable adapté à ta niche, on vérifie le minimum et on te met en relation. Tu sécurises ton stock et tu évites les galères.",
+  },
+
+  "contact-flocage-produit": {
+    name: "Contact flocage produit personnalisé",
+    priceLabel: "60€",
+    stripePriceId: "price_1TG2MJIGNjC6wKJRfmQc7O8Z",
+    description:
+      "Nous vous mettons en relation avec un de nos collaborateurs ou collaboratrices pour assurer le flocage de votre marque, prénom, nom ou produits personnalisés sur vos packagings. Service disponible uniquement sur Marseille.",
   },
 
   "shopify-paiement": {

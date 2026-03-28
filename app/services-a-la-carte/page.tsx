@@ -2,7 +2,8 @@
 
 // app/services-a-la-carte/page.tsx
 import Link from "next/link";
-import React from "react";
+import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Service = {
   title: string;
@@ -11,9 +12,11 @@ type Service = {
   tag?: string;
   productKey:
     | "kbis-24h"
+    | "creation-entreprise-sasu-sarl"
     | "logo-shopify"
     | "nom-domaine"
     | "contact-fournisseur"
+    | "contact-flocage-produit"
     | "shopify-paiement"
     | "reseaux-sociaux"
     | "flyer-image-video"
@@ -22,6 +25,8 @@ type Service = {
   isNew?: boolean;
 };
 
+const PAGE_SIZE = 6;
+
 const SERVICES: Service[] = [
   {
     title: "Création Kbis en 24h",
@@ -29,6 +34,14 @@ const SERVICES: Service[] = [
     desc: "On s’occupe de la création de ta micro-entreprise/société et on te livre ton Kbis rapidement.",
     tag: "Administratif",
     productKey: "kbis-24h",
+  },
+  {
+    title: "Création d'entreprise SASU / SARL",
+    price: "500€",
+    desc: "Accompagnement complet pour la création de votre société en SASU ou SARL : préparation du dossier, dépôt et suivi jusqu’à l’immatriculation. Comptez environ 10 jours si vos documents sont complets et à jour. Si certains documents sont manquants ou non conformes, le délai peut être supérieur à 10 jours.",
+    tag: "Administratif",
+    productKey: "creation-entreprise-sasu-sarl",
+    isNew: true,
   },
   {
     title: "Logo boutique Shopify",
@@ -51,6 +64,14 @@ const SERVICES: Service[] = [
     desc: "Sourcing + prise de contact + vérification basique, puis mise en relation avec un fournisseur fiable.",
     tag: "Fournisseur",
     productKey: "contact-fournisseur",
+  },
+  {
+    title: "Contact flocage produit personnalisé",
+    price: "60€",
+    desc: "Nous vous mettons en relation avec un de nos collaborateurs ou collaboratrices pour assurer le flocage de votre marque, prénom, nom ou produits personnalisés sur vos packagings. Service disponible uniquement sur Marseille.",
+    tag: "Contact",
+    productKey: "contact-flocage-produit",
+    isNew: true,
   },
   {
     title: "Activation Shopify Payments",
@@ -104,13 +125,24 @@ type CartPayload = {
 const CART_KEY = "copyshop_ia_cart";
 
 export default function ServicesALaCartePage() {
+  const [page, setPage] = useState(0);
+  const router = useRouter();
+
+  const pageCount = useMemo(() => {
+    return Math.max(1, Math.ceil(SERVICES.length / PAGE_SIZE));
+  }, []);
+
+  const visibleServices = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return SERVICES.slice(start, start + PAGE_SIZE);
+  }, [page]);
+
   function addToCart(service: Service) {
     try {
       const raw = localStorage.getItem(CART_KEY);
       const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
-      const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
+      const existing = Array.isArray(parsed?.items) ? parsed.items : [];
 
-      // ✅ évite doublon sur le même service (on remplace si déjà présent)
       const kept = existing.filter((it) => (it?.productKey ?? "") !== service.productKey);
 
       const next = [
@@ -131,8 +163,6 @@ export default function ServicesALaCartePage() {
       };
 
       localStorage.setItem(CART_KEY, JSON.stringify(payload));
-
-      // ✅ important: update badge dans le même onglet
       window.dispatchEvent(new Event("copyshop_cart_updated"));
     } catch (e) {
       console.error("cart save error", e);
@@ -153,12 +183,15 @@ export default function ServicesALaCartePage() {
       </section>
 
       <section className="gridCards" style={styles.grid}>
-        {SERVICES.map((s) => (
+        {visibleServices.map((s) => (
           <article key={s.title} style={styles.card}>
-            {/* Ligne du haut : Nouveau + Tag de catégorie */}
             <div style={styles.cardTop}>
-              {s.isNew && <span style={styles.newBadge}>Nouveau</span>}
-              {s.tag && <span style={styles.tag}>{s.tag}</span>}
+              <div style={styles.cardTopLeft}>
+                {s.tag && <span style={styles.tag}>{s.tag}</span>}
+              </div>
+              <div style={styles.cardTopRight}>
+                {s.isNew && <span style={styles.newBadge}>Nouveau</span>}
+              </div>
             </div>
 
             <h2 style={styles.cardTitle}>{s.title}</h2>
@@ -182,6 +215,7 @@ export default function ServicesALaCartePage() {
                 onClick={(e) => {
                   e.preventDefault();
                   addToCart(s);
+                  router.push("/panier");
                 }}
               >
                 Commander
@@ -190,6 +224,40 @@ export default function ServicesALaCartePage() {
           </article>
         ))}
       </section>
+
+      {SERVICES.length > PAGE_SIZE && (
+        <section style={styles.pagerWrap}>
+          <div style={styles.pager}>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page <= 0}
+              style={{
+                ...styles.pagerBtn,
+                ...(page <= 0 ? styles.pagerBtnDisabled : {}),
+              }}
+            >
+              ← Page précédente
+            </button>
+
+            <div style={styles.pagerInfo}>
+              Page <strong>{page + 1}</strong> / {pageCount}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={page >= pageCount - 1}
+              style={{
+                ...styles.pagerBtn,
+                ...(page >= pageCount - 1 ? styles.pagerBtnDisabled : {}),
+              }}
+            >
+              Page suivante →
+            </button>
+          </div>
+        </section>
+      )}
 
       <section style={styles.bottom}>
         <div>
@@ -291,9 +359,24 @@ const styles: Record<string, React.CSSProperties> = {
 
   cardTop: {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
+    gap: 10,
     marginBottom: 4,
+    minHeight: 24,
+  },
+
+  cardTopLeft: {
+    display: "flex",
+    alignItems: "center",
+    minWidth: 0,
+  },
+
+  cardTopRight: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    minWidth: 0,
   },
 
   newBadge: {
@@ -332,6 +415,7 @@ const styles: Record<string, React.CSSProperties> = {
     background:
       "linear-gradient(90deg, rgba(30,64,175,0.6), rgba(139,92,246,0.9))",
     border: "1px solid rgba(191,219,254,0.6)",
+    width: "fit-content",
   },
 
   domainDot: {
@@ -347,7 +431,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "1.25rem",
     fontWeight: 900,
     margin: 0,
-    paddingRight: "90px",
   },
 
   cardDesc: {
@@ -355,6 +438,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#c9d2ff",
     fontSize: "0.98rem",
     flex: 1,
+    lineHeight: 1.55,
   },
 
   priceRow: {
@@ -378,6 +462,43 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     fontSize: "0.9rem",
     whiteSpace: "nowrap",
+  },
+
+  pagerWrap: {
+    maxWidth: 1100,
+    margin: "1rem auto 0",
+  },
+
+  pager: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px",
+    borderRadius: 14,
+    background: "rgba(10,15,38,0.45)",
+    border: "1px solid rgba(120,140,255,0.35)",
+    flexWrap: "wrap",
+  },
+
+  pagerBtn: {
+    padding: "0.75rem 1rem",
+    borderRadius: 999,
+    border: "1px solid rgba(120,140,255,0.55)",
+    color: "#eef1ff",
+    background: "rgba(10,15,38,0.35)",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+
+  pagerBtnDisabled: {
+    opacity: 0.45,
+    cursor: "not-allowed",
+  },
+
+  pagerInfo: {
+    color: "#c9d2ff",
+    fontWeight: 800,
   },
 
   bottom: {
