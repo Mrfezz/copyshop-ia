@@ -43,29 +43,6 @@ function formatDate(iso?: string | null): string {
   });
 }
 
-function formatAmount(
-  amountCents?: number | null,
-  currency?: string | null,
-  productKey?: string | null
-): string {
-  if (amountCents == null) {
-    if (productKey === "ia-ultime") return "149,99 €";
-    return "Montant non disponible";
-  }
-
-  const cur = (currency || "EUR").toUpperCase();
-  const eur = amountCents / 100;
-
-  try {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: cur,
-    }).format(eur);
-  } catch {
-    return `${eur.toFixed(2)} ${cur}`;
-  }
-}
-
 function humanizeProductKey(key?: string | null): string {
   const k = (key || "").trim();
   if (!k) return "—";
@@ -81,6 +58,19 @@ function humanizeProductKey(key?: string | null): string {
   if (k === "ia-premium") return "Pack Premium IA";
   if (k === "ia-ultime") return "Pack Ultime IA";
   if (k === "recharge-ia" || k === "ia-recharge-5") return "Recharge +5 boutiques";
+  if (k === "services-essentiel") return "Pack Essentiel";
+  if (k === "services-pro") return "Pack Pro";
+  if (k === "services-business") return "Pack Business+";
+  if (k === "kbis-24h") return "Création Kbis en 24h";
+  if (k === "creation-entreprise-sasu-sarl") return "Création d'entreprise SASU / SARL";
+  if (k === "logo-shopify") return "Logo boutique Shopify";
+  if (k === "nom-domaine") return "Nom de domaine";
+  if (k === "contact-fournisseur") return "Contact fournisseur";
+  if (k === "contact-flocage-produit") return "Contact flocage produit personnalisé";
+  if (k === "shopify-paiement") return "Activation Shopify Payments";
+  if (k === "reseaux-sociaux") return "Création réseaux sociaux";
+  if (k === "flyer-image-video") return "Création flyer image & vidéo";
+  if (k === "optimisation-boutique") return "Optimisation boutique";
 
   return k;
 }
@@ -371,46 +361,20 @@ export default function CompteClientPage() {
               ) : purchases.length === 0 ? (
                 <div style={styles.smallNote}>Aucun achat enregistré pour le moment.</div>
               ) : (
-                <>
-                  <div style={styles.infoBox}>
-                    <div style={styles.infoLine}>
-                      <span style={styles.infoLabel}>Dernier pack :</span>
-                      <span style={styles.infoValue}>
-                        {humanizeProductKey(lastPurchase?.product_key)}
-                      </span>
-                    </div>
-                    <div style={styles.infoLine}>
-                      <span style={styles.infoLabel}>Date :</span>
-                      <span style={styles.infoValue}>
-                        {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
-                      </span>
-                    </div>
+                <div style={styles.infoBox}>
+                  <div style={styles.infoLine}>
+                    <span style={styles.infoLabel}>Dernier achat :</span>
+                    <span style={styles.infoValue}>
+                      {humanizeProductKey(lastPurchase?.product_key)}
+                    </span>
                   </div>
-
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ ...styles.infoLabel, marginBottom: 6 }}>Historique :</div>
-                    <ul style={styles.purchaseList}>
-                      {purchases.slice(0, 5).map((p) => (
-                        <li key={p.id} style={styles.purchaseItem}>
-                          <div style={{ fontWeight: 900 }}>
-                            {humanizeProductKey(p.product_key)}
-                          </div>
-                          <div style={styles.purchaseMeta}>
-                            <span>{formatDate(p.created_at || p.updated_at)}</span>
-                            <span>•</span>
-                            <span>
-                              {formatAmount(p.amount_total, p.currency, p.product_key)}
-                            </span>
-                            <span>•</span>
-                            <span style={styles.badge}>
-                              {(p.status || "unknown").toUpperCase()}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
+                  <div style={styles.infoLine}>
+                    <span style={styles.infoLabel}>Date :</span>
+                    <span style={styles.infoValue}>
+                      {formatDate(lastPurchase?.created_at || lastPurchase?.updated_at)}
+                    </span>
                   </div>
-                </>
+                </div>
               )}
 
               <a href="/historique-commandes" style={styles.buttonAlt}>
@@ -809,51 +773,21 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "space-between",
     gap: 10,
     fontSize: "0.98rem",
+    alignItems: "flex-start",
   },
 
   infoLabel: {
     color: COLORS.muted,
     fontWeight: 800,
+    minWidth: 120,
   },
 
   infoValue: {
     fontWeight: 900,
     color: COLORS.text,
-  },
-
-  purchaseList: {
-    margin: 0,
-    paddingLeft: 0,
-    display: "grid",
-    gap: 8,
-  },
-
-  purchaseItem: {
-    background: "rgba(255,255,255,0.04)",
-    border: `1px solid ${COLORS.border}`,
-    borderRadius: 12,
-    padding: "10px 12px",
-    listStyle: "none",
-  },
-
-  purchaseMeta: {
-    marginTop: 6,
-    display: "inline-flex",
-    gap: 8,
-    alignItems: "center",
-    color: "rgba(255,255,255,0.75)",
-    fontWeight: 700,
-    fontSize: "0.9rem",
-    flexWrap: "wrap",
-  },
-
-  badge: {
-    padding: "2px 8px",
-    borderRadius: 999,
-    border: `1px solid ${COLORS.border}`,
-    background: "rgba(255,255,255,0.06)",
-    fontWeight: 900,
-    fontSize: "0.78rem",
+    textAlign: "right",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
   },
 
   smallNote: {
