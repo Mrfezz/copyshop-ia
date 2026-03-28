@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 const COLORS = {
@@ -22,59 +22,61 @@ const COLORS = {
 
 const PAGE_SIZE = 5;
 
-const TESTIMONIALS = [
-  {
-    name: "Julien",
-    text:
-      "J’ai reçu ma boutique en quelque minutes. J’ai juste ajouté mes produits et c’était carré.",
-  },
-  {
-    name: "Inès",
-    text:
-      "Le design est trop propre pour le prix du PACK ESSENTIEL. Franchement ça fait Pro .",
-  },
-  {
-    name: "Hugo",
-    text: "L’IA m’a trouvé une niche + angle marketing. J’ai gagné un temps énorme.",
-  },
-  {
-    name: "Sarah",
-    text:
-      "Très satisfaite du résultat. Le rendu est propre, moderne et beaucoup plus rapide que ce que j’aurais pu faire seule.",
-  },
-  {
-    name: "Mehdi",
-    text:
-      "Le gain de temps est énorme. J’ai pu me concentrer sur mes produits pendant que la boutique prenait forme.",
-  },
-  {
-    name: "Camille",
-    text:
-      "Franchement super expérience. Le site est clair, les packs sont simples à comprendre et le résultat final est propre.",
-  },
-  {
-    name: "Yanis",
-    text:
-      "J’ai aimé le côté rapide et efficace. La boutique donne directement une impression professionnelle.",
-  },
-  {
-    name: "Nora",
-    text:
-      "Très bon service. Le design est cohérent et la structure du site est déjà bien pensée pour vendre.",
-  },
-];
+type Review = {
+  id: string;
+  name: string | null;
+  review_text: string;
+  created_at: string;
+};
 
 export default function AvisClientsPage() {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  const pageCount = useMemo(() => {
-    return Math.max(1, Math.ceil(TESTIMONIALS.length / PAGE_SIZE));
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/reviews", { cache: "no-store" });
+        const json = await res.json();
+
+        if (!res.ok) throw new Error(json?.error || "Erreur chargement avis");
+
+        if (!cancelled) {
+          setReviews(Array.isArray(json?.reviews) ? json.reviews : []);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setError(e?.message || "Erreur chargement avis");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const pagedTestimonials = useMemo(() => {
+  const pageCount = useMemo(() => {
+    return Math.max(1, Math.ceil(reviews.length / PAGE_SIZE));
+  }, [reviews.length]);
+
+  const pagedReviews = useMemo(() => {
     const start = page * PAGE_SIZE;
-    return TESTIMONIALS.slice(start, start + PAGE_SIZE);
-  }, [page]);
+    return reviews.slice(start, start + PAGE_SIZE);
+  }, [reviews, page]);
+
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
 
   return (
     <main style={styles.page}>
@@ -101,45 +103,58 @@ export default function AvisClientsPage() {
             </Link>
           </div>
 
-          <div style={styles.reviewsList}>
-            {pagedTestimonials.map((t, index) => (
-              <article key={`${t.name}-${page}-${index}`} style={styles.reviewCard}>
-                <div style={styles.reviewQuote}>"{t.text}"</div>
-                <div style={styles.reviewName}>— {t.name}</div>
-              </article>
-            ))}
-          </div>
+          {loading && <div style={styles.infoBox}>Chargement des avis...</div>}
+          {error && <div style={styles.errorBox}>{error}</div>}
 
-          {TESTIMONIALS.length > PAGE_SIZE && (
-            <div style={styles.pager}>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page <= 0}
-                style={{
-                  ...styles.pagerBtn,
-                  ...(page <= 0 ? styles.pagerBtnDisabled : {}),
-                }}
-              >
-                ← Page précédente
-              </button>
+          {!loading && !error && reviews.length === 0 && (
+            <div style={styles.infoBox}>Aucun avis pour le moment.</div>
+          )}
 
-              <div style={styles.pagerInfo}>
-                Page <strong>{page + 1}</strong> / {pageCount}
+          {!loading && !error && reviews.length > 0 && (
+            <>
+              <div style={styles.reviewsList}>
+                {pagedReviews.map((review) => (
+                  <article key={review.id} style={styles.reviewCard}>
+                    <div style={styles.reviewQuote}>"{review.review_text}"</div>
+                    <div style={styles.reviewName}>
+                      — {review.name || "Client"}
+                    </div>
+                  </article>
+                ))}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-                disabled={page >= pageCount - 1}
-                style={{
-                  ...styles.pagerBtn,
-                  ...(page >= pageCount - 1 ? styles.pagerBtnDisabled : {}),
-                }}
-              >
-                Page suivante →
-              </button>
-            </div>
+              {reviews.length > PAGE_SIZE && (
+                <div style={styles.pager}>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page <= 0}
+                    style={{
+                      ...styles.pagerBtn,
+                      ...(page <= 0 ? styles.pagerBtnDisabled : {}),
+                    }}
+                  >
+                    ← Page précédente
+                  </button>
+
+                  <div style={styles.pagerInfo}>
+                    Page <strong>{page + 1}</strong> / {pageCount}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                    disabled={page >= pageCount - 1}
+                    style={{
+                      ...styles.pagerBtn,
+                      ...(page >= pageCount - 1 ? styles.pagerBtnDisabled : {}),
+                    }}
+                  >
+                    Page suivante →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -288,6 +303,32 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: COLORS.muted,
     fontSize: "0.98rem",
+  },
+
+  infoBox: {
+    maxWidth: 900,
+    width: "100%",
+    margin: "0 auto",
+    padding: "16px 14px",
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.06)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    color: COLORS.muted,
+    fontWeight: 800,
+    textAlign: "center",
+  },
+
+  errorBox: {
+    maxWidth: 900,
+    width: "100%",
+    margin: "0 auto",
+    padding: "16px 14px",
+    borderRadius: 14,
+    background: "rgba(255, 77, 77, 0.12)",
+    border: "1px solid rgba(255, 77, 77, 0.35)",
+    color: "#ffb3b3",
+    fontWeight: 800,
+    textAlign: "center",
   },
 
   pager: {

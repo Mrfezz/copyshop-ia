@@ -436,22 +436,73 @@ function ReviewsSection() {
 }
 
 function ReviewFormSection() {
+  const [reviewText, setReviewText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [reviewOk, setReviewOk] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setReviewOk(null);
+    setReviewError(null);
+
+    const trimmed = reviewText.trim();
+
+    if (!trimmed) {
+      setReviewError("Merci d’écrire un avis avant d’envoyer.");
+      return;
+    }
+
+    setSending(true);
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reviewText: trimmed,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Erreur envoi avis");
+      }
+
+      setReviewText("");
+      setReviewOk("✅ Merci, ton avis a bien été envoyé.");
+    } catch (err: any) {
+      setReviewError(err?.message || "Erreur envoi avis");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
         <div style={styles.reviewFormWrap}>
           <div style={styles.reviewFormTitle}>Laisser un avis</div>
 
-          <form style={styles.reviewForm}>
+          <form style={styles.reviewForm} onSubmit={handleSubmit}>
             <textarea
               className="reviewTextareaHome"
               placeholder="Es-tu satisfait de ton achat ? Laisse ton avis pour aider les futurs clients."
               rows={4}
               style={styles.reviewTextareaInput}
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              disabled={sending}
             />
 
-            <button type="submit" style={styles.reviewSubmitBtn}>
-              Envoyer
+            {reviewOk && <div style={styles.reviewSuccessBox}>{reviewOk}</div>}
+            {reviewError && <div style={styles.reviewErrorBox}>{reviewError}</div>}
+
+            <button type="submit" style={styles.reviewSubmitBtn} disabled={sending}>
+              {sending ? "Envoi..." : "Envoyer"}
             </button>
           </form>
         </div>
@@ -1049,6 +1100,24 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
     cursor: "pointer",
     whiteSpace: "nowrap",
+  },
+  reviewSuccessBox: {
+    background: "rgba(64, 255, 141, 0.1)",
+    border: "1px solid rgba(64, 255, 141, 0.35)",
+    padding: "8px 10px",
+    borderRadius: 10,
+    fontWeight: 800,
+    color: "#b7ffd9",
+    fontSize: "0.95rem",
+  },
+  reviewErrorBox: {
+    background: "rgba(255, 77, 77, 0.12)",
+    border: "1px solid rgba(255, 77, 77, 0.35)",
+    padding: "8px 10px",
+    borderRadius: 10,
+    fontWeight: 800,
+    color: "#ffb3b3",
+    fontSize: "0.95rem",
   },
 
   miniRow: {
