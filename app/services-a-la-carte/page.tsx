@@ -3,7 +3,6 @@
 // app/services-a-la-carte/page.tsx
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 
 type Service = {
   title: string;
@@ -126,7 +125,6 @@ const CART_KEY = "copyshop_ia_cart";
 
 export default function ServicesALaCartePage() {
   const [page, setPage] = useState(0);
-  const router = useRouter();
 
   const pageCount = useMemo(() => {
     return Math.max(1, Math.ceil(SERVICES.length / PAGE_SIZE));
@@ -209,17 +207,13 @@ export default function ServicesALaCartePage() {
 
             <div style={styles.priceRow}>
               <div style={styles.price}>{s.price}</div>
-              <Link
-                href="/panier"
+              <button
+                type="button"
                 style={styles.btn}
-                onClick={(e) => {
-                  e.preventDefault();
-                  addToCart(s);
-                  router.push("/panier");
-                }}
+                onClick={() => addToCart(s)}
               >
                 Commander
-              </Link>
+              </button>
             </div>
           </article>
         ))}
@@ -462,6 +456,8 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     fontSize: "0.9rem",
     whiteSpace: "nowrap",
+    border: "none",
+    cursor: "pointer",
   },
 
   pagerWrap: {
