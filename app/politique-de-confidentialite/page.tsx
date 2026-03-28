@@ -67,8 +67,7 @@ export default function PolitiqueDeConfidentialitePage() {
           </p>
 
           <div style={styles.note}>
-            ⚠️ Modèle à adapter (RGPD / mentions légales). Si tu veux, on écrit une version complète
-            avec tes infos exactes (éditeur, hébergeur, etc.).
+            ⚠️ Les conditions ci-dessus s’appliquent conformément à la nature des services et produits proposés.
           </div>
         </article>
       </section>

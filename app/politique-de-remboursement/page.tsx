@@ -70,7 +70,7 @@ export default function PolitiqueDeRemboursementPage() {
           </p>
 
           <div style={styles.note}>
-            ⚠️ Modèle à adapter selon ton activité et tes obligations légales (France/UE).
+            ⚠️ Les conditions ci-dessus s’appliquent conformément à la nature des services et produits proposés.
           </div>
         </article>
       </section>
