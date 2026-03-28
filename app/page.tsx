@@ -299,7 +299,7 @@ function FeaturedProduct() {
               </Link>
             </div>
 
-            <div style={styles.phoneHint}>(Visu réel — optimisé pour mobile)</div>
+            <div style={styles.phoneHint}></div>
           </div>
 
           <div>
