@@ -273,9 +273,6 @@ export default function MesBoutiquesPage() {
             <div style={styles.panelTop}>
               <div>
                 <div style={styles.panelTitle}>Boutiques générées</div>
-                <div style={styles.small}>
-                  Les plus récentes apparaissent en premier. Affichage 4 boutiques par page.
-                </div>
               </div>
 
               <div style={styles.panelActions}>
