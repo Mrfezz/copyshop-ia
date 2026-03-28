@@ -106,7 +106,6 @@ export default function HomePage() {
 
       <VideoSection />
 
-      {/* ✅ Bloc : texte long + image téléphone à côté (sans popup) */}
       <FeaturedProduct />
 
       <AboutSection />
@@ -120,8 +119,6 @@ export default function HomePage() {
     </main>
   );
 }
-
-/* ---------------- SECTIONS ---------------- */
 
 function HeroSlideshow() {
   const [active, setActive] = useAutoplay(HERO_SLIDES.length, 6500);
@@ -173,9 +170,7 @@ function HeroSlideshow() {
                 <p style={styles.heroSub}>{s.subtitle}</p>
 
                 <div style={styles.heroBtns}>
-                  {s.ctaText && (
-                    <span style={styles.primaryBtn}>{s.ctaText}</span>
-                  )}
+                  {s.ctaText && <span style={styles.primaryBtn}>{s.ctaText}</span>}
                   <span style={styles.ghostBtn}>Contact</span>
                 </div>
 
@@ -436,6 +431,7 @@ function ReviewsSection() {
 }
 
 function ReviewFormSection() {
+  const [firstName, setFirstName] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [sending, setSending] = useState(false);
   const [reviewOk, setReviewOk] = useState<string | null>(null);
@@ -446,7 +442,13 @@ function ReviewFormSection() {
     setReviewOk(null);
     setReviewError(null);
 
+    const trimmedName = firstName.trim();
     const trimmed = reviewText.trim();
+
+    if (!trimmedName) {
+      setReviewError("Merci d’indiquer ton prénom.");
+      return;
+    }
 
     if (!trimmed) {
       setReviewError("Merci d’écrire un avis avant d’envoyer.");
@@ -462,6 +464,7 @@ function ReviewFormSection() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          name: trimmedName,
           reviewText: trimmed,
         }),
       });
@@ -472,6 +475,7 @@ function ReviewFormSection() {
         throw new Error(json?.error || "Erreur envoi avis");
       }
 
+      setFirstName("");
       setReviewText("");
       setReviewOk("✅ Merci, ton avis a bien été envoyé.");
     } catch (err: any) {
@@ -488,6 +492,17 @@ function ReviewFormSection() {
           <div style={styles.reviewFormTitle}>Laisser un avis</div>
 
           <form style={styles.reviewForm} onSubmit={handleSubmit}>
+            <input
+              className="reviewNameHome"
+              type="text"
+              placeholder="Prénom"
+              style={styles.reviewNameInput}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={sending}
+              maxLength={60}
+            />
+
             <textarea
               className="reviewTextareaHome"
               placeholder="Es-tu satisfait de ton achat ? Laisse ton avis pour aider les futurs clients."
@@ -588,8 +603,6 @@ function HomeFAQ() {
     </section>
   );
 }
-
-/* -------------- STYLES -------------- */
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -1073,6 +1086,17 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 12,
   },
+  reviewNameInput: {
+    width: "100%",
+    padding: "14px 16px",
+    borderRadius: 14,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(9,12,33,0.9)",
+    color: COLORS.text,
+    outline: "none",
+    fontSize: "1rem",
+    boxSizing: "border-box",
+  },
   reviewTextareaInput: {
     width: "100%",
     minHeight: 120,
@@ -1198,7 +1222,8 @@ const responsiveCss = `
     to { transform: rotate(360deg); }
   }
 
-  .reviewTextareaHome::placeholder {
+  .reviewTextareaHome::placeholder,
+  .reviewNameHome::placeholder {
     color: rgba(255,255,255,0.45);
   }
 
