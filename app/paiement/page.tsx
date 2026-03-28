@@ -27,10 +27,8 @@ type CartLine = {
 
 const CART_KEY = "copyshop_ia_cart";
 
-// ✅ Recharge key officielle (lib/products.ts)
 const RECHARGE_KEY: ProductKey = "recharge-ia";
 
-// ✅ compat ancien nom (si tu l’as déjà utilisé quelque part)
 function normalizeProductKey(raw: string | null): ProductKey | null {
   if (!raw) return null;
   const fixed = raw === "ia-recharge-5" ? "recharge-ia" : raw;
@@ -74,7 +72,6 @@ const COLORS = {
   pink: "#e64aa7",
 };
 
-// ✅ petit helper: sauvegarde le paiement en attente (pour revenir après login)
 function savePendingCheckout(payload: any) {
   try {
     localStorage.setItem("pendingCheckout", JSON.stringify(payload));
@@ -90,10 +87,8 @@ export default function PaiementPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ si on bloque l’accès (ex: Ultime → recharge interdite)
   const [blocked, setBlocked] = useState<{ title: string; text: string } | null>(null);
 
-  // ✅ init: lit ?product (compat) + lit panier + guard recharge vs pack ultime
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -112,12 +107,11 @@ export default function PaiementPage() {
         setSingleKey(null);
       }
 
-      // ✅ read cart
       let mapped: CartLine[] = [];
       try {
         const raw = localStorage.getItem(CART_KEY);
         const parsed = raw ? (JSON.parse(raw) as CartPayload) : null;
-        const existing = Array.isArray(parsed?.items) ? parsed!.items! : [];
+        const existing = Array.isArray(parsed?.items) ? parsed.items : [];
 
         mapped = existing
           .map((it) => {
@@ -139,7 +133,6 @@ export default function PaiementPage() {
         mapped = [];
       }
 
-      // ✅ Guard spécial recharge (optionnel UI)
       const wantsRechargeInit =
         (normalizedKey ? isRechargeKey(normalizedKey) : false) ||
         (!normalizedKey ? mapped.some((x) => isRechargeKey(x.productKey)) : false);
@@ -149,7 +142,6 @@ export default function PaiementPage() {
           const { data } = await supabase.auth.getSession();
           const email = data.session?.user?.email ?? null;
 
-          // Pas connecté => on force passage par /compte-client
           if (!email) {
             if (!cancelled) {
               setBlocked({
@@ -158,11 +150,9 @@ export default function PaiementPage() {
               });
               setReady(true);
 
-              // on mémorise le paiement pour revenir ici après login
-              const payload =
-                normalizedKey
-                  ? { productKey: normalizedKey }
-                  : { productKeys: mapped.map((x) => x.productKey) };
+              const payload = normalizedKey
+                ? { productKey: normalizedKey }
+                : { productKeys: mapped.map((x) => x.productKey) };
               savePendingCheckout(payload);
 
               setTimeout(() => window.location.replace("/compte-client"), 250);
@@ -177,8 +167,6 @@ export default function PaiementPage() {
             .eq("active", true)
             .in("product_key", ["ia-basic", "ia-premium", "ia-ultime"]);
 
-          // ⚠️ Si RLS bloque ce SELECT, le guard UI peut ne pas pouvoir décider.
-          // Le vrai blocage reste garanti côté /api/checkout.
           if (entErr) {
             console.warn("⚠️ Entitlements non lisibles côté client:", entErr?.message ?? entErr);
           }
@@ -187,7 +175,6 @@ export default function PaiementPage() {
           const hasUltime = keys.includes("ia-ultime");
           const hasBasicOrPremium = keys.includes("ia-basic") || keys.includes("ia-premium");
 
-          // ✅ Ultime => recharge interdite
           if (hasUltime) {
             if (!cancelled) {
               setBlocked({
@@ -200,7 +187,6 @@ export default function PaiementPage() {
             return;
           }
 
-          // ✅ pas de Basic/Premium => recharge interdite
           if (!hasBasicOrPremium) {
             if (!cancelled) {
               setBlocked({
@@ -277,12 +263,10 @@ export default function PaiementPage() {
           ? { productKey: singleKey }
           : { productKeys: displayItems.map((it) => it.productKey) };
 
-      // ✅ IMPORTANT : TON API /api/checkout exige toujours un token maintenant
       const { data } = await supabase.auth.getSession();
       const accessToken = data.session?.access_token ?? null;
 
       if (!accessToken) {
-        // on mémorise l’achat pour revenir après connexion
         savePendingCheckout(payload);
         window.location.href = "/compte-client";
         return;
@@ -292,7 +276,6 @@ export default function PaiementPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // ✅ TOUJOURS envoyer le token
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
@@ -300,7 +283,6 @@ export default function PaiementPage() {
 
       const dataRes = await res.json().catch(() => ({}));
 
-      // ✅ si l’API veut rediriger (ultime / pas basic-premium / pas connecté)
       if (!res.ok) {
         if (dataRes?.redirectTo) {
           window.location.href = String(dataRes.redirectTo);
@@ -335,7 +317,6 @@ export default function PaiementPage() {
     );
   }
 
-  // ✅ si bloqué (ultime / pas de pack / pas connecté)
   if (blocked) {
     return (
       <main style={styles.page}>
@@ -347,10 +328,10 @@ export default function PaiementPage() {
             <p style={styles.sub}>{blocked.text}</p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-              <Link href="/compte-client" style={styles.btnAlt as any}>
+              <Link href="/compte-client" style={styles.btnAlt}>
                 Aller à mon compte
               </Link>
-              <Link href="/packs-ia" style={styles.btnAlt as any}>
+              <Link href="/packs-ia" style={styles.btnAlt}>
                 Voir les packs IA
               </Link>
             </div>
@@ -371,18 +352,18 @@ export default function PaiementPage() {
             <p style={styles.sub}>Ajoute un pack ou un service pour payer.</p>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-              <Link href="/packs-ia" style={styles.btnAlt as any}>
+              <Link href="/packs-ia" style={styles.btnAlt}>
                 Voir les packs IA
               </Link>
-              <Link href="/services-a-la-carte" style={styles.btnAlt as any}>
+              <Link href="/services-a-la-carte" style={styles.btnAlt}>
                 Services à la carte
               </Link>
-              <Link href="/services-digitaux" style={styles.btnAlt as any}>
+              <Link href="/services-digitaux" style={styles.btnAlt}>
                 Services digitaux
               </Link>
             </div>
 
-            <Link href="/panier" style={{ ...styles.btnAlt, marginTop: 12 } as any}>
+            <Link href="/panier" style={{ ...styles.btnAlt, marginTop: 12 }}>
               ← Retour panier
             </Link>
           </div>
@@ -417,19 +398,21 @@ export default function PaiementPage() {
           {mode === "cart" ? (
             <div style={styles.lines}>
               {displayItems.map((it, idx) => (
-                <div key={`${it.productKey}-${idx}`} style={styles.line}>
-                  <div style={{ minWidth: 0 }}>
+                <div key={`${it.productKey}-${idx}`} className="payLine" style={styles.line}>
+                  <div className="payLineLeft" style={styles.lineLeft}>
                     <div style={styles.lineTitle}>{it.title}</div>
                     {it.subtitle ? <div style={styles.lineSub}>{it.subtitle}</div> : null}
                   </div>
-                  <div style={styles.linePrice}>{it.priceLabel}</div>
+                  <div className="payLinePrice" style={styles.linePrice}>
+                    {it.priceLabel}
+                  </div>
                 </div>
               ))}
             </div>
           ) : null}
 
-          <div style={styles.priceRow}>
-            <div>
+          <div className="payPriceRow" style={styles.priceRow}>
+            <div style={styles.priceCol}>
               <div style={styles.price}>{totalLabel}</div>
               <div style={styles.priceNote}>Paiement unique</div>
             </div>
@@ -447,17 +430,18 @@ export default function PaiementPage() {
             </button>
           </div>
 
-          <div style={styles.smallNote}>Tu recevras une confirmation de commande après paiement.</div>
+          <div style={styles.smallNote}>
+            Tu recevras une confirmation de commande après paiement.
+          </div>
 
           {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 
           <div style={{ marginTop: 10 }}>
-            <Link href="/panier" style={styles.backLink as any}>
+            <Link href="/panier" style={styles.backLink}>
               ← Retour panier
             </Link>
           </div>
 
-          {/* petit debug visuel (optionnel) */}
           {wantsRecharge ? (
             <div style={{ marginTop: 8, color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>
               (Recharge détectée : vérification pack IA côté serveur)
@@ -467,6 +451,8 @@ export default function PaiementPage() {
       </section>
 
       <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+
         @media (max-width: 520px) {
           .payCardHeader{
             display: flex !important;
@@ -474,9 +460,31 @@ export default function PaiementPage() {
             gap: 10px !important;
             align-items: flex-start !important;
           }
+
           .payBadge{
             position: static !important;
             align-self: flex-end !important;
+          }
+
+          .payLine{
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .payLineLeft{
+            width: 100% !important;
+            min-width: 0 !important;
+          }
+
+          .payLinePrice{
+            width: 100% !important;
+            text-align: left !important;
+            white-space: normal !important;
+          }
+
+          .payPriceRow{
+            flex-direction: column !important;
+            align-items: stretch !important;
           }
         }
       `}</style>
@@ -490,8 +498,9 @@ const styles: Record<string, CSSProperties> = {
     minHeight: "100vh",
     padding: "2.5rem 1.25rem 3rem",
     color: COLORS.text,
-    overflow: "hidden",
+    overflowX: "hidden",
   },
+
   bgGradient: {
     position: "fixed",
     inset: 0,
@@ -501,6 +510,7 @@ const styles: Record<string, CSSProperties> = {
       `linear-gradient(180deg, ${COLORS.bgTop} 0%, ${COLORS.bgMid} 45%, ${COLORS.bgBottom} 100%)`,
     zIndex: -2,
   },
+
   bgDots: {
     position: "fixed",
     inset: 0,
@@ -514,6 +524,7 @@ const styles: Record<string, CSSProperties> = {
     zIndex: -1,
     pointerEvents: "none",
   },
+
   container: {
     maxWidth: 860,
     margin: "0 auto",
@@ -521,7 +532,12 @@ const styles: Record<string, CSSProperties> = {
     position: "relative",
     zIndex: 1,
   },
-  header: { textAlign: "center", marginBottom: 22 },
+
+  header: {
+    textAlign: "center",
+    marginBottom: 22,
+  },
+
   kicker: {
     fontSize: "0.8rem",
     color: COLORS.muted,
@@ -530,12 +546,22 @@ const styles: Record<string, CSSProperties> = {
     textTransform: "uppercase",
     margin: 0,
   },
+
   title: {
     fontSize: "clamp(2.1rem, 4vw, 3.0rem)",
     fontWeight: 900,
     margin: "8px 0 6px",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
-  sub: { fontSize: "1.05rem", color: COLORS.muted, margin: 0 },
+
+  sub: {
+    fontSize: "1.05rem",
+    color: COLORS.muted,
+    margin: 0,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  },
 
   card: {
     position: "relative",
@@ -547,8 +573,17 @@ const styles: Record<string, CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     gap: 10,
+    maxWidth: "100%",
+    minWidth: 0,
+    overflow: "hidden",
+    boxSizing: "border-box",
   },
-  cardHeader: { position: "relative", minWidth: 0 },
+
+  cardHeader: {
+    position: "relative",
+    minWidth: 0,
+  },
+
   badge: {
     position: "absolute",
     top: 14,
@@ -560,10 +595,27 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 999,
     fontSize: "0.8rem",
     whiteSpace: "nowrap",
+    maxWidth: "100%",
   },
-  cardTitle: { fontSize: "1.7rem", fontWeight: 900, margin: "6px 0 0" },
 
-  lines: { display: "grid", gap: 10, marginTop: 6 },
+  cardTitle: {
+    fontSize: "1.7rem",
+    fontWeight: 900,
+    margin: "6px 0 0",
+    paddingRight: 110,
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    lineHeight: 1.2,
+  },
+
+  lines: {
+    display: "grid",
+    gap: 10,
+    marginTop: 6,
+    minWidth: 0,
+  },
+
   line: {
     display: "flex",
     justifyContent: "space-between",
@@ -573,15 +625,45 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: 12,
     padding: "12px 12px",
     background: "rgba(2,6,23,0.35)",
+    minWidth: 0,
+    maxWidth: "100%",
+    boxSizing: "border-box",
   },
+
+  lineLeft: {
+    minWidth: 0,
+    flex: 1,
+    maxWidth: "100%",
+  },
+
   lineTitle: {
     fontWeight: 900,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    lineHeight: 1.35,
+    minWidth: 0,
+    maxWidth: "100%",
   },
-  lineSub: { color: COLORS.muted, fontWeight: 700, fontSize: "0.92rem", marginTop: 4 },
-  linePrice: { fontWeight: 900, whiteSpace: "nowrap" },
+
+  lineSub: {
+    color: COLORS.muted,
+    fontWeight: 700,
+    fontSize: "0.92rem",
+    marginTop: 4,
+    whiteSpace: "normal",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+    minWidth: 0,
+    maxWidth: "100%",
+  },
+
+  linePrice: {
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+    maxWidth: "100%",
+  },
 
   priceRow: {
     marginTop: 10,
@@ -593,9 +675,29 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: "space-between",
     flexWrap: "wrap",
     gap: 10,
+    minWidth: 0,
   },
-  price: { fontSize: "2rem", fontWeight: 900, color: "#fff" },
-  priceNote: { fontSize: "0.95rem", fontWeight: 700, color: "#fff", opacity: 0.9 },
+
+  priceCol: {
+    minWidth: 0,
+  },
+
+  price: {
+    fontSize: "2rem",
+    fontWeight: 900,
+    color: "#fff",
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  },
+
+  priceNote: {
+    fontSize: "0.95rem",
+    fontWeight: 700,
+    color: "#fff",
+    opacity: 0.9,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  },
 
   btnPay: {
     padding: "10px 16px",
@@ -606,7 +708,9 @@ const styles: Record<string, CSSProperties> = {
     background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
     boxShadow: "0 8px 18px rgba(106,47,214,0.35)",
     whiteSpace: "nowrap",
+    maxWidth: "100%",
   },
+
   btnAlt: {
     padding: "10px 14px",
     borderRadius: 999,
@@ -616,9 +720,23 @@ const styles: Record<string, CSSProperties> = {
     background: "rgba(255,255,255,0.06)",
     textDecoration: "none",
     cursor: "pointer",
+    maxWidth: "100%",
+    boxSizing: "border-box",
   },
-  smallNote: { marginTop: 6, color: "rgba(255,255,255,0.72)", fontWeight: 700 },
-  backLink: { color: COLORS.muted, fontWeight: 800, textDecoration: "none" },
+
+  smallNote: {
+    marginTop: 6,
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: 700,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
+  },
+
+  backLink: {
+    color: COLORS.muted,
+    fontWeight: 800,
+    textDecoration: "none",
+  },
 
   errorBox: {
     marginTop: 8,
@@ -627,5 +745,7 @@ const styles: Record<string, CSSProperties> = {
     padding: "10px 12px",
     borderRadius: 10,
     fontWeight: 700,
+    overflowWrap: "anywhere",
+    wordBreak: "break-word",
   },
 };
