@@ -424,6 +424,12 @@ function ReviewsSection() {
             </article>
           ))}
         </div>
+
+        <div style={styles.moreReviewsWrap}>
+          <Link href="/avis-clients" style={styles.moreReviewsBtn}>
+            Plus d’avis
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -767,12 +773,11 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     placeItems: "center",
     fontSize: "1.8rem",
-    background: 'rgba(255,255,255,0.12)',
+    background: "rgba(255,255,255,0.12)",
     border: `1px solid ${COLORS.panelBorder}`,
   },
   videoNote: { fontWeight: 800, color: COLORS.text },
 
-  /* ✅ Cadre un peu plus large (pour éviter coupe sur côtés) */
   split: {
     display: "grid",
     gridTemplateColumns: "minmax(300px, 390px) 1fr",
@@ -804,7 +809,6 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(255,255,255,0.10)",
   },
 
-  /* ✅ IMPORTANT : pas de crop */
   phoneImg: {
     width: "100%",
     height: "100%",
@@ -975,6 +979,28 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
+  moreReviewsWrap: {
+    display: "flex",
+    justifyContent: "center",
+    marginTop: 12,
+  },
+  moreReviewsBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "10px 16px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "white",
+    textDecoration: "none",
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    border: `1px solid rgba(255,255,255,0.18)`,
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    width: "fit-content",
+  },
+
   reviewFormWrap: {
     maxWidth: 760,
     width: "100%",
@@ -1111,7 +1137,6 @@ const responsiveCss = `
     .split { grid-template-columns: 1fr !important; }
   }
 
-  /* ✅ MOBILE: téléphone plus petit (prend moins de place) */
   @media (max-width: 520px) {
     .phoneFrame {
       max-width: 320px !important;
@@ -1121,7 +1146,6 @@ const responsiveCss = `
     }
   }
 
-  /* ✅ Très petits écrans */
   @media (max-width: 380px) {
     .phoneFrame {
       max-width: 295px !important;
