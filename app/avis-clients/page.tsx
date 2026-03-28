@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 
 const COLORS = {
@@ -19,6 +19,8 @@ const COLORS = {
   violetDeep: "#4338ca",
   pink: "#e64aa7",
 };
+
+const PAGE_SIZE = 5;
 
 const TESTIMONIALS = [
   {
@@ -63,6 +65,17 @@ const TESTIMONIALS = [
 ];
 
 export default function AvisClientsPage() {
+  const [page, setPage] = useState(0);
+
+  const pageCount = useMemo(() => {
+    return Math.max(1, Math.ceil(TESTIMONIALS.length / PAGE_SIZE));
+  }, []);
+
+  const pagedTestimonials = useMemo(() => {
+    const start = page * PAGE_SIZE;
+    return TESTIMONIALS.slice(start, start + PAGE_SIZE);
+  }, [page]);
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGradient} />
@@ -89,13 +102,45 @@ export default function AvisClientsPage() {
           </div>
 
           <div style={styles.reviewsList}>
-            {TESTIMONIALS.map((t, index) => (
-              <article key={`${t.name}-${index}`} style={styles.reviewCard}>
+            {pagedTestimonials.map((t, index) => (
+              <article key={`${t.name}-${page}-${index}`} style={styles.reviewCard}>
                 <div style={styles.reviewQuote}>"{t.text}"</div>
                 <div style={styles.reviewName}>— {t.name}</div>
               </article>
             ))}
           </div>
+
+          {TESTIMONIALS.length > PAGE_SIZE && (
+            <div style={styles.pager}>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page <= 0}
+                style={{
+                  ...styles.pagerBtn,
+                  ...(page <= 0 ? styles.pagerBtnDisabled : {}),
+                }}
+              >
+                ← Page précédente
+              </button>
+
+              <div style={styles.pagerInfo}>
+                Page <strong>{page + 1}</strong> / {pageCount}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={page >= pageCount - 1}
+                style={{
+                  ...styles.pagerBtn,
+                  ...(page >= pageCount - 1 ? styles.pagerBtnDisabled : {}),
+                }}
+              >
+                Page suivante →
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </main>
@@ -243,5 +288,40 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: COLORS.muted,
     fontSize: "0.98rem",
+  },
+
+  pager: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px",
+    maxWidth: 900,
+    width: "100%",
+    margin: "0 auto",
+    borderRadius: 12,
+    background: "rgba(0,0,0,0.10)",
+    border: `1px solid ${COLORS.panelBorder}`,
+    flexWrap: "wrap",
+  },
+
+  pagerBtn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    fontWeight: 900,
+    color: COLORS.text,
+    border: `1px solid ${COLORS.panelBorder}`,
+    cursor: "pointer",
+    background: "rgba(255,255,255,0.06)",
+  },
+
+  pagerBtnDisabled: {
+    opacity: 0.5,
+    cursor: "not-allowed",
+  },
+
+  pagerInfo: {
+    color: COLORS.muted,
+    fontWeight: 900,
   },
 };
