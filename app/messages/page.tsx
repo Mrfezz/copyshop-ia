@@ -70,8 +70,15 @@ function formatDate(iso: string | null | undefined): string {
   }).format(d);
 }
 
-function formatMoney(amountCents: number | null, currency: string | null): string {
-  if (amountCents == null || !currency) return "—";
+function formatMoney(
+  amountCents: number | null,
+  currency: string | null,
+  productKey?: string | null
+): string {
+  if (amountCents == null || !currency) {
+    if (productKey === "ia-ultime") return "149,99 €";
+    return "—";
+  }
   const eur = amountCents / 100;
   try {
     return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(eur);
@@ -523,7 +530,7 @@ export default function MessagesPage() {
                       <div key={o.id} style={styles.tableRow}>
                         <span style={styles.mono}>{o.product_key ?? "—"}</span>
                         <span>{o.status ?? "—"}</span>
-                        <span>{formatMoney(o.amount_total, o.currency)}</span>
+                        <span>{formatMoney(o.amount_total, o.currency, o.product_key)}</span>
                         <span>{formatDate(o.created_at)}</span>
                       </div>
                     ))}
