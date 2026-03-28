@@ -27,7 +27,7 @@ export default function Page() {
 
       <h2>Hébergement</h2>
       <p>
-        Le site est hébergé par un prestataire d’hébergement (ex : Vercel). Les informations exactes de l’hébergeur
+        Le site est hébergé par un prestataire d’hébergement. Les informations exactes de l’hébergeur
         peuvent être communiquées sur demande.
       </p>
 
