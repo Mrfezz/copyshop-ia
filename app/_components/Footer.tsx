@@ -38,7 +38,6 @@ const NAV_LINKS = [
   { label: "Services digitaux", href: "/services-digitaux" },
   { label: "Newsletter", href: "/newsletter" },
   { label: "FAQ", href: "/faq" },
-  { label: "Suivre ma commande", href: "/suivre-ma-commande" },
   { label: "Contact", href: "/contact" },
   { label: "Qui sommes-nous ?", href: "/qui-sommes-nous" },
 ];
