@@ -21,7 +21,9 @@ export default function SuccessPage() {
       </p>
       <p style={{ opacity: 0.8, marginTop: 6 }}>
         Selon le produit acheté, tu recevras la suite (accès / infos / prise en charge) par
-        email ou WhatsApp. Écris-moi sur WhatsApp pour aller plus vite.
+        email ou WhatsApp. 
+        
+        Écris-moi sur WhatsApp pour aller plus vite.
       </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
