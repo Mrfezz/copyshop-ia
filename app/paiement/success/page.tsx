@@ -20,7 +20,8 @@ export default function SuccessPage() {
         Merci ! Ton paiement a bien été pris en compte.
       </p>
       <p style={{ opacity: 0.8, marginTop: 6 }}>
-        Selon le produit acheté, tu recevras la suite (accès / infos / prise en charge) par email ou WhatsApp.
+        Selon le produit acheté, tu recevras la suite (accès / infos / prise en charge) par
+        email ou WhatsApp. Écris-moi sur WhatsApp pour aller plus vite.
       </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
@@ -54,6 +55,23 @@ export default function SuccessPage() {
         >
           Mon compte
         </Link>
+
+        <a
+          href="https://wa.me/33745214922"
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "inline-block",
+            padding: "10px 14px",
+            borderRadius: 999,
+            fontWeight: 900,
+            color: "white",
+            textDecoration: "none",
+            background: "linear-gradient(90deg, #6a2fd6, #e64aa7)",
+          }}
+        >
+          WhatsApp
+        </a>
       </div>
     </main>
   );
