@@ -112,6 +112,7 @@ export default function HomePage() {
       <AboutSection />
 
       <ReviewsSection />
+      <ReviewFormSection />
       <MiniSlideshow />
       <HomeFAQ />
 
@@ -422,6 +423,31 @@ function ReviewsSection() {
               <div style={styles.reviewName}>— {t.name}</div>
             </article>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReviewFormSection() {
+  return (
+    <section style={styles.section}>
+      <div style={styles.sectionInner}>
+        <div style={styles.reviewFormWrap}>
+          <div style={styles.reviewFormTitle}>Laisser un avis</div>
+
+          <form style={styles.reviewForm}>
+            <textarea
+              className="reviewTextareaHome"
+              placeholder="Es-tu satisfait de ton achat ? Laisse ton avis pour aider les futurs clients."
+              rows={4}
+              style={styles.reviewTextareaInput}
+            />
+
+            <button type="submit" style={styles.reviewSubmitBtn}>
+              Envoyer
+            </button>
+          </form>
         </div>
       </div>
     </section>
@@ -949,6 +975,56 @@ const styles: Record<string, React.CSSProperties> = {
   reviewText: { fontSize: "1rem", lineHeight: 1.7 },
   reviewName: { fontWeight: 900, color: COLORS.muted },
 
+  reviewFormWrap: {
+    maxWidth: 760,
+    width: "100%",
+    margin: "0 auto",
+    background: COLORS.panelSoft,
+    border: `1px solid ${COLORS.panelBorder}`,
+    borderRadius: 18,
+    padding: "20px 18px",
+    display: "grid",
+    gap: 14,
+  },
+  reviewFormTitle: {
+    fontSize: "1.3rem",
+    fontWeight: 900,
+    margin: 0,
+    textAlign: "center",
+  },
+  reviewForm: {
+    display: "grid",
+    gap: 12,
+  },
+  reviewTextareaInput: {
+    width: "100%",
+    minHeight: 120,
+    padding: "14px 16px",
+    borderRadius: 14,
+    border: `1px solid ${COLORS.panelBorder}`,
+    background: "rgba(9,12,33,0.9)",
+    color: COLORS.text,
+    outline: "none",
+    fontSize: "1rem",
+    resize: "vertical",
+    boxSizing: "border-box",
+  },
+  reviewSubmitBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "fit-content",
+    padding: "12px 18px",
+    borderRadius: 999,
+    fontWeight: 900,
+    color: "white",
+    border: `1px solid rgba(255,255,255,0.18)`,
+    background: `linear-gradient(90deg, ${COLORS.violetDeep}, ${COLORS.violet}, ${COLORS.pink})`,
+    boxShadow: "0 10px 26px rgba(106,47,214,0.35)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+
   miniRow: {
     display: "flex",
     gap: 10,
@@ -1025,6 +1101,10 @@ const responsiveCss = `
   }
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  .reviewTextareaHome::placeholder {
+    color: rgba(255,255,255,0.45);
   }
 
   @media (max-width: 980px) {
