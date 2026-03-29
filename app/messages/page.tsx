@@ -301,7 +301,14 @@ export default function MessagesPage() {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.error ?? "Erreur envoi");
+      if (!res.ok) {
+        const detailed =
+          json?.resendError?.message ||
+          json?.openai_message ||
+          json?.error ||
+          "Erreur envoi";
+        throw new Error(detailed);
+      }
 
       if (json?.message) setMessages((prev) => [json.message as Msg, ...prev]);
 

@@ -109,11 +109,10 @@ export async function POST(req: Request) {
     // Fallback: si pas de domaine inbound configuré, on garde le comportement historique.
     const replyTo = buildInboundReplyTo(email, inboundDomain) ?? email;
 
-    const { data: resendData, error: resendError } = await resend.emails.send({
+    const payload = {
       from,
       to: [to],
       subject: mailSubject,
-      replyTo,
       text: `Client: ${email}\n\n${cleanBody}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">
@@ -123,12 +122,29 @@ export async function POST(req: Request) {
           <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(cleanBody)}</pre>
         </div>
       `,
+    };
+
+    // Essai 1: reply-to inbound (webhook conversation)
+    let sendRes = await resend.emails.send({
+      ...payload,
+      replyTo,
     });
 
-    if (resendError) {
-      console.error("❌ Resend send error:", resendError);
-      return jsonError("Email non envoyé au support", 502, {
-        resendError,
+    // Essai 2 (fallback): si Resend refuse l'adresse inbound, on repasse en mode simple
+    if (sendRes.error && replyTo !== email) {
+      console.warn("Resend rejected inbound replyTo, retrying with plain email", {
+        firstError: sendRes.error,
+      });
+      sendRes = await resend.emails.send({
+        ...payload,
+        replyTo: email,
+      });
+    }
+
+    if (sendRes.error) {
+      console.error("❌ Resend send error:", sendRes.error);
+      return jsonError(sendRes.error.message || "Email non envoyé au support", 502, {
+        resendError: sendRes.error,
         message: inserted,
       });
     }
@@ -137,7 +153,7 @@ export async function POST(req: Request) {
       ok: true,
       message: inserted,
       emailSent: true,
-      resendId: resendData?.id ?? null,
+      resendId: sendRes.data?.id ?? null,
     });
   } catch (e: any) {
     console.error("❌ /api/me/messages POST error:", e);
