@@ -122,12 +122,6 @@ export default function FormationPage() {
         ))}
       </section>
 
-      <section style={styles.note}>
-        💡 Pense à la partie administrative (CPF, financement, etc.) avant de
-        communiquer. La mention &quot;CPF éligible&quot; ne doit être utilisée
-        que si ta formation est réellement enregistrée et validée.
-      </section>
-
       <div style={{ textAlign: "center", marginTop: 18 }}>
         <Link href="/" style={styles.linkBack}>
           ← Retour accueil
@@ -319,14 +313,5 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: "100%",
   },
 
-  note: {
-    maxWidth: 1100,
-    margin: "1.6rem auto 0",
-    background: "rgba(10,15,43,0.8)",
-    border: "1px dashed rgba(255,255,255,0.25)",
-    borderRadius: 14,
-    padding: "1rem 1.1rem",
-    fontSize: "0.95rem",
-  },
   linkBack: { color: "#c9d2ff", textDecoration: "none", fontWeight: 700 },
 };
