@@ -55,46 +55,97 @@ function getSortTime(row: {
   return new Date(row.updated_at || row.created_at || 0).getTime();
 }
 
+function isPaidLikeStatus(status?: string | null) {
+  const value = (status || "").toLowerCase().trim();
+  return ["paid", "complete", "completed", "succeeded", "active"].includes(value);
+}
+
 export async function GET(req: Request) {
   try {
     const token = getBearerToken(req);
 
     if (!token) {
-      return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
+      return jsonNoStore({ error: "Unauthorized: token manquant" }, { status: 401 });
     }
 
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
-    const email = userRes?.user?.email ?? null;
 
-    if (userErr || !email) {
-      return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
+    if (userErr || !userRes?.user) {
+      return jsonNoStore({ error: "Unauthorized: session invalide" }, { status: 401 });
     }
 
-    const [
-      { data: purchasesData, error: purchasesError },
-      { data: entitlementData, error: entitlementError },
-    ] = await Promise.all([
-      supabaseAdmin
+    const user = userRes.user;
+    const userId = user.id ?? null;
+    const email = user.email ?? null;
+
+    if (!userId && !email) {
+      return jsonNoStore({ error: "Unauthorized: utilisateur introuvable" }, { status: 401 });
+    }
+
+    let purchasesData: PurchaseRow[] | null = null;
+    let purchasesError: { message: string } | null = null;
+
+    if (userId) {
+      const result = await supabaseAdmin
+        .from("purchases")
+        .select(
+          "id, product_key, amount_total, currency, status, created_at, updated_at, stripe_session_id"
+        )
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false });
+
+      purchasesData = result.data as PurchaseRow[] | null;
+      purchasesError = result.error;
+    }
+
+    if ((!purchasesData || purchasesData.length === 0) && email) {
+      const fallbackResult = await supabaseAdmin
         .from("purchases")
         .select(
           "id, product_key, amount_total, currency, status, created_at, updated_at, stripe_session_id"
         )
         .eq("email", email)
         .order("updated_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false, nullsFirst: false }),
+        .order("created_at", { ascending: false, nullsFirst: false });
 
-      supabaseAdmin
+      purchasesData = fallbackResult.data as PurchaseRow[] | null;
+      purchasesError = fallbackResult.error;
+    }
+
+    let entitlementData: EntitlementRow[] | null = null;
+    let entitlementError: { message: string } | null = null;
+
+    if (userId) {
+      const result = await supabaseAdmin
+        .from("entitlements")
+        .select("product_key, active, created_at, updated_at")
+        .eq("user_id", userId)
+        .eq("active", true)
+        .in("product_key", ["ia-basic", "ia-premium", "ia-ultime", "recharge-ia", "ia-recharge-5"])
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false });
+
+      entitlementData = result.data as EntitlementRow[] | null;
+      entitlementError = result.error;
+    }
+
+    if ((!entitlementData || entitlementData.length === 0) && email) {
+      const fallbackResult = await supabaseAdmin
         .from("entitlements")
         .select("product_key, active, created_at, updated_at")
         .eq("email", email)
         .eq("active", true)
         .in("product_key", ["ia-basic", "ia-premium", "ia-ultime", "recharge-ia", "ia-recharge-5"])
         .order("updated_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .limit(1),
-    ]);
+        .order("created_at", { ascending: false, nullsFirst: false });
+
+      entitlementData = fallbackResult.data as EntitlementRow[] | null;
+      entitlementError = fallbackResult.error;
+    }
 
     if (purchasesError) {
+      console.error("purchases error:", purchasesError.message);
       return jsonNoStore({ error: purchasesError.message }, { status: 500 });
     }
 
@@ -110,11 +161,7 @@ export async function GET(req: Request) {
 
     if (activeEntitlement?.product_key) {
       const alreadyPresent = finalPurchases.some(
-        (p) =>
-          p.product_key === activeEntitlement.product_key &&
-          ["paid", "complete", "completed", "succeeded", "active"].includes(
-            (p.status || "").toLowerCase()
-          )
+        (p) => p.product_key === activeEntitlement.product_key && isPaidLikeStatus(p.status)
       );
 
       if (!alreadyPresent) {
@@ -135,6 +182,7 @@ export async function GET(req: Request) {
 
     return jsonNoStore({ purchases: finalPurchases }, { status: 200 });
   } catch (e: any) {
+    console.error("GET /api/me/purchases error:", e);
     return jsonNoStore(
       { error: e?.message ?? "Server error" },
       { status: 500 }

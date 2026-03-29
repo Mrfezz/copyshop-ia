@@ -121,21 +121,36 @@ export default function CompteClientPage() {
   useEffect(() => {
     let ignore = false;
 
-    (async () => {
-      const { data } = await supabase.auth.getSession();
+    async function bootstrapSession() {
+      try {
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
+
+        if (!ignore) {
+          setSession(currentSession ?? null);
+        }
+      } finally {
+        if (!ignore) {
+          setChecking(false);
+        }
+      }
+    }
+
+    bootstrapSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!ignore) {
-        setSession(data.session ?? null);
+        setSession(newSession ?? null);
         setChecking(false);
       }
-    })();
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
     });
 
     return () => {
       ignore = true;
-      sub.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -143,13 +158,13 @@ export default function CompteClientPage() {
     if (checking) return;
     if (!session) return;
     if (redirectedOnce.current) return;
+    if (typeof window === "undefined") return;
 
-    const pendingRaw =
-      typeof window !== "undefined" ? localStorage.getItem("pendingCheckout") : null;
-
+    const pendingRaw = localStorage.getItem("pendingCheckout");
     if (!pendingRaw) return;
 
     let payload: any = null;
+
     try {
       payload = JSON.parse(pendingRaw);
     } catch {
@@ -167,16 +182,16 @@ export default function CompteClientPage() {
         : null);
 
     if (singleProductKey) {
-      window.location.href = `/paiement?product=${encodeURIComponent(singleProductKey)}`;
+      window.location.assign(`/paiement?product=${encodeURIComponent(singleProductKey)}`);
       return;
     }
 
     if (Array.isArray(payload?.productKeys) && payload.productKeys.length > 1) {
-      window.location.href = "/panier";
+      window.location.assign("/panier");
       return;
     }
 
-    window.location.href = "/paiement";
+    window.location.assign("/paiement");
   }, [checking, session]);
 
   useEffect(() => {
@@ -189,7 +204,7 @@ export default function CompteClientPage() {
 
     let cancelled = false;
 
-    (async () => {
+    async function loadPurchases() {
       setPurchasesLoading(true);
       setPurchasesError(null);
 
@@ -200,7 +215,10 @@ export default function CompteClientPage() {
         } = await supabase.auth.getSession();
 
         if (sessionError) throw sessionError;
-        if (!freshSession?.access_token) {
+
+        const token = freshSession?.access_token || session?.access_token;
+
+        if (!token) {
           throw new Error("Session introuvable, reconnecte-toi.");
         }
 
@@ -208,7 +226,8 @@ export default function CompteClientPage() {
           method: "GET",
           cache: "no-store",
           headers: {
-            Authorization: `Bearer ${freshSession.access_token}`,
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
           },
         });
 
@@ -228,9 +247,11 @@ export default function CompteClientPage() {
 
         if (!cancelled) {
           setPurchases(sorted);
+          setPurchasesError(null);
         }
       } catch (e: any) {
         if (!cancelled) {
+          setPurchases([]);
           setPurchasesError(e?.message ?? "Erreur chargement achats");
         }
       } finally {
@@ -238,7 +259,9 @@ export default function CompteClientPage() {
           setPurchasesLoading(false);
         }
       }
-    })();
+    }
+
+    loadPurchases();
 
     return () => {
       cancelled = true;
@@ -277,14 +300,17 @@ export default function CompteClientPage() {
       setAuthMsg(null);
       setPurchases([]);
       setPurchasesError(null);
+      setPurchasesLoading(false);
 
-      await supabase.auth.signOut({ scope: "global" });
+      await supabase.auth.signOut();
 
       setSession(null);
+      setChecking(false);
 
       if (typeof window !== "undefined") {
         localStorage.removeItem("pendingCheckout");
-        window.location.href = "/compte-client";
+        sessionStorage.removeItem("pendingCheckout");
+        window.location.assign("/compte-client");
       }
     } catch (err: any) {
       setAuthError(err?.message ?? "Erreur lors de la déconnexion");
