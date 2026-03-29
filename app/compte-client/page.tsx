@@ -131,7 +131,6 @@ export default function CompteClientPage() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
-      setChecking(false);
     });
 
     return () => {
@@ -185,39 +184,21 @@ export default function CompteClientPage() {
 
     let cancelled = false;
 
-    const loadPurchases = async () => {
+    (async () => {
       setPurchasesLoading(true);
       setPurchasesError(null);
 
       try {
-        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-
-        if (refreshError) {
-          throw new Error(refreshError.message || "Session expirée");
-        }
-
-        const freshToken =
-          refreshed.session?.access_token || session.access_token || null;
-
-        if (!freshToken) {
-          throw new Error("Session introuvable");
-        }
-
-        const res = await fetch(`/api/me/purchases?t=${Date.now()}`, {
+        const token = session.access_token;
+        const res = await fetch("/api/me/purchases", {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${freshToken}`,
-            "Cache-Control": "no-store",
-            Pragma: "no-cache",
+            Authorization: `Bearer ${token}`,
           },
-          cache: "no-store",
         });
 
-        const json = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          throw new Error(json?.error || "Erreur chargement achats");
-        }
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || "Erreur chargement achats");
 
         const list = Array.isArray(json?.purchases) ? (json.purchases as Purchase[]) : [];
 
@@ -235,15 +216,10 @@ export default function CompteClientPage() {
       } finally {
         if (!cancelled) setPurchasesLoading(false);
       }
-    };
-
-    const t = setTimeout(() => {
-      loadPurchases();
-    }, 350);
+    })();
 
     return () => {
       cancelled = true;
-      clearTimeout(t);
     };
   }, [session]);
 
@@ -274,21 +250,7 @@ export default function CompteClientPage() {
   }
 
   async function signOut() {
-    try {
-      await supabase.auth.signOut({ scope: "local" });
-    } catch {}
-
-    setSession(null);
-    setPurchases([]);
-    setPurchasesError(null);
-    setAuthMsg(null);
-    setAuthError(null);
-
-    try {
-      localStorage.removeItem("pendingCheckout");
-    } catch {}
-
-    window.location.replace("/compte-client");
+    await supabase.auth.signOut();
   }
 
   return (
