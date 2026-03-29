@@ -100,6 +100,48 @@ function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   );
 }
 
+function clearSupabaseBrowserStorage() {
+  if (typeof window === "undefined") return;
+
+  try {
+    const localKeys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key) localKeys.push(key);
+    }
+
+    for (const key of localKeys) {
+      if (
+        key.startsWith("sb-") ||
+        key.includes("supabase") ||
+        key.includes("auth-token") ||
+        key === "pendingCheckout"
+      ) {
+        window.localStorage.removeItem(key);
+      }
+    }
+  } catch {}
+
+  try {
+    const sessionKeys: string[] = [];
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const key = window.sessionStorage.key(i);
+      if (key) sessionKeys.push(key);
+    }
+
+    for (const key of sessionKeys) {
+      if (
+        key.startsWith("sb-") ||
+        key.includes("supabase") ||
+        key.includes("auth-token") ||
+        key === "pendingCheckout"
+      ) {
+        window.sessionStorage.removeItem(key);
+      }
+    }
+  } catch {}
+}
+
 export default function CompteClientPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
@@ -123,6 +165,19 @@ export default function CompteClientPage() {
 
     async function bootstrapSession() {
       try {
+        const isForcedLogout =
+          typeof window !== "undefined" &&
+          window.location.search.includes("logout=1");
+
+        if (isForcedLogout) {
+          clearSupabaseBrowserStorage();
+          if (!ignore) {
+            setSession(null);
+            setChecking(false);
+          }
+          return;
+        }
+
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -142,6 +197,14 @@ export default function CompteClientPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const isForcedLogout =
+        typeof window !== "undefined" &&
+        window.location.search.includes("logout=1");
+
+      if (isForcedLogout) {
+        return;
+      }
+
       if (!ignore) {
         setSession(newSession ?? null);
         setChecking(false);
@@ -159,6 +222,7 @@ export default function CompteClientPage() {
     if (!session) return;
     if (redirectedOnce.current) return;
     if (typeof window === "undefined") return;
+    if (window.location.search.includes("logout=1")) return;
 
     const pendingRaw = localStorage.getItem("pendingCheckout");
     if (!pendingRaw) return;
@@ -306,16 +370,12 @@ export default function CompteClientPage() {
     } catch (err: any) {
       console.error("Erreur logout Supabase:", err?.message || err);
     } finally {
+      clearSupabaseBrowserStorage();
       setSession(null);
       setChecking(false);
 
       if (typeof window !== "undefined") {
-        try {
-          localStorage.removeItem("pendingCheckout");
-          sessionStorage.removeItem("pendingCheckout");
-        } catch {}
-
-        window.location.replace("/compte-client");
+        window.location.replace("/compte-client?logout=1");
       }
     }
   }
