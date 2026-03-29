@@ -1075,6 +1075,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "20px 18px",
     display: "grid",
     gap: 14,
+    boxSizing: "border-box",
   },
   reviewFormTitle: {
     fontSize: "1.3rem",
@@ -1277,9 +1278,21 @@ const responsiveCss = `
 
   @media (max-width: 768px) {
     .reviewFormWrapMobile {
+      width: calc(100vw - 40px) !important;
+      max-width: calc(100vw - 40px) !important;
       margin-left: auto !important;
       margin-right: auto !important;
       justify-self: center !important;
+      box-sizing: border-box !important;
+    }
+
+    .reviewFormWrapMobile form {
+      width: 100% !important;
+    }
+
+    .reviewFormWrapMobile button[type="submit"] {
+      margin-left: auto !important;
+      margin-right: auto !important;
     }
   }
 `;
