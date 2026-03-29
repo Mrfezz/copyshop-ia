@@ -69,6 +69,7 @@ const COLORS = {
 
 const BRAND_GRADIENT = `linear-gradient(90deg, ${COLORS.navy} 0%, ${COLORS.violet} 70%, ${COLORS.pink} 100%)`;
 const STORAGE_KEY = "copyshopia-outil-ia-state";
+const SHOPIFY_THEMES_URL = "https://admin.shopify.com/store/copyshop-ia-test/themes";
 
 function badgeForPack(packKey: MePackResponse["packKey"]) {
   if (packKey === "ia-ultime") {
@@ -694,6 +695,15 @@ export default function OutilIAPage() {
                   {zipDownloading ? "Téléchargement..." : "Télécharger le thème ZIP"}
                 </button>
 
+                <a
+                  href={SHOPIFY_THEMES_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={styles.shopifyBtn}
+                >
+                  Voir sur Shopify
+                </a>
+
                 <Link href="/messages" style={styles.secondaryBtn as any}>
                   Voir mes boutiques
                 </Link>
@@ -1042,6 +1052,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 950,
     cursor: "pointer",
     boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
+    whiteSpace: "nowrap",
+  },
+  shopifyBtn: {
+    padding: "10px 14px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.22)",
+    background: "rgba(255,255,255,0.10)",
+    color: COLORS.text,
+    fontSize: "0.95rem",
+    fontWeight: 950,
+    textDecoration: "none",
+    boxShadow: "0 12px 26px rgba(0,0,0,0.18)",
     whiteSpace: "nowrap",
   },
   primaryBtnLoading: {
