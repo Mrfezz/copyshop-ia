@@ -488,7 +488,7 @@ function ReviewFormSection() {
   return (
     <section style={styles.section}>
       <div style={styles.sectionInner}>
-        <div style={styles.reviewFormWrap}>
+        <div style={styles.reviewFormWrap} className="reviewFormWrapMobile">
           <div style={styles.reviewFormTitle}>Laisser un avis</div>
 
           <form style={styles.reviewForm} onSubmit={handleSubmit}>
@@ -1272,6 +1272,14 @@ const responsiveCss = `
     }
     .aboutToggle {
       display: inline-flex !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .reviewFormWrapMobile {
+      margin-left: auto !important;
+      margin-right: auto !important;
+      justify-self: center !important;
     }
   }
 `;
