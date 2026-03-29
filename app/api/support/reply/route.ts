@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => null);
-    const to = (body?.to ?? "").toString().trim();
+    const to = (body?.to ?? "").toString().trim().toLowerCase();
     const subject = (body?.subject ?? "Réponse du support Copyshop IA").toString().trim();
     const message = (body?.message ?? "").toString();
 

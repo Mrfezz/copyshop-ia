@@ -38,7 +38,7 @@ async function getEmailFromAuth(req: Request): Promise<string | null> {
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error) return null;
 
-  return data?.user?.email ?? null;
+  return data?.user?.email ? data.user.email.toLowerCase() : null;
 }
 
 function escapeHtml(s: string) {
