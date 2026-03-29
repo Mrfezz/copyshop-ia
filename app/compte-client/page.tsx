@@ -131,6 +131,7 @@ export default function CompteClientPage() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      setChecking(false);
     });
 
     return () => {
@@ -184,21 +185,30 @@ export default function CompteClientPage() {
 
     let cancelled = false;
 
-    (async () => {
+    const loadPurchases = async () => {
       setPurchasesLoading(true);
       setPurchasesError(null);
 
       try {
-        const token = session.access_token;
+        const { data } = await supabase.auth.getSession();
+        const freshToken = data.session?.access_token;
+
+        if (!freshToken) {
+          throw new Error("Session introuvable");
+        }
+
         const res = await fetch("/api/me/purchases", {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${freshToken}`,
           },
         });
 
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || "Erreur chargement achats");
+        const json = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(json?.error || "Erreur chargement achats");
+        }
 
         const list = Array.isArray(json?.purchases) ? (json.purchases as Purchase[]) : [];
 
@@ -216,10 +226,15 @@ export default function CompteClientPage() {
       } finally {
         if (!cancelled) setPurchasesLoading(false);
       }
-    })();
+    };
+
+    const t = setTimeout(() => {
+      loadPurchases();
+    }, 250);
 
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
   }, [session]);
 
@@ -251,6 +266,7 @@ export default function CompteClientPage() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    window.location.href = "/compte-client";
   }
 
   return (
