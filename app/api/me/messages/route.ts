@@ -1,5 +1,3 @@
-// app/api/inbound-webhook/route.ts
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -7,181 +5,167 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** b64url -> string */
-function b64urlToStr(token: string) {
-  let t = token.replace(/-/g, "+").replace(/_/g, "/");
-  while (t.length % 4) t += "=";
-  return Buffer.from(t, "base64").toString("utf8");
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+function jsonError(message: string, status = 400, extra?: Record<string, any>) {
+  return NextResponse.json({ error: message, ...(extra ?? {}) }, { status });
 }
 
-/** hex -> string */
-function hexToStr(token: string) {
-  if (!/^[a-f0-9]+$/i.test(token) || token.length % 2 !== 0) {
-    throw new Error("invalid hex token");
-  }
-  return Buffer.from(token, "hex").toString("utf8");
+function strToHexToken(s: string) {
+  return Buffer.from(s.trim().toLowerCase(), "utf8").toString("hex");
 }
 
-function decodeTokenToEmail(token: string): string | null {
-  const raw = token.trim();
+function normalizeInboundDomain(raw?: string | null) {
+  let domain = (raw ?? "").trim().toLowerCase();
+  domain = domain.replace(/^['"]+|['"]+$/g, "");
+  domain = domain.replace(/^https?:\/\//, "");
+  domain = domain.replace(/\/.*$/, "");
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return null;
+  return domain;
+}
 
-  // Nouveau format (hex)
+function buildInboundReplyTo(email: string, inboundDomain?: string | null) {
+  const domain = normalizeInboundDomain(inboundDomain);
+  if (!domain) return null;
+  return `reply+${strToHexToken(email)}@${domain}`;
+}
+
+async function getEmailFromAuth(req: Request): Promise<string | null> {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (!token) return null;
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error) return null;
+
+  return data?.user?.email ?? null;
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+export async function GET(req: Request) {
   try {
-    const emailHex = hexToStr(raw).trim().toLowerCase();
-    if (emailHex.includes("@")) return emailHex;
-  } catch {}
+    const email = await getEmailFromAuth(req);
+    if (!email) return jsonError("Unauthorized", 401);
 
-  // Ancien format (base64url) conservé pour rétrocompatibilité
-  try {
-    const emailB64 = b64urlToStr(raw).trim().toLowerCase();
-    if (emailB64.includes("@")) return emailB64;
-  } catch {}
+    const { data, error } = await supabaseAdmin
+      .from("messages")
+      .select("id, email, direction, subject, body, created_at")
+      .eq("email", email)
+      .order("created_at", { ascending: false })
+      .limit(200);
 
-  return null;
-}
+    if (error) return jsonError(error.message, 500);
 
-/**
- * Cherche reply+<TOKEN>@xxx
- * où TOKEN = hex(emailClient) (ou base64url historique)
- */
-function extractUserEmailFromTo(to: any): string | null {
-  const list: string[] = [];
-
-  if (typeof to === "string") list.push(to);
-
-  if (Array.isArray(to)) {
-    for (const item of to) {
-      if (typeof item === "string") list.push(item);
-      else if (item?.email) list.push(String(item.email));
-      else if (item?.address) list.push(String(item.address));
-    }
-  }
-
-  if (to?.email) list.push(String(to.email));
-  if (to?.address) list.push(String(to.address));
-
-  for (const addr of list) {
-    // Accepte aussi les formats:
-    // - "reply+token@domain.tld"
-    // - "Name <reply+token@domain.tld>"
-    // - "mailto:reply+token@domain.tld"
-    const normalized = String(addr).trim();
-    const m = normalized.match(/reply\+([a-zA-Z0-9_-]+)@/i);
-    if (!m) continue;
-    const email = decodeTokenToEmail(m[1]);
-    if (email) return email;
-  }
-
-  return null;
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-    const apiKey = process.env.RESEND_API_KEY;
-
-    if (!webhookSecret) {
-      return NextResponse.json(
-        { error: "RESEND_WEBHOOK_SECRET manquant" },
-        { status: 500 }
-      );
-    }
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "RESEND_API_KEY manquant" },
-        { status: 500 }
-      );
-    }
-
-    const resend = new Resend(apiKey);
-
-    // ⚠️ IMPORTANT : RAW body pour la signature
-    const payload = await req.text();
-
-    const id = req.headers.get("svix-id");
-    const timestamp = req.headers.get("svix-timestamp");
-    const signature = req.headers.get("svix-signature");
-
-    if (!id || !timestamp || !signature) {
-      return NextResponse.json(
-        { error: "Missing svix headers" },
-        { status: 400 }
-      );
-    }
-
-    // Vérif signature
-    const result: any = resend.webhooks.verify({
-      payload,
-      headers: { id, timestamp, signature },
-      webhookSecret,
-    });
-
-    console.log("📩 inbound webhook event", {
-      type: result?.type ?? null,
-      hasData: Boolean(result?.data),
-      emailId: result?.data?.email_id ?? null,
-      toFromEvent: result?.data?.to ?? null,
-    });
-
-    // Pas un email reçu -> OK
-    if (!result || result.type !== "email.received") {
-      return NextResponse.json({ ok: true });
-    }
-
-    const emailId = result?.data?.email_id;
-    if (!emailId) {
-      return NextResponse.json({ ok: true, ignored: "no-email-id" });
-    }
-
-    // Récupère le contenu complet
-    const { data: email, error } = await resend.emails.receiving.get(emailId);
-    if (error) throw new Error(error.message);
-
-    console.log("📩 inbound email fetched", {
-      emailId,
-      toFromEmail: (email as any)?.to ?? null,
-      subject: (email as any)?.subject ?? null,
-    });
-
-    // Email client depuis "to" (reply+TOKEN@...)
-    const userEmail =
-      extractUserEmailFromTo((email as any)?.to) ||
-      extractUserEmailFromTo(result?.data?.to);
-
-    if (!userEmail) {
-      console.log("inbound ignored: no-user-email", {
-        to_email: (email as any)?.to,
-        to_event: result?.data?.to,
-      });
-      return NextResponse.json({ ok: true, ignored: "no-user-email" });
-    }
-
-    const subject =
-      (email as any)?.subject ?? result?.data?.subject ?? "(sans sujet)";
-
-    const bodyText = (email as any)?.text || "";
-    const bodyHtml = (email as any)?.html || "";
-    const body = bodyText || bodyHtml || "";
-
-    // ✅ INSERT : colonne "body" (aligné avec /api/me/messages GET/POST)
-    const { error: dbErr } = await supabaseAdmin.from("messages").insert({
-      email: userEmail,
-      direction: "received",
-      subject,
-      body,
-      created_at: new Date().toISOString(),
-    });
-
-    if (dbErr) throw new Error(dbErr.message);
-
-    console.log("✅ inbound saved", { userEmail, subject });
-
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ messages: data ?? [] });
   } catch (e: any) {
-    console.error("Inbound webhook error:", e?.message ?? e);
-    return NextResponse.json(
-      { error: e?.message ?? "Server error" },
-      { status: 500 }
-    );
+    return jsonError(e?.message ?? "Server error", 500);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const email = await getEmailFromAuth(req);
+    if (!email) return jsonError("Unauthorized", 401);
+
+    const { subject, body } = (await req.json()) as {
+      subject?: string;
+      body?: string;
+    };
+
+    const cleanSubject = (subject ?? "").trim().slice(0, 120);
+    const cleanBody = (body ?? "").trim();
+
+    if (!cleanBody) return jsonError("Message vide.");
+
+    const { data: inserted, error: insErr } = await supabaseAdmin
+      .from("messages")
+      .insert({
+        email,
+        direction: "outbound",
+        subject: cleanSubject || null,
+        body: cleanBody,
+      })
+      .select("id, email, direction, subject, body, created_at")
+      .single();
+
+    if (insErr) return jsonError(insErr.message, 500);
+
+    const to = process.env.CONTACT_TO_EMAIL || "copyshop-ia@gmail.com";
+    const from = process.env.CONTACT_FROM_EMAIL || "Copyshop IA <onboarding@resend.dev>";
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN ?? null;
+
+    if (!process.env.RESEND_API_KEY) {
+      return jsonError("RESEND_API_KEY manquante", 500, { message: inserted });
+    }
+
+    const mailSubject = cleanSubject
+      ? `📩 COPYSHOP IA — ${cleanSubject}`
+      : `📩 COPYSHOP IA — Nouveau message client`;
+
+    // Important: on route les réponses vers l'inbound Resend pour webhook + stockage DB.
+    // Si le domaine inbound n'est pas configuré, on bloque explicitement au lieu de fallback.
+    const replyTo = buildInboundReplyTo(email, inboundDomain);
+    if (!replyTo) {
+      return jsonError(
+        "RESEND_INBOUND_DOMAIN manquant/invalide: impossible de router les réponses vers la messagerie du site.",
+        500,
+        { message: inserted }
+      );
+    }
+
+    const payload = {
+      from,
+      to: [to],
+      subject: mailSubject,
+      text: `Client: ${email}\n\n${cleanBody}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.5">
+          <p><strong>Client :</strong> ${escapeHtml(email)}</p>
+          ${cleanSubject ? `<p><strong>Sujet :</strong> ${escapeHtml(cleanSubject)}</p>` : ""}
+          <hr />
+          <pre style="white-space:pre-wrap;font-family:Arial,sans-serif">${escapeHtml(cleanBody)}</pre>
+        </div>
+      `,
+    };
+
+    console.log("📨 me/messages outbound", {
+      from,
+      to,
+      userEmail: email,
+      replyTo,
+      hasInboundDomain: Boolean(inboundDomain),
+    });
+
+    const sendRes = await resend.emails.send({
+      ...payload,
+      replyTo,
+    });
+
+    if (sendRes.error) {
+      console.error("❌ Resend send error:", sendRes.error);
+      return jsonError(sendRes.error.message || "Email non envoyé au support", 502, {
+        resendError: sendRes.error,
+        replyTo,
+        message: inserted,
+      });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: inserted,
+      emailSent: true,
+      resendId: sendRes.data?.id ?? null,
+    });
+  } catch (e: any) {
+    console.error("❌ /api/me/messages POST error:", e);
+    return jsonError(e?.message ?? "Server error", 500);
   }
 }
