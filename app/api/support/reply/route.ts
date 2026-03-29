@@ -13,18 +13,14 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
-function strToB64url(s: string) {
-  return Buffer.from(s, "utf8")
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+function strToHexToken(s: string) {
+  return Buffer.from(s.trim().toLowerCase(), "utf8").toString("hex");
 }
 
 function buildInboundReplyTo(email: string, inboundDomain?: string | null) {
   const domain = (inboundDomain ?? "").trim();
   if (!domain || !domain.includes(".")) return null;
-  return `reply+${strToB64url(email)}@${domain}`;
+  return `reply+${strToHexToken(email)}@${domain}`;
 }
 
 export async function POST(req: Request) {

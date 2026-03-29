@@ -10,13 +10,9 @@ type Payload = {
   message?: string;
 };
 
-// ✅ Étape 4 : encodage email client dans un reply-to spécial (b64url)
-function strToB64url(s: string) {
-  return Buffer.from(s, "utf8")
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
+// ✅ Étape 4 : encodage email client dans un reply-to spécial (hex)
+function strToHexToken(s: string) {
+  return Buffer.from(s.trim().toLowerCase(), "utf8").toString("hex");
 }
 
 export async function POST(req: Request) {
@@ -87,7 +83,7 @@ export async function POST(req: Request) {
 
     // ✅ Reply-To spécial : quand tu réponds dans Gmail, Resend reçoit la réponse
     // et le webhook peut retrouver l'email client via le token.
-    const replyTo = `reply+${strToB64url(email)}@${INBOUND_DOMAIN}`;
+    const replyTo = `reply+${strToHexToken(email)}@${INBOUND_DOMAIN}`;
 
     const { error } = await resend.emails.send({
       from: FROM_EMAIL, // ex: "Copyshop IA <onboarding@resend.dev>"

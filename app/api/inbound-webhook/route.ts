@@ -14,9 +14,35 @@ function b64urlToStr(token: string) {
   return Buffer.from(t, "base64").toString("utf8");
 }
 
+/** hex -> string */
+function hexToStr(token: string) {
+  if (!/^[a-f0-9]+$/i.test(token) || token.length % 2 !== 0) {
+    throw new Error("invalid hex token");
+  }
+  return Buffer.from(token, "hex").toString("utf8");
+}
+
+function decodeTokenToEmail(token: string): string | null {
+  const raw = token.trim();
+
+  // Nouveau format (hex)
+  try {
+    const emailHex = hexToStr(raw).trim().toLowerCase();
+    if (emailHex.includes("@")) return emailHex;
+  } catch {}
+
+  // Ancien format (base64url) conservé pour rétrocompatibilité
+  try {
+    const emailB64 = b64urlToStr(raw).trim().toLowerCase();
+    if (emailB64.includes("@")) return emailB64;
+  } catch {}
+
+  return null;
+}
+
 /**
  * Cherche reply+<TOKEN>@xxx
- * où TOKEN = base64url(emailClient)
+ * où TOKEN = hex(emailClient) (ou base64url historique)
  */
 function extractUserEmailFromTo(to: any): string | null {
   const list: string[] = [];
@@ -42,10 +68,8 @@ function extractUserEmailFromTo(to: any): string | null {
     const normalized = String(addr).trim();
     const m = normalized.match(/reply\+([a-zA-Z0-9_-]+)@/i);
     if (!m) continue;
-    try {
-      const email = b64urlToStr(m[1]).trim().toLowerCase();
-      if (email.includes("@")) return email;
-    } catch {}
+    const email = decodeTokenToEmail(m[1]);
+    if (email) return email;
   }
 
   return null;
