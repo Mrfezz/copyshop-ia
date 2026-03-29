@@ -165,19 +165,6 @@ export default function CompteClientPage() {
 
     async function bootstrapSession() {
       try {
-        const isForcedLogout =
-          typeof window !== "undefined" &&
-          window.location.search.includes("logout=1");
-
-        if (isForcedLogout) {
-          clearSupabaseBrowserStorage();
-          if (!ignore) {
-            setSession(null);
-            setChecking(false);
-          }
-          return;
-        }
-
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -197,14 +184,6 @@ export default function CompteClientPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      const isForcedLogout =
-        typeof window !== "undefined" &&
-        window.location.search.includes("logout=1");
-
-      if (isForcedLogout) {
-        return;
-      }
-
       if (!ignore) {
         setSession(newSession ?? null);
         setChecking(false);
@@ -222,7 +201,6 @@ export default function CompteClientPage() {
     if (!session) return;
     if (redirectedOnce.current) return;
     if (typeof window === "undefined") return;
-    if (window.location.search.includes("logout=1")) return;
 
     const pendingRaw = localStorage.getItem("pendingCheckout");
     if (!pendingRaw) return;
@@ -369,14 +347,16 @@ export default function CompteClientPage() {
       await supabase.auth.signOut();
     } catch (err: any) {
       console.error("Erreur logout Supabase:", err?.message || err);
-    } finally {
-      clearSupabaseBrowserStorage();
-      setSession(null);
-      setChecking(false);
+    }
 
-      if (typeof window !== "undefined") {
-        window.location.replace("/compte-client?logout=1");
-      }
+    clearSupabaseBrowserStorage();
+    setSession(null);
+    setChecking(false);
+
+    if (typeof window !== "undefined") {
+      setTimeout(() => {
+        window.location.replace("/compte-client");
+      }, 150);
     }
   }
 
