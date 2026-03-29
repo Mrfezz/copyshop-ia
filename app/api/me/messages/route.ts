@@ -106,8 +106,15 @@ export async function POST(req: Request) {
       : `📩 COPYSHOP IA — Nouveau message client`;
 
     // Important: on route les réponses vers l'inbound Resend pour webhook + stockage DB.
-    // Fallback: si pas de domaine inbound configuré, on garde le comportement historique.
-    const replyTo = buildInboundReplyTo(email, inboundDomain) ?? email;
+    // Si le domaine inbound n'est pas configuré, on bloque explicitement au lieu de fallback.
+    const replyTo = buildInboundReplyTo(email, inboundDomain);
+    if (!replyTo) {
+      return jsonError(
+        "RESEND_INBOUND_DOMAIN manquant/invalide: impossible de router les réponses vers la messagerie du site.",
+        500,
+        { message: inserted }
+      );
+    }
 
     const payload = {
       from,
@@ -124,27 +131,16 @@ export async function POST(req: Request) {
       `,
     };
 
-    // Essai 1: reply-to inbound (webhook conversation)
-    let sendRes = await resend.emails.send({
+    const sendRes = await resend.emails.send({
       ...payload,
       replyTo,
     });
-
-    // Essai 2 (fallback): si Resend refuse l'adresse inbound, on repasse en mode simple
-    if (sendRes.error && replyTo !== email) {
-      console.warn("Resend rejected inbound replyTo, retrying with plain email", {
-        firstError: sendRes.error,
-      });
-      sendRes = await resend.emails.send({
-        ...payload,
-        replyTo: email,
-      });
-    }
 
     if (sendRes.error) {
       console.error("❌ Resend send error:", sendRes.error);
       return jsonError(sendRes.error.message || "Email non envoyé au support", 502, {
         resendError: sendRes.error,
+        replyTo,
         message: inserted,
       });
     }
