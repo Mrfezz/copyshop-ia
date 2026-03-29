@@ -606,8 +606,9 @@ export default function OutilIAPage() {
                 <span>Optionnel : ajoute une image (on l’exploitera ensuite).</span>
               </li>
               <li style={styles.li}>
-                <span style={styles.dot} />
-                <span>Tu reçois une structure complète : nom, slogan, sections, blocs produit.</span>
+                <span>
+                  Tu reçois une structure complète : nom, slogan, sections, blocs produit.
+                </span>
               </li>
             </ul>
           </div>
@@ -711,13 +712,7 @@ export default function OutilIAPage() {
             </div>
 
             {zipMsg && (
-              <div
-                style={
-                  zipMsg.startsWith("✅")
-                    ? styles.successBox
-                    : styles.errorBox
-                }
-              >
+              <div style={zipMsg.startsWith("✅") ? styles.successBox : styles.errorBox}>
                 {zipMsg}
               </div>
             )}
@@ -1058,12 +1053,12 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "10px 14px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.22)",
-    background: "rgba(255,255,255,0.10)",
-    color: COLORS.text,
+    background: BRAND_GRADIENT,
+    color: "#ffffff",
     fontSize: "0.95rem",
     fontWeight: 950,
     textDecoration: "none",
-    boxShadow: "0 12px 26px rgba(0,0,0,0.18)",
+    boxShadow: "0 12px 26px rgba(0,0,0,0.28)",
     whiteSpace: "nowrap",
   },
   primaryBtnLoading: {
@@ -1088,6 +1083,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     flexWrap: "wrap",
     alignItems: "center",
+    justifyContent: "flex-start",
   },
   resultGrid: {
     display: "grid",
