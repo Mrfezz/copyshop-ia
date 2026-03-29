@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     const { data, error } = await supabaseAdmin
       .from("messages")
       .select("id, email, direction, subject, body, created_at")
-      .eq("email", email)
+      .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(200);
 
