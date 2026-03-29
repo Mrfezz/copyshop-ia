@@ -590,7 +590,7 @@ export default function CompteClientPage() {
                 <a href="/messages" style={styles.buttonAlt}>
                   Ouvrir la messagerie
                 </a>
-                <div style={styles.smallNote}>(on branchera Supabase messages après)</div>
+                <div style={styles.smallNote}></div>
               </div>
             </article>
 
