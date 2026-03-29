@@ -15,6 +15,15 @@ function strToHexToken(s: string) {
   return Buffer.from(s.trim().toLowerCase(), "utf8").toString("hex");
 }
 
+function normalizeInboundDomain(raw?: string | null) {
+  let domain = (raw ?? "").trim().toLowerCase();
+  domain = domain.replace(/^['"]+|['"]+$/g, "");
+  domain = domain.replace(/^https?:\/\//, "");
+  domain = domain.replace(/\/.*$/, "");
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return null;
+  return domain;
+}
+
 export async function POST(req: Request) {
   try {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -22,8 +31,7 @@ export async function POST(req: Request) {
     const FROM_EMAIL = process.env.CONTACT_FROM_EMAIL;
 
     // ✅ domaine inbound Resend (ex: "uaerkiichi.resend.app" ou ton domaine inbound)
-    const INBOUND_DOMAIN =
-      process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
+    const INBOUND_DOMAIN = normalizeInboundDomain(process.env.RESEND_INBOUND_DOMAIN);
 
     if (!RESEND_API_KEY) {
       return NextResponse.json(
@@ -40,6 +48,12 @@ export async function POST(req: Request) {
     if (!FROM_EMAIL) {
       return NextResponse.json(
         { ok: false, error: "CONTACT_FROM_EMAIL manquante" },
+        { status: 500 }
+      );
+    }
+    if (!INBOUND_DOMAIN) {
+      return NextResponse.json(
+        { ok: false, error: "RESEND_INBOUND_DOMAIN manquant/invalide" },
         { status: 500 }
       );
     }

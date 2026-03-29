@@ -17,9 +17,18 @@ function strToHexToken(s: string) {
   return Buffer.from(s.trim().toLowerCase(), "utf8").toString("hex");
 }
 
+function normalizeInboundDomain(raw?: string | null) {
+  let domain = (raw ?? "").trim().toLowerCase();
+  domain = domain.replace(/^['"]+|['"]+$/g, "");
+  domain = domain.replace(/^https?:\/\//, "");
+  domain = domain.replace(/\/.*$/, "");
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return null;
+  return domain;
+}
+
 function buildInboundReplyTo(email: string, inboundDomain?: string | null) {
-  const domain = (inboundDomain ?? "").trim();
-  if (!domain || !domain.includes(".")) return null;
+  const domain = normalizeInboundDomain(inboundDomain);
+  if (!domain) return null;
   return `reply+${strToHexToken(email)}@${domain}`;
 }
 
