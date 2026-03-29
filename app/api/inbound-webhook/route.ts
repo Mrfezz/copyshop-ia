@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
     // ✅ INSERT : colonne "body" (aligné avec /api/me/messages GET/POST)
     const { error: dbErr } = await supabaseAdmin.from("messages").insert({
       email: userEmail,
-      direction: "received",
+      direction: "inbound",
       subject,
       body,
       created_at: new Date().toISOString(),

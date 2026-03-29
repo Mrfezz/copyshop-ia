@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     // (sinon les messages support ne remontent pas correctement côté client)
     const { error: dbErr } = await supabaseAdmin.from("messages").insert({
       email: to,
-      direction: "received", // reçu par le client
+      direction: "inbound", // reçu par le client
       subject,
       body: message,
       created_at: new Date().toISOString(),
