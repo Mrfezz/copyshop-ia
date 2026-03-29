@@ -13,6 +13,14 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
+function strToB64url(s: string) {
+  return Buffer.from(s, "utf8")
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
 export async function POST(req: Request) {
   try {
     // ✅ protège l’endpoint (mets ce secret sur Vercel)
@@ -32,14 +40,15 @@ export async function POST(req: Request) {
 
     // ✅ envoi email au client
     const from = process.env.CONTACT_FROM_EMAIL!; // ex: "Copyshop IA <support@copyshop-ia.com>"
-    const replyTo = process.env.CONTACT_TO_EMAIL || undefined; // ex: copyshopp.ia@gmail.com
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
+    const replyTo = `reply+${strToB64url(to)}@${inboundDomain}`;
 
     const sendRes = await resend.emails.send({
       from,
       to,
       subject,
       text: message,
-      replyTo: replyTo ? [replyTo] : undefined,
+      replyTo,
     });
 
     if (sendRes.error) {

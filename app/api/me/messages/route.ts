@@ -11,6 +11,14 @@ function jsonError(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ error: message, ...(extra ?? {}) }, { status });
 }
 
+function strToB64url(s: string) {
+  return Buffer.from(s, "utf8")
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
 async function getEmailFromAuth(req: Request): Promise<string | null> {
   const auth = req.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -81,6 +89,8 @@ export async function POST(req: Request) {
 
     const to = process.env.CONTACT_TO_EMAIL || "copyshop-ia@gmail.com";
     const from = process.env.CONTACT_FROM_EMAIL || "Copyshop IA <onboarding@resend.dev>";
+    const inboundDomain =
+      process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
 
     if (!process.env.RESEND_API_KEY) {
       return jsonError("RESEND_API_KEY manquante", 500, { message: inserted });
@@ -90,11 +100,14 @@ export async function POST(req: Request) {
       ? `📩 COPYSHOP IA — ${cleanSubject}`
       : `📩 COPYSHOP IA — Nouveau message client`;
 
+    // Important: on route les réponses vers l'inbound Resend pour webhook + stockage DB.
+    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
+
     const { data: resendData, error: resendError } = await resend.emails.send({
       from,
       to: [to],
       subject: mailSubject,
-      replyTo: email,
+      replyTo,
       text: `Client: ${email}\n\n${cleanBody}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.5">
