@@ -230,7 +230,9 @@ export default function MessagesPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const json = await readJsonSafe(res);
-      if (!res.ok) throw new Error(json?.error ?? "Erreur API messages");
+      if (!res.ok) {
+        throw new Error(json?.error ?? `Erreur API messages (HTTP ${res.status})`);
+      }
       setMessages(json.messages ?? []);
     } catch (e: any) {
       setMsgError(e?.message ?? "Erreur chargement messages");
@@ -250,7 +252,9 @@ export default function MessagesPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const json = await readJsonSafe(res);
-      if (!res.ok) throw new Error(json?.error ?? "Erreur API achats");
+      if (!res.ok) {
+        throw new Error(json?.error ?? `Erreur API achats (HTTP ${res.status})`);
+      }
       setOrders(json.purchases ?? json.orders ?? []);
     } catch (e: any) {
       setOrdersError(e?.message ?? "Erreur chargement commandes");
@@ -271,7 +275,9 @@ export default function MessagesPage() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       const json = await readJsonSafe(res);
-      if (!res.ok) throw new Error(json?.error ?? "Erreur API shops");
+      if (!res.ok) {
+        throw new Error(json?.error ?? `Erreur API shops (HTTP ${res.status})`);
+      }
       setShops(json.shops ?? []);
     } catch (e: any) {
       setShopsError(e?.message ?? "Erreur chargement boutiques");
@@ -316,7 +322,7 @@ export default function MessagesPage() {
           json?.resendError?.message ||
           json?.openai_message ||
           json?.error ||
-          "Erreur envoi";
+          `Erreur envoi (HTTP ${res.status})`;
         throw new Error(detailed);
       }
 
