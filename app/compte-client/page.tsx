@@ -190,18 +190,27 @@ export default function CompteClientPage() {
       setPurchasesError(null);
 
       try {
-        const { data } = await supabase.auth.getSession();
-        const freshToken = data.session?.access_token;
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+
+        if (refreshError) {
+          throw new Error(refreshError.message || "Session expirée");
+        }
+
+        const freshToken =
+          refreshed.session?.access_token || session.access_token || null;
 
         if (!freshToken) {
           throw new Error("Session introuvable");
         }
 
-        const res = await fetch("/api/me/purchases", {
+        const res = await fetch(`/api/me/purchases?t=${Date.now()}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${freshToken}`,
+            "Cache-Control": "no-store",
+            Pragma: "no-cache",
           },
+          cache: "no-store",
         });
 
         const json = await res.json().catch(() => ({}));
@@ -230,7 +239,7 @@ export default function CompteClientPage() {
 
     const t = setTimeout(() => {
       loadPurchases();
-    }, 250);
+    }, 350);
 
     return () => {
       cancelled = true;
@@ -265,8 +274,21 @@ export default function CompteClientPage() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/compte-client";
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {}
+
+    setSession(null);
+    setPurchases([]);
+    setPurchasesError(null);
+    setAuthMsg(null);
+    setAuthError(null);
+
+    try {
+      localStorage.removeItem("pendingCheckout");
+    } catch {}
+
+    window.location.replace("/compte-client");
   }
 
   return (
