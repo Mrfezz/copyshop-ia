@@ -110,6 +110,16 @@ function safeFileName(value: string) {
     .toLowerCase();
 }
 
+async function readJsonSafe(res: Response): Promise<any> {
+  try {
+    const text = await res.text();
+    if (!text) return {};
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
 export default function MessagesPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
@@ -219,7 +229,7 @@ export default function MessagesPage() {
       const res = await fetch("/api/me/messages", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const json = await res.json();
+      const json = await readJsonSafe(res);
       if (!res.ok) throw new Error(json?.error ?? "Erreur API messages");
       setMessages(json.messages ?? []);
     } catch (e: any) {
@@ -239,7 +249,7 @@ export default function MessagesPage() {
       const res = await fetch("/api/me/purchases", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const json = await res.json();
+      const json = await readJsonSafe(res);
       if (!res.ok) throw new Error(json?.error ?? "Erreur API achats");
       setOrders(json.purchases ?? json.orders ?? []);
     } catch (e: any) {
@@ -260,7 +270,7 @@ export default function MessagesPage() {
       const res = await fetch("/api/me/shops", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      const json = await res.json();
+      const json = await readJsonSafe(res);
       if (!res.ok) throw new Error(json?.error ?? "Erreur API shops");
       setShops(json.shops ?? []);
     } catch (e: any) {
@@ -300,7 +310,7 @@ export default function MessagesPage() {
         body: JSON.stringify({ subject, body }),
       });
 
-      const json = await res.json();
+      const json = await readJsonSafe(res);
       if (!res.ok) {
         const detailed =
           json?.resendError?.message ||
