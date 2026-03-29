@@ -180,7 +180,12 @@ export default function CompteClientPage() {
   }, [checking, session]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session) {
+      setPurchases([]);
+      setPurchasesError(null);
+      setPurchasesLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
@@ -189,16 +194,29 @@ export default function CompteClientPage() {
       setPurchasesError(null);
 
       try {
-        const token = session.access_token;
+        const {
+          data: { session: freshSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+        if (!freshSession?.access_token) {
+          throw new Error("Session introuvable, reconnecte-toi.");
+        }
+
         const res = await fetch("/api/me/purchases", {
           method: "GET",
+          cache: "no-store",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${freshSession.access_token}`,
           },
         });
 
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error || "Erreur chargement achats");
+        const json = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(json?.error || "Erreur chargement achats");
+        }
 
         const list = Array.isArray(json?.purchases) ? (json.purchases as Purchase[]) : [];
 
@@ -208,13 +226,17 @@ export default function CompteClientPage() {
           return db - da;
         });
 
-        if (!cancelled) setPurchases(sorted);
+        if (!cancelled) {
+          setPurchases(sorted);
+        }
       } catch (e: any) {
         if (!cancelled) {
           setPurchasesError(e?.message ?? "Erreur chargement achats");
         }
       } finally {
-        if (!cancelled) setPurchasesLoading(false);
+        if (!cancelled) {
+          setPurchasesLoading(false);
+        }
       }
     })();
 
@@ -250,7 +272,23 @@ export default function CompteClientPage() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    try {
+      setAuthError(null);
+      setAuthMsg(null);
+      setPurchases([]);
+      setPurchasesError(null);
+
+      await supabase.auth.signOut({ scope: "global" });
+
+      setSession(null);
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("pendingCheckout");
+        window.location.href = "/compte-client";
+      }
+    } catch (err: any) {
+      setAuthError(err?.message ?? "Erreur lors de la déconnexion");
+    }
   }
 
   return (
@@ -273,7 +311,7 @@ export default function CompteClientPage() {
           {!checking && session && (
             <div style={styles.loggedLine}>
               Connecté : <strong>{userEmail}</strong>
-              <button onClick={signOut} style={styles.logoutBtn}>
+              <button type="button" onClick={signOut} style={styles.logoutBtn}>
                 Se déconnecter
               </button>
             </div>
@@ -289,6 +327,7 @@ export default function CompteClientPage() {
             <div style={styles.authCard}>
               <div style={styles.authTabs}>
                 <button
+                  type="button"
                   onClick={() => setMode("login")}
                   style={{
                     ...styles.authTab,
@@ -298,6 +337,7 @@ export default function CompteClientPage() {
                   Se connecter
                 </button>
                 <button
+                  type="button"
                   onClick={() => setMode("signup")}
                   style={{
                     ...styles.authTab,
