@@ -83,14 +83,18 @@ function FormulaCard({ f }: { f: Formula }) {
       </ul>
 
       <div style={{ ...styles.priceBar, background: f.accent.priceBg }}>
-        <div style={styles.price}>{f.price}</div>
+        <div style={styles.priceWrap}>
+          <div style={styles.priceBlur}>{f.price}</div>
+          <div style={styles.priceHint}>Tarif en cours de mise en place</div>
+        </div>
+
         <a
           href="https://wa.me/33745214922"
           target="_blank"
           rel="noreferrer"
           style={{ ...styles.btn, background: f.accent.btnBg }}
         >
-          Réserver un appel découverte
+          Prochainement disponible — pour plus d&apos;infos nous contacter
         </a>
       </div>
     </article>
@@ -112,7 +116,6 @@ export default function FormationPage() {
         </p>
       </section>
 
-      {/* ✅ IMPORTANT : classe pour le responsive mobile */}
       <section className="formationGrid" style={styles.grid}>
         {FORMULAS.map((f) => (
           <FormulaCard key={f.title} f={f} />
@@ -131,7 +134,6 @@ export default function FormationPage() {
         </Link>
       </div>
 
-      {/* ✅ Responsive : 1 bloc sous l’autre sur mobile + petits ajustements */}
       <style>{`
         @media (max-width: 980px){
           .formationGrid{
@@ -216,7 +218,7 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: "column",
     minHeight: 420,
     boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
-    minWidth: 0, // ✅ évite le débordement dans une grid
+    minWidth: 0,
   },
   tag: {
     position: "absolute",
@@ -233,7 +235,7 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "1.6rem",
     fontWeight: 900,
     margin: "1.2rem 0 0.2rem",
-    overflowWrap: "anywhere", // ✅ pour ne jamais sortir du bloc
+    overflowWrap: "anywhere",
   },
   cardSubtitle: { margin: 0, color: "#b9c2ff", fontWeight: 700 },
 
@@ -281,10 +283,27 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     justifyContent: "space-between",
     color: "white",
-    gap: "0.6rem",
+    gap: "0.8rem",
     flexWrap: "wrap",
   },
-  price: { fontSize: "1.9rem", fontWeight: 900 },
+  priceWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.2rem",
+    minWidth: 0,
+  },
+  priceBlur: {
+    fontSize: "1.9rem",
+    fontWeight: 900,
+    filter: "blur(7px)",
+    userSelect: "none",
+    pointerEvents: "none",
+  },
+  priceHint: {
+    fontSize: "0.78rem",
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: 700,
+  },
   btn: {
     padding: "0.7rem 1.1rem",
     borderRadius: 999,
@@ -294,7 +313,10 @@ const styles: Record<string, CSSProperties> = {
     fontSize: "0.95rem",
     border: "1px solid rgba(255,255,255,0.25)",
     background: PRIMARY_GRADIENT,
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
+    textAlign: "center",
+    lineHeight: 1.25,
+    maxWidth: "100%",
   },
 
   note: {
