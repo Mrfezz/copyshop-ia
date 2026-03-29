@@ -19,6 +19,12 @@ function strToB64url(s: string) {
     .replace(/\//g, "_");
 }
 
+function buildInboundReplyTo(email: string, inboundDomain?: string | null) {
+  const domain = (inboundDomain ?? "").trim();
+  if (!domain || !domain.includes(".")) return null;
+  return `reply+${strToB64url(email)}@${domain}`;
+}
+
 async function getEmailFromAuth(req: Request): Promise<string | null> {
   const auth = req.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
@@ -89,8 +95,7 @@ export async function POST(req: Request) {
 
     const to = process.env.CONTACT_TO_EMAIL || "copyshop-ia@gmail.com";
     const from = process.env.CONTACT_FROM_EMAIL || "Copyshop IA <onboarding@resend.dev>";
-    const inboundDomain =
-      process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN ?? null;
 
     if (!process.env.RESEND_API_KEY) {
       return jsonError("RESEND_API_KEY manquante", 500, { message: inserted });
@@ -101,7 +106,8 @@ export async function POST(req: Request) {
       : `📩 COPYSHOP IA — Nouveau message client`;
 
     // Important: on route les réponses vers l'inbound Resend pour webhook + stockage DB.
-    const replyTo = `reply+${strToB64url(email)}@${inboundDomain}`;
+    // Fallback: si pas de domaine inbound configuré, on garde le comportement historique.
+    const replyTo = buildInboundReplyTo(email, inboundDomain) ?? email;
 
     const { data: resendData, error: resendError } = await resend.emails.send({
       from,

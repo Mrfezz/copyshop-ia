@@ -21,6 +21,12 @@ function strToB64url(s: string) {
     .replace(/\//g, "_");
 }
 
+function buildInboundReplyTo(email: string, inboundDomain?: string | null) {
+  const domain = (inboundDomain ?? "").trim();
+  if (!domain || !domain.includes(".")) return null;
+  return `reply+${strToB64url(email)}@${domain}`;
+}
+
 export async function POST(req: Request) {
   try {
     // ✅ protège l’endpoint (mets ce secret sur Vercel)
@@ -40,8 +46,12 @@ export async function POST(req: Request) {
 
     // ✅ envoi email au client
     const from = process.env.CONTACT_FROM_EMAIL!; // ex: "Copyshop IA <support@copyshop-ia.com>"
-    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN || "uaerkiichi.resend.app";
-    const replyTo = `reply+${strToB64url(to)}@${inboundDomain}`;
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN ?? null;
+    // Fallback: si inbound non configuré, on garde reply-to vers la boîte support.
+    const replyTo =
+      buildInboundReplyTo(to, inboundDomain) ||
+      process.env.CONTACT_TO_EMAIL ||
+      undefined;
 
     const sendRes = await resend.emails.send({
       from,
