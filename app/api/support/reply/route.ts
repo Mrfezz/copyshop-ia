@@ -46,15 +46,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: sendRes.error.message }, { status: 500 });
     }
 
-    // ✅ log dans la DB pour l’afficher dans "Reçus"
-    // ⚠️ adapte juste le nom de table/colonnes si besoin
+    // ✅ log dans la DB avec le même schéma que /api/me/messages et /api/inbound-webhook
+    // (sinon les messages support ne remontent pas correctement côté client)
     const { error: dbErr } = await supabaseAdmin.from("messages").insert({
       email: to,
-      box: "received",        // "received" pour Reçus
+      direction: "received", // reçu par le client
       subject,
-      message,
+      body: message,
       created_at: new Date().toISOString(),
-      provider_id: sendRes.data?.id ?? null,
     });
 
     if (dbErr) {
