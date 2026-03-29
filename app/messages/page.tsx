@@ -446,7 +446,7 @@ export default function MessagesPage() {
                 onClick={() => setTab("inbox")}
                 style={{ ...styles.sideBtn, ...(tab === "inbox" ? styles.sideBtnActive : {}) }}
               >
-                Boîte de réception
+                Tous les messages
                 <span style={styles.badge}>{messages.length}</span>
               </button>
 
