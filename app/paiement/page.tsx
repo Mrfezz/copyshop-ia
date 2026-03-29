@@ -444,7 +444,7 @@ export default function PaiementPage() {
 
           {wantsRecharge ? (
             <div style={{ marginTop: 8, color: "rgba(255,255,255,0.7)", fontWeight: 700 }}>
-              (Recharge détectée : vérification pack IA côté serveur)
+              
             </div>
           ) : null}
         </article>
