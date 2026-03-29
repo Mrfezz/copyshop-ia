@@ -116,6 +116,13 @@ export async function POST(req: NextRequest) {
       webhookSecret,
     });
 
+    console.log("📩 inbound webhook event", {
+      type: result?.type ?? null,
+      hasData: Boolean(result?.data),
+      emailId: result?.data?.email_id ?? null,
+      toFromEvent: result?.data?.to ?? null,
+    });
+
     // Pas un email reçu -> OK
     if (!result || result.type !== "email.received") {
       return NextResponse.json({ ok: true });
@@ -129,6 +136,12 @@ export async function POST(req: NextRequest) {
     // Récupère le contenu complet
     const { data: email, error } = await resend.emails.receiving.get(emailId);
     if (error) throw new Error(error.message);
+
+    console.log("📩 inbound email fetched", {
+      emailId,
+      toFromEmail: (email as any)?.to ?? null,
+      subject: (email as any)?.subject ?? null,
+    });
 
     // Email client depuis "to" (reply+TOKEN@...)
     const userEmail =
