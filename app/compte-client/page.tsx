@@ -295,25 +295,28 @@ export default function CompteClientPage() {
   }
 
   async function signOut() {
+    setAuthError(null);
+    setAuthMsg(null);
+    setPurchases([]);
+    setPurchasesError(null);
+    setPurchasesLoading(false);
+
     try {
-      setAuthError(null);
-      setAuthMsg(null);
-      setPurchases([]);
-      setPurchasesError(null);
-      setPurchasesLoading(false);
-
       await supabase.auth.signOut();
-
+    } catch (err: any) {
+      console.error("Erreur logout Supabase:", err?.message || err);
+    } finally {
       setSession(null);
       setChecking(false);
 
       if (typeof window !== "undefined") {
-        localStorage.removeItem("pendingCheckout");
-        sessionStorage.removeItem("pendingCheckout");
-        window.location.assign("/compte-client");
+        try {
+          localStorage.removeItem("pendingCheckout");
+          sessionStorage.removeItem("pendingCheckout");
+        } catch {}
+
+        window.location.replace("/compte-client");
       }
-    } catch (err: any) {
-      setAuthError(err?.message ?? "Erreur lors de la déconnexion");
     }
   }
 
