@@ -100,6 +100,16 @@ function PaymentSuccessBanner({ hidden }: { hidden: boolean }) {
   );
 }
 
+function isMobileSafari() {
+  if (typeof window === "undefined") return false;
+
+  const ua = window.navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|mercury/i.test(ua);
+
+  return isIOS && isSafari;
+}
+
 function clearSupabaseBrowserStorage() {
   if (typeof window === "undefined") return;
 
@@ -165,6 +175,21 @@ export default function CompteClientPage() {
 
     async function bootstrapSession() {
       try {
+        const hasMobileLogoutFlag =
+          typeof window !== "undefined" &&
+          window.sessionStorage.getItem("mobile_logout_pending") === "1";
+
+        if (hasMobileLogoutFlag) {
+          window.sessionStorage.removeItem("mobile_logout_pending");
+          clearSupabaseBrowserStorage();
+
+          if (!ignore) {
+            setSession(null);
+            setChecking(false);
+          }
+          return;
+        }
+
         const {
           data: { session: currentSession },
         } = await supabase.auth.getSession();
@@ -184,6 +209,14 @@ export default function CompteClientPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const hasMobileLogoutFlag =
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem("mobile_logout_pending") === "1";
+
+      if (hasMobileLogoutFlag) {
+        return;
+      }
+
       if (!ignore) {
         setSession(newSession ?? null);
         setChecking(false);
@@ -323,7 +356,14 @@ export default function CompteClientPage() {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
         setAuthMsg("Connecté ✅");
+
+        if (typeof window !== "undefined" && isMobileSafari()) {
+          setTimeout(() => {
+            window.location.assign("/compte-client");
+          }, 120);
+        }
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
@@ -343,7 +383,13 @@ export default function CompteClientPage() {
     setPurchasesError(null);
     setPurchasesLoading(false);
 
+    const mobileSafari = isMobileSafari();
+
     try {
+      if (typeof window !== "undefined" && mobileSafari) {
+        window.sessionStorage.setItem("mobile_logout_pending", "1");
+      }
+
       await supabase.auth.signOut();
     } catch (err: any) {
       console.error("Erreur logout Supabase:", err?.message || err);
@@ -354,9 +400,15 @@ export default function CompteClientPage() {
     setChecking(false);
 
     if (typeof window !== "undefined") {
-      setTimeout(() => {
-        window.location.replace("/compte-client");
-      }, 150);
+      if (mobileSafari) {
+        setTimeout(() => {
+          window.location.replace("/compte-client");
+        }, 120);
+      } else {
+        setTimeout(() => {
+          window.location.replace("/compte-client");
+        }, 150);
+      }
     }
   }
 
