@@ -33,9 +33,19 @@ type EntitlementRow = {
   updated_at: string | null;
 };
 
+function jsonNoStore(body: any, init?: ResponseInit) {
+  const res = NextResponse.json(body, init);
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.headers.set("Pragma", "no-cache");
+  res.headers.set("Expires", "0");
+  res.headers.set("Surrogate-Control", "no-store");
+  return res;
+}
+
 function getBearerToken(req: Request) {
-  const auth = req.headers.get("authorization") || "";
-  return auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const auth = (req.headers.get("authorization") || "").trim();
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
 }
 
 function getSortTime(row: {
@@ -50,38 +60,42 @@ export async function GET(req: Request) {
     const token = getBearerToken(req);
 
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
     const email = userRes?.user?.email ?? null;
 
     if (userErr || !email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonNoStore({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [{ data: purchasesData, error: purchasesError }, { data: entitlementData, error: entitlementError }] =
-      await Promise.all([
-        supabaseAdmin
-          .from("purchases")
-          .select("id, product_key, amount_total, currency, status, created_at, updated_at, stripe_session_id")
-          .eq("email", email)
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .order("created_at", { ascending: false, nullsFirst: false }),
+    const [
+      { data: purchasesData, error: purchasesError },
+      { data: entitlementData, error: entitlementError },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("purchases")
+        .select(
+          "id, product_key, amount_total, currency, status, created_at, updated_at, stripe_session_id"
+        )
+        .eq("email", email)
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false }),
 
-        supabaseAdmin
-          .from("entitlements")
-          .select("product_key, active, created_at, updated_at")
-          .eq("email", email)
-          .eq("active", true)
-          .in("product_key", ["ia-basic", "ia-premium", "ia-ultime", "recharge-ia", "ia-recharge-5"])
-          .order("updated_at", { ascending: false, nullsFirst: false })
-          .order("created_at", { ascending: false, nullsFirst: false })
-          .limit(1),
-      ]);
+      supabaseAdmin
+        .from("entitlements")
+        .select("product_key, active, created_at, updated_at")
+        .eq("email", email)
+        .eq("active", true)
+        .in("product_key", ["ia-basic", "ia-premium", "ia-ultime", "recharge-ia", "ia-recharge-5"])
+        .order("updated_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .limit(1),
+    ]);
 
     if (purchasesError) {
-      return NextResponse.json({ error: purchasesError.message }, { status: 500 });
+      return jsonNoStore({ error: purchasesError.message }, { status: 500 });
     }
 
     if (entitlementError) {
@@ -119,9 +133,9 @@ export async function GET(req: Request) {
 
     finalPurchases.sort((a, b) => getSortTime(b) - getSortTime(a));
 
-    return NextResponse.json({ purchases: finalPurchases });
+    return jsonNoStore({ purchases: finalPurchases }, { status: 200 });
   } catch (e: any) {
-    return NextResponse.json(
+    return jsonNoStore(
       { error: e?.message ?? "Server error" },
       { status: 500 }
     );
