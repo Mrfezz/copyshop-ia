@@ -85,7 +85,7 @@ function FormulaCard({ f }: { f: Formula }) {
       <div style={{ ...styles.priceBar, background: f.accent.priceBg }}>
         <div style={styles.priceWrap}>
           <div style={styles.priceBlur}>{f.price}</div>
-          <div style={styles.priceHint}>Tarif en cours de mise en place</div>
+          <div style={styles.priceHint}></div>
         </div>
 
         <a
