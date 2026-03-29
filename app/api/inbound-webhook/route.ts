@@ -35,10 +35,15 @@ function extractUserEmailFromTo(to: any): string | null {
   if (to?.address) list.push(String(to.address));
 
   for (const addr of list) {
-    const m = String(addr).match(/^reply\+([^@]+)@/i);
+    // Accepte aussi les formats:
+    // - "reply+token@domain.tld"
+    // - "Name <reply+token@domain.tld>"
+    // - "mailto:reply+token@domain.tld"
+    const normalized = String(addr).trim();
+    const m = normalized.match(/reply\+([a-zA-Z0-9_-]+)@/i);
     if (!m) continue;
     try {
-      const email = b64urlToStr(m[1]).trim();
+      const email = b64urlToStr(m[1]).trim().toLowerCase();
       if (email.includes("@")) return email;
     } catch {}
   }
